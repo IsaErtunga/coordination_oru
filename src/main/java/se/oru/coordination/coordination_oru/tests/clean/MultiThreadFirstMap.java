@@ -3,6 +3,7 @@ package se.oru.coordination.coordination_oru.tests.clean;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Comparator;
+import java.util.HashMap;
 
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 import org.metacsp.multi.spatioTemporal.paths.PoseSteering;
@@ -134,32 +135,53 @@ public class MultiThreadFirstMap {
 	rsp.setStart(startPoseRobot1);
 	rsp.setGoals(startPoseRobot2);
 	if (!rsp.plan()) throw new Error ("No path between " + startPoseRobot1 + " and " + startPoseRobot2);
-	PoseSteering[] pss1 = rsp.getPath();
-	paths.add(pss1);
-
-	rsp.setStart(startPoseRobot2);
-	rsp.setGoals(startPoseRobot1);
-	if (!rsp.plan()) throw new Error ("No path between " + startPoseRobot2 + " and " + startPoseRobot1);
-	PoseSteering[] pss2 = rsp.getPath();
-	paths.add(pss2);
+	PoseSteering[] r1m1 = rsp.getPath();
+    PoseSteering[] r1m2 = rsp.getPathInv();
 
     // missions for R2
 	rsp.setStart(cell1);
 	rsp.setGoals(cell10);
 	if (!rsp.plan()) throw new Error ("No path between " + startPoseRobot1 + " and " + startPoseRobot2);
-    PoseSteering[] robotPath = rsp.getPath();
-    PoseSteering[] robotPathInv = rsp.getPathInv();
+    PoseSteering[] r2m1 = rsp.getPath();
+    PoseSteering[] r2m2 = rsp.getPathInv();
 	
-	Missions.enqueueMission(new Mission(1, pss1));
-	Missions.enqueueMission(new Mission(1, pss2));
+    /*
+	Missions.enqueueMission(new Mission(1, r1m1));
+	Missions.enqueueMission(new Mission(1, r1m2));
 
-    Missions.enqueueMission(new Mission(2, robotPath));
-    Missions.enqueueMission(new Mission(2, robotPathInv));
-	
+    Missions.enqueueMission(new Mission(2, r2m1));
+    Missions.enqueueMission(new Mission(2, r2m2));
+	*/
 	
 	//Missions.startMissionDispatchers(tec, 1,2);
 
 
+    HashMap<Integer, ArrayList<Mission>> missions = new HashMap<Integer, ArrayList<Mission>>();
+
+    for (final int robotID : robotIDs) {
+        missions.put(robotID, new ArrayList<Mission>());
+    }
+
+    Thread missionThread = new Thread() {
+        @Override
+		public void run() {
+            this.setPriority(Thread.MAX_PRIORITY);
+            while (true) {
+                synchronized(missions) {
+                    missions.get(1).add(new Mission(1, r1m1));
+                    missions.get(1).add(new Mission(1, r1m2));
+
+                    missions.get(2).add(new Mission(2, r2m1));
+                    missions.get(2).add(new Mission(2, r2m2));
+                }
+
+                try { Thread.sleep(10000); }
+                catch (InterruptedException e) { e.printStackTrace(); }
+            }
+        }
+
+    }; 
+    missionThread.start();
 
 
     for (final int robotID : robotIDs) {
@@ -170,11 +192,11 @@ public class MultiThreadFirstMap {
                 this.setPriority(Thread.MAX_PRIORITY);
 				while (true) {
 
-                    Mission m = Missions.getMission(robotID, 0);
+                    Mission m = missions.get(robotID).get(0);
 
                     synchronized(tec) {
                         if (tec.addMissions(m)) {
-                            m = Missions.dequeueMission(robotID);
+                            m = missions.get(robotID).remove(0);
                         };
                     }
 
