@@ -28,8 +28,8 @@ public class MultiThreadFirstMap {
     final int numRobots = 1;
 
 	// Max acceleration and velocity
-	double MAX_ACCEL = 3.0;
-	double MAX_VEL = 10.0;
+	double MAX_ACCEL = 10.0;
+	double MAX_VEL = 20.0;
 
 	// final ArrayList<Integer> robotsInUse = new ArrayList<Integer>();
 
@@ -124,30 +124,62 @@ public class MultiThreadFirstMap {
 
 	//Place robots in their initial locations (looked up in the data file that was loaded above)
 	tec.placeRobot(1, startPoseRobot1);
-	tec.placeRobot(2, startPoseRobot2);
+	//tec.placeRobot(2, startPoseRobot2);
 
 	ArrayList<PoseSteering[]> paths = new ArrayList<PoseSteering[]>();
 
 
+    
 	// mission for R1
 	rsp.setStart(startPoseRobot1);
-	rsp.setGoals(cell10);
-	if (!rsp.plan()) throw new Error ("No path between " + startPoseRobot1 + " and " + cell10);
+	rsp.setGoals(startPoseRobot2);
+	if (!rsp.plan()) throw new Error ("No path between " + startPoseRobot1 + " and " + startPoseRobot2);
 	PoseSteering[] pss1 = rsp.getPath();
 	paths.add(pss1);
 
+
 	// mission for R2
 	rsp.setStart(startPoseRobot2);
-	rsp.setGoals(cell1);
-	if (!rsp.plan()) throw new Error ("No path between " + startPoseRobot2 + " and " + cell1);
+	rsp.setGoals(startPoseRobot1);
+	if (!rsp.plan()) throw new Error ("No path between " + startPoseRobot2 + " and " + startPoseRobot1);
 	PoseSteering[] pss2 = rsp.getPath();
 	paths.add(pss2);
-
+  
 	
 	Missions.enqueueMission(new Mission(1, pss1));
-	Missions.enqueueMission(new Mission(2, pss2));
+	Missions.enqueueMission(new Mission(1, pss2));
 	
-	Missions.startMissionDispatchers(tec, 1,2);
+	
+	//Missions.startMissionDispatchers(tec, 1,2);
+
+
+
+
+    for (final int robotID : robotIDs) {
+        Thread t = new Thread() {
+            
+            @Override
+			public void run() {
+                this.setPriority(Thread.MAX_PRIORITY);
+				while (true) {
+
+                    Mission m = Missions.getMission(robotID, 0);
+
+                    synchronized(tec) {
+                        if (tec.addMissions(m)) {
+                            m = Missions.dequeueMission(robotID);
+                        };
+                    }
+
+                    try { Thread.sleep(2000); }
+                    catch (InterruptedException e) { e.printStackTrace(); }
+                }
+                
+            }
+        };
+        t.start();
+
+    }
 
 }
 
