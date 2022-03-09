@@ -25,10 +25,18 @@ public class FirstTestMap {
 
 	public static void main(String[] args) throws InterruptedException {
 
+
+	// Max acceleration and velocity
 	double MAX_ACCEL = 3.0;
 	double MAX_VEL = 10.0;
 
+	// final ArrayList<Integer> robotsInUse = new ArrayList<Integer>();
+
+
+
 	//Instantiate a trajectory envelope coordinator
+	// Dont know the difference between this and icaps
+	// TODO learn what this is.
 	final TrajectoryEnvelopeCoordinatorSimulation tec = new TrajectoryEnvelopeCoordinatorSimulation(MAX_VEL,MAX_ACCEL);
 
 	//Provide a heuristic for determining orderings thru critical sections
@@ -94,7 +102,7 @@ public class FirstTestMap {
 	rsp.setMap(yamlFile);
 
 	//Define poses for the scenario
-	Pose cell1 = new Pose(10.0, 35.0, Math.PI);
+	Pose cell1 = new Pose(10.0, 15.0, Math.PI);
 	Pose cell10 = new Pose(10.0, 135.0, Math.PI);
 	Pose startPoseRobot1 = new Pose(50.0,20.0, Math.PI/2);	
 	Pose startPoseRobot2 = new Pose(50.0,190.0, 3*Math.PI/2);	
