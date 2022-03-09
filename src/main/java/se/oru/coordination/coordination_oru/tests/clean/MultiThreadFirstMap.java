@@ -25,7 +25,7 @@ public class MultiThreadFirstMap {
 
 	public static void main(String[] args) throws InterruptedException {
 
-    final int numRobots = 1;
+    final int numRobots = 2;
 
 	// Max acceleration and velocity
 	double MAX_ACCEL = 10.0;
@@ -124,30 +124,37 @@ public class MultiThreadFirstMap {
 
 	//Place robots in their initial locations (looked up in the data file that was loaded above)
 	tec.placeRobot(1, startPoseRobot1);
-	//tec.placeRobot(2, startPoseRobot2);
+	tec.placeRobot(2, cell1);
 
 	ArrayList<PoseSteering[]> paths = new ArrayList<PoseSteering[]>();
 
 
     
-	// mission for R1
+	// missions for R1
 	rsp.setStart(startPoseRobot1);
 	rsp.setGoals(startPoseRobot2);
 	if (!rsp.plan()) throw new Error ("No path between " + startPoseRobot1 + " and " + startPoseRobot2);
 	PoseSteering[] pss1 = rsp.getPath();
 	paths.add(pss1);
 
-
-	// mission for R2
 	rsp.setStart(startPoseRobot2);
 	rsp.setGoals(startPoseRobot1);
 	if (!rsp.plan()) throw new Error ("No path between " + startPoseRobot2 + " and " + startPoseRobot1);
 	PoseSteering[] pss2 = rsp.getPath();
 	paths.add(pss2);
-  
+
+    // missions for R2
+	rsp.setStart(cell1);
+	rsp.setGoals(cell10);
+	if (!rsp.plan()) throw new Error ("No path between " + startPoseRobot1 + " and " + startPoseRobot2);
+    PoseSteering[] robotPath = rsp.getPath();
+    PoseSteering[] robotPathInv = rsp.getPathInv();
 	
 	Missions.enqueueMission(new Mission(1, pss1));
 	Missions.enqueueMission(new Mission(1, pss2));
+
+    Missions.enqueueMission(new Mission(2, robotPath));
+    Missions.enqueueMission(new Mission(2, robotPathInv));
 	
 	
 	//Missions.startMissionDispatchers(tec, 1,2);
