@@ -22,6 +22,8 @@ import se.oru.coordination.coordination_oru.util.BrowserVisualization;
 import se.oru.coordination.coordination_oru.util.JTSDrawingPanelVisualization;
 import se.oru.coordination.coordination_oru.util.Missions;
 
+import se.oru.coordination.coordination_oru.MAS.RobotAgent;
+
 public class MultiThreadFirstMap {
 
 	public static void main(String[] args) throws InterruptedException {
@@ -183,6 +185,8 @@ public class MultiThreadFirstMap {
     }; 
     missionThread.start();
 
+	// ____
+	RobotAgent ra = new RobotAgent(3);
 
 	// Create all robots
     for (final int robotID : robotIDs) {
