@@ -184,14 +184,19 @@ public class MultiThreadFirstMap {
     missionThread.start();
 
 
+	// Create all robots
     for (final int robotID : robotIDs) {
+
+		// Thread for each robot object
         Thread t = new Thread() {
             
             @Override
 			public void run() {
                 this.setPriority(Thread.MAX_PRIORITY);
+
 				while (true) {
 
+					// TODO Instantiate robot object. 
                     Mission m = missions.get(robotID).get(0);
 
                     synchronized(tec) {
