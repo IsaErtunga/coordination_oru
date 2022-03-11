@@ -28,7 +28,7 @@ import se.oru.coordination.coordination_oru.simulation2D.TrajectoryEnvelopeCoord
 import se.oru.coordination.coordination_oru.Mission;
 import se.oru.coordination.coordination_oru.motionplanning.ompl.ReedsSheppCarPlanner;
 import se.oru.coordination.coordination_oru.ConstantAccelerationForwardModel;
-
+import se.oru.coordination.coordination_oru.MAS.MessagingSystem;
 
 
 // public class RobotAgent {
@@ -160,23 +160,43 @@ public class RobotAgent {
     protected int robotID;
     protected TrajectoryEnvelopeCoordinatorSimulation tec;
     protected ReedsSheppCarPlanner mp;
+    protected MessagingSystem ms;
+    protected Coordinate[] rShape;
+    protected Pose startPose;
 
 
 
 
-    public RobotAgent(int r_id, TrajectoryEnvelopeCoordinatorSimulation tec, ReedsSheppCarPlanner mp){       //constructor
-        System.out.println("################################## constructor ##################################################");
+    public RobotAgent(
+        int r_id,
+        TrajectoryEnvelopeCoordinatorSimulation tec,
+        ReedsSheppCarPlanner mp,
+        MessagingSystem ms,
+        Pose startPos ){
         
         this.robotID = r_id;
         this.tec = tec;
         this.mp = mp;
+        this.ms = ms;
+        this.startPose = startPos;
+
+        double xl = 5.0;
+	    double yl = 3.7;
+        this.rShape = new Coordinate[] {new Coordinate(-xl,yl),new Coordinate(xl,yl),new Coordinate(xl,-yl),new Coordinate(-xl,-yl)};
     }
 
-    public RobotAgent(int r_id, TrajectoryEnvelopeCoordinatorSimulation tec){       //constructor
-        System.out.println("################################## constructor ##################################################");
+    public RobotAgent( //constructor
+        int r_id,
+        TrajectoryEnvelopeCoordinatorSimulation tec,
+        ReedsSheppCarPlanner mp,
+        MessagingSystem ms,
+        Coordinate[] shape ){
         
         this.robotID = r_id;
         this.tec = tec;
+        this.mp = mp;
+        this.ms = ms;
+        this.rShape = shape;
     }
 
 
@@ -185,13 +205,6 @@ public class RobotAgent {
         double MAX_ACCEL = 10.0;
 	    double MAX_VEL = 20.0;
 
-        double xl = 5.0;
-	    double yl = 3.7;
-        Coordinate f1 = new Coordinate(-xl,yl);
-        Coordinate f2 = new Coordinate(xl,yl);
-        Coordinate f3 = new Coordinate(xl,-yl);
-        Coordinate f4 = new Coordinate(-xl,-yl);
-
         this.tec.setForwardModel(this.robotID, new ConstantAccelerationForwardModel(
             MAX_ACCEL, 
             MAX_VEL, 
@@ -199,13 +212,20 @@ public class RobotAgent {
             this.tec.getControlPeriod(), 
             this.tec.getRobotTrackingPeriodInMillis(this.robotID)));
 
-        tec.setFootprint(this.robotID, f1,f2,f3,f4);
+        tec.setFootprint(this.robotID, this.rShape);
 
-        Pose startPos = new Pose(50.0,20.0, Math.PI/2);
-        tec.placeRobot(this.robotID, startPos);
+        tec.placeRobot(this.robotID, this.startPose);
+
+        // join messageSystem
+        //this.ms.enterMessageSystem(this.robotID);
+
+        //this.ms.putMessage(this.robotID, "aklfdasfdsafsa");
+
+        //this.ms.getMessage(this.robotID);
 
 
         //TODO remove hard coded mission alloc
+        /*
         Pose startPoseRobot1 = new Pose(50.0,20.0, Math.PI/2);	
         Pose startPoseRobot2 = new Pose(50.0,190.0, 3*Math.PI/2);
 
@@ -221,23 +241,37 @@ public class RobotAgent {
         while(true){
             //asd
         }
+        */
 
     }
 
 
-    void communicateState(){
+    public void communicateState(int i){
         // talk with agents to form a task
 
 
         /*
         Mission m = ...
 
-        this.plan(m);
+        this.planState(m);
 
         */
+        Pose goal = new Pose(0,0,0);
+
+        while (this.tec.getRobotReport(this.robotID).getCriticalPoint() != -1){
+            try { Thread.sleep(1000); }
+            catch (InterruptedException e) { e.printStackTrace(); }
+        }
+
+        if (i == 1) goal = new Pose(10.0, 15.0, Math.PI);
+
+        if (i == 2) goal = new Pose(50.0,190.0, 3*Math.PI/2);
+
+        this.planState(goal);
+
     }
 
-    void planState(){
+    public void planState(Pose goal){
 
         // execute mission
 
@@ -249,9 +283,19 @@ public class RobotAgent {
                 replan..
             
         this.communcicate();
-
-
         */
+        //tec.getRobotReport(this.robotID).getPose();
+
+        this.mp.setStart(tec.getRobotReport(this.robotID).getPose());
+        this.mp.setGoals(goal);
+        if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + goal);
+        PoseSteering[] p1 = this.mp.getPath();
+        
+
+        this.tec.addMissions(new Mission(this.robotID, p1));
+
+        this.communicateState(2);
+
     }
 
     void replanState(){
@@ -267,6 +311,14 @@ public class RobotAgent {
 
     void listener(){
         // listen to incoming msgs
+        /*
+        while (true){
+
+
+        }
+
+
+        */
     }
 
 }

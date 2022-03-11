@@ -23,12 +23,13 @@ import se.oru.coordination.coordination_oru.util.JTSDrawingPanelVisualization;
 import se.oru.coordination.coordination_oru.util.Missions;
 
 import se.oru.coordination.coordination_oru.MAS.RobotAgent;
+import se.oru.coordination.coordination_oru.MAS.MessagingSystem;
 
 public class ThreadAgentFirstMap {
 
 	public static void main(String[] args) throws InterruptedException {
 
-    final int numRobots = 1;
+    final int numRobots = 2;
 
 	// Max acceleration and velocity
 	double MAX_ACCEL = 10.0;
@@ -115,12 +116,15 @@ public class ThreadAgentFirstMap {
 	//tec.placeRobot(2, cell1);
 
     
-
+	Pose cell1 = new Pose(10.0, 15.0, Math.PI);
+	Pose cell10 = new Pose(10.0, 135.0, Math.PI);
+	Pose startPoseRobot1 = new Pose(50.0,20.0, Math.PI/2);	
+	Pose startPoseRobot2 = new Pose(50.0,190.0, 3*Math.PI/2);	
     
+	Pose[] poses = {new Pose(50.0,20.0, Math.PI/2), new Pose(50.0,190.0, 3*Math.PI/2) };
 
 
-
-
+	MessagingSystem ms = new MessagingSystem();
 
 
 
@@ -134,8 +138,9 @@ public class ThreadAgentFirstMap {
 			public void run() {
                 this.setPriority(Thread.MAX_PRIORITY);
 
-				RobotAgent r = new RobotAgent(robotID, tec, rsp);
+				RobotAgent r = new RobotAgent(robotID, tec, rsp, ms, poses[robotID-1]);
 				r.addRobotToSimulation();
+				r.communicateState(1);
 			}
                 
 		};
