@@ -1,0 +1,126 @@
+package se.oru.coordination.coordination_oru.MAS;
+
+import se.oru.coordination.coordination_oru.MAS.RobotAgent;
+import se.oru.coordination.coordination_oru.MAS.StorageAgent;
+import se.oru.coordination.coordination_oru.MAS.Message;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
+public class Router {
+
+    protected int periodMili = 1000;
+
+    public HashMap<Integer, ArrayList<Message>> inboxes = new HashMap<Integer, ArrayList<Message>>();
+    public HashMap<Integer, ArrayList<Message>> outboxes = new HashMap<Integer, ArrayList<Message>>();
+
+
+    public void enterNetwork(RobotAgent a){
+        synchronized(this.inboxes){ this.inboxes.put(a.robotID, a.inbox); }
+        synchronized(this.outboxes){ this.outboxes.put(a.robotID, a.outbox); }
+    }
+    public void enterNetwork(StorageAgent a){
+        synchronized(this.inboxes){ this.inboxes.put(a.robotID, a.inbox); }
+        synchronized(this.outboxes){ this.outboxes.put(a.robotID, a.outbox); }
+    }
+
+
+    public void run(){
+        //TODO implement protection to check if robotID exist to router
+
+        while(true){
+            this.print();
+            ArrayList<Message> outputMessages = new ArrayList<Message>();
+
+            synchronized(this.outboxes){
+                
+                for (Map.Entry<Integer, ArrayList<Message>> t : this.outboxes.entrySet()) {
+                    outputMessages.addAll(t.getValue());
+                    t.getValue().clear();
+                }
+            }
+
+            synchronized(this.inboxes){
+                for (Message m : outputMessages){
+
+                    if ( m.receiver.length <= 0 ){      // if receiver int arr size = 0: broadcast
+                        for (Map.Entry<Integer, ArrayList<Message>> t : this.inboxes.entrySet()) {
+                            if ( t.getKey() == m.sender ) continue;
+
+                            this.inboxes.get(t.getKey()).add(m);
+                        }
+                    }
+
+                    else{                               // send to receiver id's
+                       for (int receiver : m.receiver){ this.inboxes.get(receiver).add(m); }
+                    }
+                }
+            }
+
+            try { Thread.sleep(this.periodMili); }
+            catch (InterruptedException e) { e.printStackTrace(); }
+        }
+    }
+
+    private void print(){
+        System.out.println("######################################");
+
+        synchronized(this.outboxes){
+                
+            for (Map.Entry<Integer, ArrayList<Message>> t : this.outboxes.entrySet()) {
+                System.out.println("outbox: robotList: " + t.getKey());
+
+                for (Message m : t.getValue()){
+                    System.out.println(m.body);
+                }
+            }
+        }
+        synchronized(this.inboxes){
+                
+            for (Map.Entry<Integer, ArrayList<Message>> t : this.inboxes.entrySet()) {
+                System.out.println("inbox: robotList: " + t.getKey());
+
+                for (Message m : t.getValue()){
+                    System.out.println(m.body);
+                }
+            }
+        }
+    }
+
+    /* ####################### TEST ####################### */
+
+    public static void main(String args[]){
+        RobotAgent r = new RobotAgent(0);
+        StorageAgent s = new StorageAgent(1);
+        int[] aaa = {0};
+        s.outbox.add(new Message(1, aaa, "type-storage","body-storage"));
+
+        Router router = new Router();
+
+        router.enterNetwork(r);
+        router.enterNetwork(s);
+
+        Thread t = new Thread() {
+			public void run() {
+                int i =0;
+				while (true) {
+                    i++;
+                    int[] aaa = {1,0};
+
+                    synchronized(r.outbox){ r.outbox.add(new Message(0,aaa,"type-trans","body-trans-"+i)); }
+					
+
+                    try { Thread.sleep(2000); }
+                    catch (InterruptedException e) { e.printStackTrace(); }
+                }
+            }
+        };
+        t.start();
+
+        router.run();
+    }
+    
+    /* ####################### TEST ####################### */
+
+}

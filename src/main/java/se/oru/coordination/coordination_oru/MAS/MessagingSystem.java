@@ -1,12 +1,14 @@
 package se.oru.coordination.coordination_oru.MAS;
 
+import se.oru.coordination.coordination_oru.MAS.Message;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ArrayList;
 
 public class MessagingSystem {
 
-    public HashMap<Integer, ArrayList<String>> messageBoard = new HashMap<Integer, ArrayList<String>>();
+    public HashMap<Integer, ArrayList<Message>> messageBoard = new HashMap<Integer, ArrayList<Message>>();
     public int verbose = 1;
 
 
@@ -14,7 +16,7 @@ public class MessagingSystem {
         // when a new robot enters the system it calls this function to enter the messaging system
         
         synchronized(this.messageBoard){
-            this.messageBoard.put(robotID, new ArrayList<String>());
+            this.messageBoard.put(robotID, new ArrayList<Message>());
         }
 
         if (this.verbose !=0){
@@ -36,9 +38,9 @@ public class MessagingSystem {
         
     }
 
-    public String getMessage(int robotID){
+    public Message getMessage(int robotID){
         // a robot checks if it has got a new message, if not 'NULL' is returned
-        String ret_msg = "NULL";
+        Message ret_msg = new Message();
 
         if (this.verbose !=0){
             System.out.println("getMsg: id " + robotID);
@@ -52,7 +54,7 @@ public class MessagingSystem {
         return ret_msg;
     }
 
-    public void putMessage(int receiverID, String msg){
+    public void putMessage(int receiverID, Message msg){
         // a robot send a message to another robot
         synchronized(this.messageBoard){
             this.messageBoard.get(receiverID).add(msg);
@@ -64,7 +66,7 @@ public class MessagingSystem {
         }
     }
 
-    public void multiSendMessage(int[] receiverIDs, String msg){
+    public void multiSendMessage(int[] receiverIDs, Message msg){
         // a robot send a message to a group of robots
         synchronized(this.messageBoard){
             for (int id : receiverIDs) this.messageBoard.get(id).add(msg);
@@ -76,10 +78,11 @@ public class MessagingSystem {
         }
     }
 
-    public void broadcastMessage(int senderID, String msg){
+    public void broadcastMessage(int senderID, Message msg){
         // a robot send a message to all other robots
         synchronized(this.messageBoard){
-            for (Map.Entry<Integer, ArrayList<String>> agentMsgListEntry : this.messageBoard.entrySet()) {
+            
+            for (Map.Entry<Integer, ArrayList<Message>> agentMsgListEntry : this.messageBoard.entrySet()) {
                 if (senderID == agentMsgListEntry.getKey()) continue;
                 agentMsgListEntry.getValue().add(msg);
             }
@@ -92,5 +95,3 @@ public class MessagingSystem {
     }
 
 }
-
-

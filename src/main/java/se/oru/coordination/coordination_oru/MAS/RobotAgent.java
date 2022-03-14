@@ -164,8 +164,14 @@ public class RobotAgent {
     protected Coordinate[] rShape;
     protected Pose startPose;
 
+    public ArrayList<Message> inbox = new ArrayList<Message>();
+    public ArrayList<Message> outbox = new ArrayList<Message>();
+
+    protected boolean hasMission;
+    protected boolean hasNextMission;
 
 
+    public RobotAgent(int id){this.robotID = id;}
 
     public RobotAgent(
         int r_id,
@@ -251,9 +257,12 @@ public class RobotAgent {
 
 
         /*
-        Mission m = ...
+        if (!hasNextMission):
+            plan next mission...
+            
+            Mission m = ...       
 
-        this.planState(m);
+            this.planState(m);
 
         */
         Pose goal = new Pose(0,0,0);

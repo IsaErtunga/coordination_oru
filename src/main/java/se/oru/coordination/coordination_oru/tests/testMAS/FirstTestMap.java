@@ -1,9 +1,8 @@
-package se.oru.coordination.coordination_oru.tests.clean;
+package se.oru.coordination.coordination_oru.tests.testMAS;
 
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Comparator;
-import java.util.HashMap;
 
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 import org.metacsp.multi.spatioTemporal.paths.PoseSteering;
@@ -22,18 +21,14 @@ import se.oru.coordination.coordination_oru.util.BrowserVisualization;
 import se.oru.coordination.coordination_oru.util.JTSDrawingPanelVisualization;
 import se.oru.coordination.coordination_oru.util.Missions;
 
-import se.oru.coordination.coordination_oru.MAS.RobotAgent;
-import se.oru.coordination.coordination_oru.MAS.MessagingSystem;
-
-public class ThreadAgentFirstMap {
+public class FirstTestMap {
 
 	public static void main(String[] args) throws InterruptedException {
 
-    final int numRobots = 2;
 
 	// Max acceleration and velocity
-	double MAX_ACCEL = 10.0;
-	double MAX_VEL = 20.0;
+	double MAX_ACCEL = 3.0;
+	double MAX_VEL = 10.0;
 
 	// final ArrayList<Integer> robotsInUse = new ArrayList<Integer>();
 
@@ -61,6 +56,11 @@ public class ThreadAgentFirstMap {
 		}
 	});
 
+	//Provide a conservative forward model for each robot
+	tec.setForwardModel(1, new ConstantAccelerationForwardModel(MAX_ACCEL, MAX_VEL, tec.getTemporalResolution(), tec.getControlPeriod(), tec.getRobotTrackingPeriodInMillis(1)));
+	tec.setForwardModel(2, new ConstantAccelerationForwardModel(MAX_ACCEL, MAX_VEL, tec.getTemporalResolution(), tec.getControlPeriod(), tec.getRobotTrackingPeriodInMillis(2)));
+	tec.setForwardModel(3, new ConstantAccelerationForwardModel(MAX_ACCEL, MAX_VEL, tec.getTemporalResolution(), tec.getControlPeriod(), tec.getRobotTrackingPeriodInMillis(3)));
+	tec.setForwardModel(4, new ConstantAccelerationForwardModel(MAX_ACCEL, MAX_VEL, tec.getTemporalResolution(), tec.getControlPeriod(), tec.getRobotTrackingPeriodInMillis(4)));
 
 	//Define robot geometries (here, the same for all robots)
 
@@ -101,52 +101,38 @@ public class ThreadAgentFirstMap {
 	//rsp.setDistanceBetweenPathPoints(0.5); 	default is 0.5 
 	rsp.setMap(yamlFile);
 
-    // Define robots with poses
-    final int[] robotIDs = new int[numRobots];
-    for (int i = 0; i < numRobots; i++) robotIDs[i] = i+1;
-
-
-
-
 	//Define poses for the scenario
-	
-
-	//Place robots in their initial locations (looked up in the data file that was loaded above)
-	//tec.placeRobot(1, startPoseRobot1);
-	//tec.placeRobot(2, cell1);
-
-    
 	Pose cell1 = new Pose(10.0, 15.0, Math.PI);
 	Pose cell10 = new Pose(10.0, 135.0, Math.PI);
 	Pose startPoseRobot1 = new Pose(50.0,20.0, Math.PI/2);	
 	Pose startPoseRobot2 = new Pose(50.0,190.0, 3*Math.PI/2);	
-    
-	Pose[] poses = {new Pose(50.0,20.0, Math.PI/2), new Pose(50.0,190.0, 3*Math.PI/2) };
+
+	//Place robots in their initial locations (looked up in the data file that was loaded above)
+	tec.placeRobot(1, startPoseRobot1);
+	tec.placeRobot(2, startPoseRobot2);
+
+	ArrayList<PoseSteering[]> paths = new ArrayList<PoseSteering[]>();
 
 
-	MessagingSystem ms = new MessagingSystem();
+	// mission for R1
+	rsp.setStart(startPoseRobot1);
+	rsp.setGoals(cell10);
+	if (!rsp.plan()) throw new Error ("No path between " + startPoseRobot1 + " and " + cell10);
+	PoseSteering[] pss1 = rsp.getPath();
+	paths.add(pss1);
 
+	// mission for R2
+	rsp.setStart(startPoseRobot2);
+	rsp.setGoals(cell1);
+	if (!rsp.plan()) throw new Error ("No path between " + startPoseRobot2 + " and " + cell1);
+	PoseSteering[] pss2 = rsp.getPath();
+	paths.add(pss2);
 
-
-	// Create all robots
-    for (final int robotID : robotIDs) {
-
-		// Thread for each robot object
-        Thread t = new Thread() {
-            
-            @Override
-			public void run() {
-                this.setPriority(Thread.MAX_PRIORITY);
-
-				RobotAgent r = new RobotAgent(robotID, tec, rsp, ms, poses[robotID-1]);
-				r.addRobotToSimulation();
-				r.communicateState(1);
-			}
-                
-		};
-        t.start();
-
-    }
+	
+	Missions.enqueueMission(new Mission(1, pss1));
+	Missions.enqueueMission(new Mission(2, pss2));
+	
+	Missions.startMissionDispatchers(tec, 1,2);
 
 }
 
