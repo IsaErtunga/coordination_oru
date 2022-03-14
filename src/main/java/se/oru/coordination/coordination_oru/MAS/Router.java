@@ -25,12 +25,17 @@ public class Router {
         synchronized(this.outboxes){ this.outboxes.put(a.robotID, a.outbox); }
     }
 
+    public void enterNetwork(int robotID, ArrayList<Message> inbox, ArrayList<Message> outbox){ //callable from within robot
+        synchronized(this.inboxes){ this.inboxes.put(robotID, inbox); }
+        synchronized(this.outboxes){ this.outboxes.put(robotID, outbox); }
+    }
+
 
     public void run(){
         //TODO implement protection to check if robotID exist to router
 
         while(true){
-            this.print();
+            //this.print();
             ArrayList<Message> outputMessages = new ArrayList<Message>();
 
             synchronized(this.outboxes){
@@ -64,7 +69,7 @@ public class Router {
     }
 
     private void print(){
-        System.out.println("######################################");
+        System.out.println("####################");
 
         synchronized(this.outboxes){
                 

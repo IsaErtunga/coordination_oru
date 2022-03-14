@@ -43,9 +43,7 @@ public class StorageAgent {
     public ArrayList<Message> outbox = new ArrayList<Message>();
 
 
-
-
-    public StorageAgent(int id){this.robotID = id;}
+    public StorageAgent(int id){this.robotID = id;}     // for testing
 
     public StorageAgent(int r_id, MessagingSystem ms, double capacity, Pose startPos ){
         

@@ -23,7 +23,7 @@ import se.oru.coordination.coordination_oru.util.JTSDrawingPanelVisualization;
 import se.oru.coordination.coordination_oru.util.Missions;
 
 import se.oru.coordination.coordination_oru.MAS.RobotAgent;
-import se.oru.coordination.coordination_oru.MAS.MessagingSystem;
+import se.oru.coordination.coordination_oru.MAS.Router;
 
 public class ThreadAgentFirstMap {
 
@@ -124,8 +124,7 @@ public class ThreadAgentFirstMap {
 	Pose[] poses = {new Pose(50.0,20.0, Math.PI/2), new Pose(50.0,190.0, 3*Math.PI/2) };
 
 
-	MessagingSystem ms = new MessagingSystem();
-
+	Router router = new Router();
 
 
 	// Create all robots
@@ -138,7 +137,7 @@ public class ThreadAgentFirstMap {
 			public void run() {
                 this.setPriority(Thread.MAX_PRIORITY);
 
-				RobotAgent r = new RobotAgent(robotID, tec, rsp, ms, poses[robotID-1]);
+				RobotAgent r = new RobotAgent(robotID, tec, rsp, poses[robotID-1], router);
 				r.addRobotToSimulation();
 				r.communicateState(1);
 			}
