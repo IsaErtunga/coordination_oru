@@ -27,12 +27,11 @@ import se.oru.coordination.coordination_oru.simulation2D.TrajectoryEnvelopeCoord
 import se.oru.coordination.coordination_oru.Mission;
 import se.oru.coordination.coordination_oru.motionplanning.ompl.ReedsSheppCarPlanner;
 import se.oru.coordination.coordination_oru.ConstantAccelerationForwardModel;
-import se.oru.coordination.coordination_oru.MAS.MessagingSystem;
+import se.oru.coordination.coordination_oru.MAS.Router;
 
 
 public class StorageAgent {
     protected int robotID;
-    protected MessagingSystem ms;
     protected Pose startPose;
     protected double capacity;  // capacity of storage = max ore it can store in TONS
     protected double amount;    // the current amount it has stored in TONS
@@ -45,15 +44,14 @@ public class StorageAgent {
 
     public StorageAgent(int id){this.robotID = id;}     // for testing
 
-    public StorageAgent(int r_id, MessagingSystem ms, double capacity, Pose startPos ){
+    public StorageAgent(int r_id, Router router, double capacity, Pose startPos ){
         
         this.robotID = r_id;
-        this.ms = ms;
         this.capacity = capacity;
         this.amount = 0;
         this.startPose = startPos;
 
-        this.ms.enterMessageSystem(this.robotID);
+        router.enterNetwork(this);
     }
 
     public void addOre(double ore){

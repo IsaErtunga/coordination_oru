@@ -24,7 +24,7 @@ import se.oru.coordination.coordination_oru.util.Missions;
 
 import se.oru.coordination.coordination_oru.MAS.RobotAgent;
 import se.oru.coordination.coordination_oru.MAS.StorageAgent;
-import se.oru.coordination.coordination_oru.MAS.MessagingSystem;
+import se.oru.coordination.coordination_oru.MAS.Router;
 
 public class StorageTransportExample {
 
@@ -126,8 +126,7 @@ public class StorageTransportExample {
     
 	Pose[] poses = {startPoseRobot1, startPoseRobot2 };
 
-
-	MessagingSystem ms = new MessagingSystem();
+	Router router = new Router();
 
 	// Create all robots
     for (final int robotID : robotIDs) {
@@ -139,7 +138,7 @@ public class StorageTransportExample {
 			public void run() {
                 this.setPriority(Thread.MAX_PRIORITY);
 
-				RobotAgent r = new RobotAgent(robotID, tec, rsp, ms, poses[robotID-1]);
+				RobotAgent r = new RobotAgent(robotID, tec, rsp, poses[robotID-1], router);
 				r.addRobotToSimulation();
 				r.communicateState(1);
 			}
@@ -155,7 +154,7 @@ public class StorageTransportExample {
 		public void run() {
 			this.setPriority(Thread.MAX_PRIORITY);
 
-			StorageAgent s = new StorageAgent(numRobots+1,ms,100.0,storagePlace1);
+			StorageAgent s = new StorageAgent(numRobots+1, router, 100.0,storagePlace1);
 			
 		}
 			

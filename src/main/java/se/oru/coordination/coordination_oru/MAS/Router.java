@@ -5,6 +5,7 @@ import se.oru.coordination.coordination_oru.MAS.StorageAgent;
 import se.oru.coordination.coordination_oru.MAS.Message;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -49,16 +50,20 @@ public class Router {
             synchronized(this.inboxes){
                 for (Message m : outputMessages){
 
-                    if ( m.receiver.length <= 0 ){      // if receiver int arr size = 0: broadcast
+                    if ( m.receiver.size() <= 0 ){      // if receiver int arr size = 0: broadcast
                         for (Map.Entry<Integer, ArrayList<Message>> t : this.inboxes.entrySet()) {
                             if ( t.getKey() == m.sender ) continue;
 
+                            m.receiver = new ArrayList<>(Arrays.asList(t.getKey())); // replace broadcast with receivers ID
                             this.inboxes.get(t.getKey()).add(m);
                         }
                     }
 
                     else{                               // send to receiver id's
-                       for (int receiver : m.receiver){ this.inboxes.get(receiver).add(m); }
+                       for (int receiver : m.receiver){
+                            m.receiver = new ArrayList<>(Arrays.asList(receiver)); // replace broadcast with receivers ID
+                            this.inboxes.get(receiver).add(m); 
+                        }
                     }
                 }
             }
@@ -96,9 +101,12 @@ public class Router {
     /* ####################### TEST ####################### */
 
     public static void main(String args[]){
+
+        /*
         RobotAgent r = new RobotAgent(0);
         StorageAgent s = new StorageAgent(1);
-        int[] aaa = {0};
+        ArrayList<Integer> aaa = new ArrayList<Integer>();
+        aaa.add(0);
         s.outbox.add(new Message(1, aaa, "type-storage","body-storage"));
 
         Router router = new Router();
@@ -111,7 +119,9 @@ public class Router {
                 int i =0;
 				while (true) {
                     i++;
-                    int[] aaa = {1,0};
+                    ArrayList<Integer> aaa = new ArrayList<Integer>();
+                    aaa.add(0);
+                    aaa.add(1);
 
                     synchronized(r.outbox){ r.outbox.add(new Message(0,aaa,"type-trans","body-trans-"+i)); }
 					
@@ -124,7 +134,14 @@ public class Router {
         t.start();
 
         router.run();
+    */
+
+    ArrayList<Integer> receiver = new ArrayList<>(Arrays.asList(1,3));
+    ArrayList<Integer> receiver2 = new ArrayList<Integer>(3);
+
+    System.out.println(receiver2);
     }
+    
     
     /* ####################### TEST ####################### */
 

@@ -1,0 +1,29 @@
+
+General stuff::
+1:
+tag -> hello-world
+body -> int taskID : the id of the robot entering
+
+2:
+tag -> goodbye-world
+body -> int robotID : the id of the robot leaving
+
+3: 
+tag -> cnp-service
+body -> Task(ID, storageLocation?,, deliverTime, offerDuration) 
+: deliverTime is the time the storage agent wants ore to be delivered,
+offerDuration is how long the storage agent will accept offers.  
+
+4:
+tag -> accept
+body -> int taskID : 
+
+5:
+tag -> decline
+body -> int taskID : 
+
+6:
+tag -> inform
+body -> taskID & ( abort | done | result )
+
+

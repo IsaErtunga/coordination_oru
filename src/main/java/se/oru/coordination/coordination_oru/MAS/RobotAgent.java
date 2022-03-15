@@ -29,15 +29,12 @@ import se.oru.coordination.coordination_oru.motionplanning.ompl.ReedsSheppCarPla
 import se.oru.coordination.coordination_oru.ConstantAccelerationForwardModel;
 
 
-public class RobotAgent {
+public class RobotAgent extends CommunicationAid{
     protected int robotID;
     protected TrajectoryEnvelopeCoordinatorSimulation tec;
     protected ReedsSheppCarPlanner mp;
     protected Coordinate[] rShape;
     protected Pose startPose;
-
-    public ArrayList<Message> inbox = new ArrayList<Message>();
-    public ArrayList<Message> outbox = new ArrayList<Message>();
 
 
     public RobotAgent(int id){this.robotID = id;}   // for testing
@@ -50,8 +47,10 @@ public class RobotAgent {
         this.mp = mp;
         this.startPose = startPos;
 
+        // enter network and broadcast our id to others.
         router.enterNetwork(this);
-
+        this.sendMessage(new Message(this.robotID, "hello-world", Integer.toString(this.tID())));
+        
         double xl = 5.0;
 	    double yl = 3.7;
         this.rShape = new Coordinate[] {new Coordinate(-xl,yl),new Coordinate(xl,yl),
@@ -59,7 +58,7 @@ public class RobotAgent {
 
     }
 
-    public RobotAgent( //constructor 
+    public RobotAgent( //old constructor 
         int r_id,
         TrajectoryEnvelopeCoordinatorSimulation tec,
         ReedsSheppCarPlanner mp,
@@ -143,7 +142,7 @@ public class RobotAgent {
 
     }
 
-    void replanState(){
+    public void replanState(){
         // try replan
 
         /*
@@ -152,18 +151,6 @@ public class RobotAgent {
 
         */
 
-    }
-
-    void listener(){
-        // listen to incoming msgs
-        /*
-        while (true){
-
-
-        }
-
-
-        */
     }
 
 }
