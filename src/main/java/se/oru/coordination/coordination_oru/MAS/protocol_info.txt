@@ -26,4 +26,7 @@ body -> int taskID :
 tag -> inform
 body -> taskID & ( abort | done | result )
 
+7:
+tag -> offer
+body -> int taskID & int offerVal
 

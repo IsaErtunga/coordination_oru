@@ -30,7 +30,6 @@ import se.oru.coordination.coordination_oru.ConstantAccelerationForwardModel;
 
 
 public class RobotAgent extends CommunicationAid{
-    protected int robotID;
     protected TrajectoryEnvelopeCoordinatorSimulation tec;
     protected ReedsSheppCarPlanner mp;
     protected Coordinate[] rShape;
@@ -41,6 +40,9 @@ public class RobotAgent extends CommunicationAid{
 
     public RobotAgent(  int r_id, TrajectoryEnvelopeCoordinatorSimulation tec,
                         ReedsSheppCarPlanner mp, Pose startPos, Router router ){
+            
+                            System.out.println("#######################");
+                            System.out.println(r_id +" -- constructor");
         
         this.robotID = r_id;
         this.tec = tec;
@@ -49,8 +51,10 @@ public class RobotAgent extends CommunicationAid{
 
         // enter network and broadcast our id to others.
         router.enterNetwork(this);
-        this.sendMessage(new Message(this.robotID, "hello-world", Integer.toString(this.tID())));
-        
+
+        String type = "hello-world";
+        this.sendMessage(new Message(this.robotID, type, ""), true);
+                
         double xl = 5.0;
 	    double yl = 3.7;
         this.rShape = new Coordinate[] {new Coordinate(-xl,yl),new Coordinate(xl,yl),

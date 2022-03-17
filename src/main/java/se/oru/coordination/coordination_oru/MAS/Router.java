@@ -11,7 +11,7 @@ import java.util.Map;
 
 public class Router {
 
-    protected int periodMili = 1000;
+    protected int periodMili = 500;
 
     public HashMap<Integer, ArrayList<Message>> inboxes = new HashMap<Integer, ArrayList<Message>>();
     public HashMap<Integer, ArrayList<Message>> outboxes = new HashMap<Integer, ArrayList<Message>>();
@@ -38,7 +38,7 @@ public class Router {
         ArrayList<Message> outputMessages = new ArrayList<Message>();
 
         while(true){
-            //this.print();
+            this.print();
 
             synchronized(this.outboxes){
                 
@@ -75,25 +75,25 @@ public class Router {
     }
 
     private void print(){
-        System.out.println("####################");
+        System.out.println("###ROUTER###");
 
         synchronized(this.outboxes){
                 
             for (Map.Entry<Integer, ArrayList<Message>> t : this.outboxes.entrySet()) {
-                System.out.println("outbox: robotList: " + t.getKey());
+                System.out.println("outbox r" + t.getKey() +":");
 
                 for (Message m : t.getValue()){
-                    System.out.println(m.body);
+                    System.out.println(" - " + m.type + ": " + m.body);
                 }
             }
         }
         synchronized(this.inboxes){
                 
             for (Map.Entry<Integer, ArrayList<Message>> t : this.inboxes.entrySet()) {
-                System.out.println("inbox: robotList: " + t.getKey());
+                System.out.println("inbox r" + t.getKey() +":");
 
                 for (Message m : t.getValue()){
-                    System.out.println(m.body);
+                    System.out.println(" - " + m.type + ": " + m.body);
                 }
             }
         }

@@ -1,3 +1,7 @@
+/**
+ * @author Alexander Benteby & Isa Ertunga
+ */
+
 package se.oru.coordination.coordination_oru.MAS;
 
 import java.util.ArrayList;
@@ -12,11 +16,18 @@ import se.oru.coordination.coordination_oru.MAS.Message;
 
 public class CommunicationAid {
 
+    protected int lowerTaskIDBound = 1000;
+    protected int upperTaskIDBound = 9999;
+    protected String separator = ".";
+    protected int robotID;
+
     public ArrayList<Integer> robotsInNetwork = new ArrayList<Integer>();
     protected ArrayList<Message> offers = new ArrayList<Message>();
 
     public ArrayList<Message> inbox = new ArrayList<Message>();
     public ArrayList<Message> outbox = new ArrayList<Message>();
+
+    public HashMap<Integer,String> activeTasks = new HashMap<Integer, String>();
 
     // messaging utils
     public Random rand = new Random(System.currentTimeMillis());
@@ -25,14 +36,53 @@ public class CommunicationAid {
 
 
     public void sendMessage(Message m){
+        this.sendMessage(m, false); 
+    }
+
+    /**
+     * Function for sending a message. 
+     * If genTaskID is true. The function generates an id, converts it to a string and attaches it to the message. 
+     * @param m the message to be sent
+     * @param genTaskID if true we generate a taskID for the msg and log the task in this.activeTasks
+     */
+    public void sendMessage(Message m, boolean genTaskID){
+        if (genTaskID){
+            int taskID = this.tID();
+
+            if (m.body == "") m.body = Integer.toString(taskID);
+            else  m.body = taskID + this.separator + m.body;
+
+            this.logTask(taskID, m.type);
+        }
+        
         synchronized(this.outbox){ this.outbox.add(m); }
     }
-
-    public int tID(){ // generate a new task id bound 1000-9999
-        return this.rand.nextInt((9999 - 1000) + 1) + 1000;
+    
+    /** logTask will add a task to this.activeTasks to keep context for conversations
+     * to remember what we sent and what responses we expect.
+     * 
+     * @param taskID the task id to be added to this.activeTasks
+     * @param info  information about the taskID to give context
+     */
+    public void logTask(int taskID, String info){
+        synchronized(this.activeTasks){ this.activeTasks.put(taskID, info); }
     }
 
-    
+    /** tID generates a new random task id.
+     * returns an int between [this.lowerTaskIDBound , this.higherTaskIDBound]
+     */
+    public int tID(){ // generate a new task id bound 1000-9999
+        return this.rand.nextInt((this.upperTaskIDBound - this.lowerTaskIDBound) + 1) + this.lowerTaskIDBound;
+    }
+
+    /**
+     * Periodically checks the inbox of a robot.
+     * Reacts to different messages depending on their message type.
+     * -------------------------------------------------------------
+     * if type == hello-world: add sending robot to its network
+     * if type == res-offer: 
+     * if type == accept: see taskHandler function. 
+     */
     public void listener(){
         ArrayList<Message> inbox_copy;
 
@@ -53,16 +103,35 @@ public class CommunicationAid {
                 else if (m.type == "res-offer"){
                     this.offers.add(m);
                 }
+
+                else if (m.type == "accept"){
+                    this.taskHandler(Integer.parseInt(m.body), m);
+                }
             }
 
-            //System.out.println(this.robotsInNetwork);
+            System.out.println(this.robotID + " -- " + this.robotsInNetwork);
             try { Thread.sleep(1000); }
             catch (InterruptedException e) { e.printStackTrace(); }
         }
 
     }
 
+    /**
+     * activeTasks is a datastructure storing tasks with their id for a robot. 
+     * This function checks if the taskID of a certain message is contained in the active tasks.
+     * If: 
+     * Task-type is "hello-world", the robot should add the accepting robot to its network. 
+     * @param taskID
+     * @param m
+     */
+    public void taskHandler(int taskID, Message m){
+        String taskInfo = this.activeTasks.get(taskID);
 
+        if (taskInfo == "hello-world" && !this.robotsInNetwork.contains(m.sender)){
+            this.robotsInNetwork.add(m.sender);
+        }
+
+    }
 
     
     /** offerService is called when a robot want to plan in a new task to execute.
@@ -155,6 +224,7 @@ public class CommunicationAid {
     }
     
     public static void main(String[] args){
+        /*
         RobotAgent r1 = new RobotAgent(0);
         RobotAgent r2 = new RobotAgent(1);
 
@@ -187,8 +257,9 @@ public class CommunicationAid {
         };
         t3.start();
 
-        
+           */ 
     }
+
 
 
 }
