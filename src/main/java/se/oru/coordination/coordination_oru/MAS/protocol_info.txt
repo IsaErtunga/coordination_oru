@@ -10,7 +10,9 @@ body -> int robotID : the id of the robot leaving
 
 3: 
 tag -> cnp-service
-body -> Task(ID, storageLocation?,, deliverTime, offerDuration) 
+body -> taskID & storageID & 
+    pos & deliverTime & offerDuration
+
 : deliverTime is the time the storage agent wants ore to be delivered,
 offerDuration is how long the storage agent will accept offers.  
 
@@ -24,9 +26,12 @@ body -> int taskID :
 
 6:
 tag -> inform
-body -> taskID & ( abort | done | result )
+body -> taskID & ( informVal : (abort | done | result ))
 
 7:
 tag -> offer
 body -> int taskID & int offerVal
+
+
+Body: taskID.dasda.offerval
 

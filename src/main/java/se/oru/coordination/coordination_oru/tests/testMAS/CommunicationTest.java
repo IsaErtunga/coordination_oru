@@ -24,12 +24,13 @@ import se.oru.coordination.coordination_oru.util.Missions;
 
 import se.oru.coordination.coordination_oru.MAS.RobotAgent;
 import se.oru.coordination.coordination_oru.MAS.Router;
+import se.oru.coordination.coordination_oru.MAS.StorageAgent;
 
 public class CommunicationTest {
 
 	public static void main(String[] args) throws InterruptedException {
 
-    final int numRobots = 5;
+    final int numRobots = 2;
 
 	// Max acceleration and velocity
 	double MAX_ACCEL = 10.0;
@@ -120,10 +121,10 @@ public class CommunicationTest {
 	Pose cell10 = new Pose(10.0, 135.0, Math.PI);
 	Pose startPoseRobot1 = new Pose(50.0,20.0, Math.PI/2);	
 	Pose startPoseRobot2 = new Pose(50.0,190.0, 3*Math.PI/2);	
-	Pose startPoseRobot3 = new Pose(50.0,100.0, 3*Math.PI/2);	
+	Pose startPoseRobot3 = new Pose(50.0,100.0, 3*Math.PI/2);
+	Pose storagePlace1 = new Pose(63.0,68.0, 0.0);	
     
-	Pose[] poses = {cell1, cell10, startPoseRobot1, startPoseRobot2, startPoseRobot3 };
-
+	Pose[] poses = { startPoseRobot1, startPoseRobot2 };
 
 	Router router = new Router();
 
@@ -141,13 +142,12 @@ public class CommunicationTest {
 		// Thread for each robot object
         Thread t = new Thread() {
             
-            @Override
+            //@Override
 			public void run() {
-                this.setPriority(Thread.MAX_PRIORITY);
+                //this.setPriority(Thread.MAX_PRIORITY);
 
 				RobotAgent r = new RobotAgent(robotID, tec, rsp, poses[robotID-1], router);
-				r.addRobotToSimulation();
-				r.listener();
+				r.start();
 			}
                 
 		};
@@ -156,6 +156,16 @@ public class CommunicationTest {
 		catch (InterruptedException e) { e.printStackTrace(); }
 
     }
+	
+	Thread storageThread = new Thread() {
+		public void run() {
+			StorageAgent s = new StorageAgent(numRobots+5000, router, 100.0, storagePlace1);
+			s.start();
+		}
+	};
+	storageThread.start();
+	
+
 
 }
 

@@ -17,6 +17,7 @@ import se.oru.coordination.coordination_oru.util.JTSDrawingPanelVisualization;
 import se.oru.coordination.coordination_oru.util.Missions;
 */
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import com.vividsolutions.jts.geom.Coordinate;
 
@@ -34,6 +35,9 @@ public class RobotAgent extends CommunicationAid{
     protected ReedsSheppCarPlanner mp;
     protected Coordinate[] rShape;
     protected Pose startPose;
+
+    public ArrayList<Message> missionList = new ArrayList<Message>();
+
 
 
     public RobotAgent(int id){this.robotID = id;}   // for testing
@@ -74,6 +78,24 @@ public class RobotAgent extends CommunicationAid{
         this.rShape = shape;
     }
 
+
+    public void start(){
+        RobotAgent This = this;
+
+        This.addRobotToSimulation();
+
+        Thread listener = new Thread() {
+            public void run() {
+                This.listener();
+            }
+        };
+        listener.start();
+
+        //try { Thread.sleep(5000); }
+        //catch (InterruptedException e) { e.printStackTrace(); }
+
+    }
+
     public void addRobotToSimulation(){
         // add robot to simulation prep...
         double MAX_ACCEL = 10.0;
@@ -94,46 +116,13 @@ public class RobotAgent extends CommunicationAid{
 
     public void communicateState(int i){
         // talk with agents to form a task
-
-
-        /*
-        if (!hasNextMission):
-            plan next mission...
-            
-            Mission m = ...       
-
-            this.planState(m);
-
-        */
         Pose goal = new Pose(0,0,0);
 
-        while (this.tec.getRobotReport(this.robotID).getCriticalPoint() != -1){
-            try { Thread.sleep(1000); }
-            catch (InterruptedException e) { e.printStackTrace(); }
-        }
-
-        if (i == 1) goal = new Pose(10.0, 15.0, Math.PI);
-
-        if (i == 2) goal = new Pose(50.0,190.0, 3*Math.PI/2);
 
         this.planState(goal);
-
     }
 
     public void planState(Pose goal){
-
-        // execute mission
-
-        /*
-        for action in plan:
-            do action
-
-            if(action not possible):
-                replan..
-            
-        this.communcicate();
-        */
-        //tec.getRobotReport(this.robotID).getPose();
 
         this.mp.setStart(tec.getRobotReport(this.robotID).getPose());
         this.mp.setGoals(goal);
@@ -142,19 +131,161 @@ public class RobotAgent extends CommunicationAid{
 
         this.tec.addMissions(new Mission(this.robotID, p1));
 
-        this.communicateState(2);
+    }
+
+    /**
+     * activeTasks is a datastructure storing tasks with their id for a robot. 
+     * This function checks if the taskID of a certain message is contained in the active tasks.
+     * If: 
+     * Task-type is "hello-world", the robot should add the accepting robot to its network. 
+     * @param taskID
+     * @param m
+     */
+    public void taskHandler(int taskID, Message m){
+        String[] taskInfo = this.activeTasks.get(taskID).split(this.separator);
+
+        if (taskInfo[0] == "hello-world" && !this.robotsInNetwork.contains(m.sender)){
+            this.robotsInNetwork.add(m.sender);
+        }
+
+        else if(taskInfo[0] == "offer"){   // we sent an offer to a SA and got accept reply
+            //TODO do mission
+            //String[] mParts = this.parseMessage( m, "", true);
+
+            double[] coordinates = Arrays.stream(taskInfo[3].split(this.separator))
+            .mapToDouble(Double::parseDouble)
+            .toArray();
+
+            Pose pos = new Pose(coordinates[0], coordinates[1], coordinates[2]);
+
+            this.planState(pos); //TODO change in future
+
+        }
 
     }
 
-    public void replanState(){
-        // try replan
+    /**
+     * Periodically checks the inbox of a robot.
+     * Reacts to different messages depending on their message type.
+     * -------------------------------------------------------------
+     * if type == hello-world: add sending robot to its network
+     * if type == res-offer: 
+     * if type == accept: see taskHandler function. 
+     */
+    public void listener(){
+        ArrayList<Message> inbox_copy;
 
-        /*
-        if replan !possible:
+        while(true){
+        
+            synchronized(inbox){
+                inbox_copy = new ArrayList<Message>(this.inbox);
+                this.inbox.clear();
+            }
 
+            for (Message m : inbox_copy){
+                if (m.type == "hello-world"){
+                    this.robotsInNetwork.add(m.sender);
+                    this.sendMessage(
+                        new Message( m.receiver.get(0), m.sender, "accept", m.body));
+                } 
 
-        */
+                else if (m.type == "accept"){
+                    this.taskHandler(Integer.parseInt(m.body), m);
+                }
 
+                else if (m.type == "cnp-service"){
+                    this.handleService(m);
+                }
+                
+            }
+        
+            System.out.println(this.robotID + " -- " + this.robotsInNetwork);
+            try { Thread.sleep(1000); }
+            catch (InterruptedException e) { e.printStackTrace(); }
+        }
     }
-
 }
+
+
+/* OLD */
+
+/*
+
+public void taskHandler(int taskID, Message m){
+        String[] taskInfo = this.activeTasks.get(taskID).split(this.separator);
+
+        if (taskInfo[0] == "hello-world" && !this.robotsInNetwork.contains(m.sender)){
+            this.robotsInNetwork.add(m.sender);
+        }
+
+        else if(taskInfo[0] == "offer"){   // we sent an offer to a SA and got accept reply
+            //TODO do mission
+            //String[] mParts = this.parseMessage( m, "", true);
+
+            double[] coordinates = Arrays.stream(taskInfo[3].split(this.separator))
+            .mapToDouble(Double::parseDouble)
+            .toArray();
+
+            Pose pos = new Pose(coordinates[0], coordinates[1], coordinates[2]);
+
+            this.planState(pos); //TODO change in future
+
+        }
+
+    }
+
+public void listener(){
+        ArrayList<Message> inbox_copy;
+
+        while(true){
+        
+            synchronized(inbox){
+                inbox_copy = new ArrayList<Message>(this.inbox);
+                this.inbox.clear();
+            }
+
+            for (Message m : inbox_copy){
+                if (m.type == "hello-world"){
+                    this.robotsInNetwork.add(m.sender);
+                    this.sendMessage(
+                        new Message( m.receiver.get(0), m.sender, "accept", m.body));
+                } 
+
+                else if (m.type == "offer"){
+                    this.offers.add(m);
+                }
+
+                else if (m.type == "accept"){
+                    this.taskHandler(Integer.parseInt(m.body), m);
+                }
+
+                
+                else if (m.type == "inform") {
+                    // TA informs SA when its done with a task.
+                    String message = this.parseMessage(m, "informVal")[0]; 
+                    if (message == "abort") {
+                        // Create a new task. 
+                        offerService();
+                    } 
+                    else if (message == "done") {
+                        
+                    }
+                    else if (message == "result") {
+                        
+                    }
+                    
+                }
+
+                else if (m.type == "cnp-service"){
+                    this.handleService(m);
+                }
+                
+            }
+
+            System.out.println(this.robotID + " -- " + this.robotsInNetwork);
+            try { Thread.sleep(1000); }
+            catch (InterruptedException e) { e.printStackTrace(); }
+        }
+
+    }
+*/

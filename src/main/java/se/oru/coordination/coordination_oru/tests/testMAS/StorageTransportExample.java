@@ -30,7 +30,7 @@ public class StorageTransportExample {
 
 	public static void main(String[] args) throws InterruptedException {
 
-    final int numRobots = 1;
+    final int numRobots = 2;
 
 	// Max acceleration and velocity
 	double MAX_ACCEL = 10.0;
@@ -140,7 +140,6 @@ public class StorageTransportExample {
 
 				RobotAgent r = new RobotAgent(robotID, tec, rsp, poses[robotID-1], router);
 				r.addRobotToSimulation();
-				r.communicateState(1);
 			}
                 
 		};
@@ -154,7 +153,7 @@ public class StorageTransportExample {
 		public void run() {
 			this.setPriority(Thread.MAX_PRIORITY);
 
-			StorageAgent s = new StorageAgent(numRobots+1, router, 100.0,storagePlace1);
+			StorageAgent s = new StorageAgent(numRobots+5000, router, 100.0, storagePlace1);
 			
 		}
 			
