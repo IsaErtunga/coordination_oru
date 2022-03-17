@@ -35,9 +35,10 @@ public class Router {
     public void run(){
         //TODO implement protection to check if robotID exist to router
 
+        ArrayList<Message> outputMessages = new ArrayList<Message>();
+
         while(true){
             //this.print();
-            ArrayList<Message> outputMessages = new ArrayList<Message>();
 
             synchronized(this.outboxes){
                 
@@ -54,19 +55,19 @@ public class Router {
                         for (Map.Entry<Integer, ArrayList<Message>> t : this.inboxes.entrySet()) {
                             if ( t.getKey() == m.sender ) continue;
 
-                            m.receiver = new ArrayList<>(Arrays.asList(t.getKey())); // replace broadcast with receivers ID
-                            this.inboxes.get(t.getKey()).add(m);
+                            this.inboxes.get(t.getKey()).add(new Message(m.sender, t.getKey(),m.type, m.body));
                         }
                     }
 
                     else{                               // send to receiver id's
-                       for (int receiver : m.receiver){
-                            m.receiver = new ArrayList<>(Arrays.asList(receiver)); // replace broadcast with receivers ID
-                            this.inboxes.get(receiver).add(m); 
+                        for (int receiver : m.receiver){
+                            this.inboxes.get(receiver).add(new Message(m.sender, receiver, m.type, m.body)); 
                         }
                     }
                 }
             }
+            
+            outputMessages.clear();
 
             try { Thread.sleep(this.periodMili); }
             catch (InterruptedException e) { e.printStackTrace(); }

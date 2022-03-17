@@ -8,6 +8,11 @@ public class Message {
     String type;
     String body;
 
+    
+    public Message(Message m){
+        this(m.sender, m.receiver, m.type, m.body);
+    }
+
     public Message(int from, String t, String b){
         this(from, new ArrayList<Integer>(), t, b);
     }
