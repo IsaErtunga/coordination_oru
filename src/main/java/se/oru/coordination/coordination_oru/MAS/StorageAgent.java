@@ -62,7 +62,7 @@ public class StorageAgent extends CommunicationAid{
         };
         listener.start();
 
-        try { Thread.sleep(2000); }
+        try { Thread.sleep(5000); }
         catch (InterruptedException e) { e.printStackTrace(); }
 
         this.offerService();

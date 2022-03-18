@@ -143,18 +143,20 @@ public class RobotAgent extends CommunicationAid{
      * @param m
      */
     public void taskHandler(int taskID, Message m){
+        
         String[] taskInfo = this.activeTasks.get(taskID).split(this.separator);
-
+        
         if (taskInfo[0] == "hello-world" && !this.robotsInNetwork.contains(m.sender)){
             this.robotsInNetwork.add(m.sender);
         }
-
-        else if(taskInfo[0] == "offer"){   // we sent an offer to a SA and got accept reply
+        
+        else if(taskInfo[0].equals("offer")){   // we sent an offer to a SA and got accept reply
             System.out.println(this.robotID + ", in taskhandler: " + taskInfo);
+            System.out.println(Arrays.toString(taskInfo));
             //TODO do mission
             //String[] mParts = this.parseMessage( m, "", true);
 
-            double[] coordinates = Arrays.stream(taskInfo[3].split(this.separator))
+            double[] coordinates = Arrays.stream(taskInfo[2].split(" "))
             .mapToDouble(Double::parseDouble)
             .toArray();
 
