@@ -88,12 +88,13 @@ public class RobotAgent extends CommunicationAid{
 
         This.addRobotToSimulation();
 
-        Thread listener = new Thread() {
+        Thread listenerThread = new Thread() {
             public void run() {
                 This.listener();
             }
         };
-        listener.start();
+        listenerThread.start();
+        this.executeTasks();
 
         //try { Thread.sleep(5000); }
         //catch (InterruptedException e) { e.printStackTrace(); }
@@ -125,7 +126,6 @@ public class RobotAgent extends CommunicationAid{
     public void planState(){
         Task task = this.schedule.dequeue();
         this.tec.addMissions(task.mission);
-
     }
 
     /**
@@ -168,10 +168,35 @@ public class RobotAgent extends CommunicationAid{
             Task task = new Task(taskID, new Mission(this.robotID, path), 0, m.sender, "NOT STARTED");
             this.schedule.enqueue(task);
 
-            this.planState();
+            //this.planState();
         }
-
     }
+
+    protected Boolean isMissionDone (Task task) {
+        // Distance from robots actual position to task goal pose
+        System.out.println("DISTANCE: ---> " + this.tec.getRobotReport(this.robotID).getPose().distanceTo(task.mission.getToPose()));
+        if (this.tec.getRobotReport(this.robotID).getPose().distanceTo(task.mission.getToPose()) < 0.5) {
+            return true;
+        }
+        return false;
+    }
+
+    protected void executeTasks () {
+        while (true) {
+            if (this.schedule.getSize() > 0) {
+                Task task = this.schedule.dequeue();
+                this.tec.addMissions(task.mission);
+                
+                while (isMissionDone(task) == false) {
+                    try { Thread.sleep(500); }
+                    catch (InterruptedException e) { e.printStackTrace(); }
+                }
+            }
+            try { Thread.sleep(500); }
+            catch (InterruptedException e) { e.printStackTrace(); }
+        }
+    }
+
 
     /**
      * Periodically checks the inbox of a robot.

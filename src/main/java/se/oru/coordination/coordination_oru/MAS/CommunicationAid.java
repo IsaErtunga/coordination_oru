@@ -143,7 +143,7 @@ public class CommunicationAid {
      * 
      * @param robotID id of robot{@link RobotAgent} calling this
      */
-    public void offerService(){
+    public Message offerService(){
 
         System.out.println("======================1");
 
@@ -178,8 +178,10 @@ public class CommunicationAid {
             this.sendMessage(declineMessage);
 
             //TODO add amout A to be received at time T in schedule
-            
+
+            return bestOffer;
         }
+        return null;
     }
 
     

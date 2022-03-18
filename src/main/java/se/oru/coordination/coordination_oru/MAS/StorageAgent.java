@@ -35,10 +35,21 @@ public class StorageAgent extends CommunicationAid{
     protected double capacity;  // capacity of storage = max ore it can store in TONS
     protected double amount;    // the current amount it has stored in TONS
 
+    protected Schedule schedule;
+
     public boolean beingUsed = false;
+
+
 
     public StorageAgent(int id){this.robotID = id;}     // for testing
 
+    /**
+     * 
+     * @param r_id
+     * @param router
+     * @param capacity
+     * @param startPos
+     */
     public StorageAgent(int r_id, Router router, double capacity, Pose startPos ){
         System.out.println("====storage contrsuctor=====");
         this.robotID = r_id;
@@ -46,11 +57,30 @@ public class StorageAgent extends CommunicationAid{
         this.amount = 0;
         this.startPose = startPos;
 
+        schedule = new Schedule();
+
         router.enterNetwork(this);
 
         String type = "hello-world";
         this.sendMessage(new Message(this.robotID, type, ""), true);
 
+    }
+
+
+    /**
+     * Creates task depending on ore amount. 
+     */
+    public void status () {
+        while(true) {
+            if (this.amount < 0.9 * capacity) {
+                Message bestOffer = this.offerService();
+                String taskID = this.parseMessage(bestOffer, "taskID")[0];
+                Task task = new Task(Integer.parseInt(taskID), 0, "status", 15);
+                this.schedule.enqueue(task);
+
+                // TODO Pop when it receives inform = DONE
+            }
+        }
     }
 
     public void start(){
@@ -65,7 +95,7 @@ public class StorageAgent extends CommunicationAid{
         try { Thread.sleep(5000); }
         catch (InterruptedException e) { e.printStackTrace(); }
 
-        this.offerService();
+        this.status();
 
     }
 
@@ -132,15 +162,15 @@ public class StorageAgent extends CommunicationAid{
                 
                 else if (m.type == "inform") {
                     // TA informs SA when its done with a task.
-                    String message = this.parseMessage(m, "informVal")[0]; 
-                    if (message == "abort") {
+                    String informVal = this.parseMessage(m, "informVal")[0]; 
+                    if (informVal == "abort") {
                         // Create a new task. 
-                        offerService();
+                        // offerService();
                     } 
-                    else if (message == "done") {
+                    else if (informVal == "done") {
                         
                     }
-                    else if (message == "result") {
+                    else if (informVal == "result") {
                         
                     }
                     
