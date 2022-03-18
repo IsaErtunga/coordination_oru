@@ -36,6 +36,8 @@ public class RobotAgent extends CommunicationAid{
     protected Coordinate[] rShape;
     protected Pose startPose;
 
+    Schedule schedule;
+
     public ArrayList<Message> missionList = new ArrayList<Message>();
 
 
@@ -52,6 +54,8 @@ public class RobotAgent extends CommunicationAid{
         this.tec = tec;
         this.mp = mp;
         this.startPose = startPos;
+
+        this.schedule = new Schedule();
 
         // enter network and broadcast our id to others.
         router.enterNetwork(this);
@@ -115,22 +119,12 @@ public class RobotAgent extends CommunicationAid{
     }
 
     public void communicateState(int i){
-        // talk with agents to form a task
-        Pose goal = new Pose(0,0,0);
-
-        this.planState(goal);
+        this.planState();
     }
 
-    public void planState(Pose goal){
-
-        System.out.println(this.robotID + "-- in planState with pose: " + goal);
-
-        this.mp.setStart(tec.getRobotReport(this.robotID).getPose());
-        this.mp.setGoals(goal);
-        if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + goal);
-        PoseSteering[] p1 = this.mp.getPath();
-
-        this.tec.addMissions(new Mission(this.robotID, p1));
+    public void planState(){
+        Task task = this.schedule.dequeue();
+        this.tec.addMissions(task.mission);
 
     }
 
@@ -160,10 +154,21 @@ public class RobotAgent extends CommunicationAid{
             .mapToDouble(Double::parseDouble)
             .toArray();
 
-            Pose pos = new Pose(coordinates[0], coordinates[1], coordinates[2]);
+            Pose goal = new Pose(coordinates[0], coordinates[1], coordinates[2]);
 
-            this.planState(pos); //TODO change in future
+            //this.planState(pos); //TODO change in future
 
+            // Setting up the mission
+            this.mp.setStart(tec.getRobotReport(this.robotID).getPose());
+            this.mp.setGoals(goal);
+            if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + goal);
+            PoseSteering[] path = this.mp.getPath();
+    
+            // Create task and add it to schedule
+            Task task = new Task(taskID, new Mission(this.robotID, path), 0, m.sender, "NOT STARTED");
+            this.schedule.enqueue(task);
+
+            this.planState();
         }
 
     }

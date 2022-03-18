@@ -14,8 +14,6 @@ public class Task {
     int taskProvider;
     String status;
 
-    Task() {}
-
     Task(int taskID, Mission mission, float expiryTime, int taskProvider, String status) {
         this.taskID = taskID;
         this.mission = mission;
