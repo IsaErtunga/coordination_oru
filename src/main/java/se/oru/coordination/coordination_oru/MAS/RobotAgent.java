@@ -118,7 +118,6 @@ public class RobotAgent extends CommunicationAid{
         // talk with agents to form a task
         Pose goal = new Pose(0,0,0);
 
-
         this.planState(goal);
     }
 
@@ -194,6 +193,10 @@ public class RobotAgent extends CommunicationAid{
 
                 else if (m.type == "accept"){
                     this.taskHandler(Integer.parseInt(m.body), m);
+                }
+
+                else if (m.type == "decline"){
+                    //remove task from activeTasks
                 }
 
                 else if (m.type == "cnp-service"){

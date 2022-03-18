@@ -83,7 +83,7 @@ public class Router {
                 System.out.println("outbox r" + t.getKey() +":");
 
                 for (Message m : t.getValue()){
-                    System.out.println(" - " + m.type + ": " + m.body + ":: to " + m.receiver);
+                    System.out.println(" - " + m.type + ": " + m.body + ":: to r" + m.receiver);
                 }
             }
         }
