@@ -1,4 +1,4 @@
-package se.oru.coordination.coordination_oru.tests.clean;
+package se.oru.coordination.coordination_oru.tests.testMAS;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -22,7 +22,12 @@ import se.oru.coordination.coordination_oru.util.BrowserVisualization;
 import se.oru.coordination.coordination_oru.util.JTSDrawingPanelVisualization;
 import se.oru.coordination.coordination_oru.util.Missions;
 
-public class MultiThreadFirstMap {
+import se.oru.coordination.coordination_oru.MAS.RobotAgent;
+import se.oru.coordination.coordination_oru.MAS.Router;
+import se.oru.coordination.coordination_oru.MAS.StorageAgent;
+import se.oru.coordination.coordination_oru.MAS.Message;
+
+public class CommunicationTest {
 
 	public static void main(String[] args) throws InterruptedException {
 
@@ -58,13 +63,7 @@ public class MultiThreadFirstMap {
 		}
 	});
 
-	//Provide a conservative forward model for each robot
-	/*
-    tec.setForwardModel(1, new ConstantAccelerationForwardModel(MAX_ACCEL, MAX_VEL, tec.getTemporalResolution(), tec.getControlPeriod(), tec.getRobotTrackingPeriodInMillis(1)));
-	tec.setForwardModel(2, new ConstantAccelerationForwardModel(MAX_ACCEL, MAX_VEL, tec.getTemporalResolution(), tec.getControlPeriod(), tec.getRobotTrackingPeriodInMillis(2)));
-	tec.setForwardModel(3, new ConstantAccelerationForwardModel(MAX_ACCEL, MAX_VEL, tec.getTemporalResolution(), tec.getControlPeriod(), tec.getRobotTrackingPeriodInMillis(3)));
-	tec.setForwardModel(4, new ConstantAccelerationForwardModel(MAX_ACCEL, MAX_VEL, tec.getTemporalResolution(), tec.getControlPeriod(), tec.getRobotTrackingPeriodInMillis(4)));
-    */
+
 	//Define robot geometries (here, the same for all robots)
 
 	double xl = 5.0;
@@ -108,80 +107,34 @@ public class MultiThreadFirstMap {
     final int[] robotIDs = new int[numRobots];
     for (int i = 0; i < numRobots; i++) robotIDs[i] = i+1;
 
-    for (int index = 0; index < robotIDs.length; index++) {
-        int robotID = robotIDs[index];
-
-        tec.setForwardModel(robotID, new ConstantAccelerationForwardModel(MAX_ACCEL, MAX_VEL, tec.getTemporalResolution(), tec.getControlPeriod(), tec.getRobotTrackingPeriodInMillis(robotID)));
-    
-    }
 
 
 
 	//Define poses for the scenario
+	
+
+	//Place robots in their initial locations (looked up in the data file that was loaded above)
+	//tec.placeRobot(1, startPoseRobot1);
+	//tec.placeRobot(2, cell1);
+
+    
 	Pose cell1 = new Pose(10.0, 15.0, Math.PI);
 	Pose cell10 = new Pose(10.0, 135.0, Math.PI);
 	Pose startPoseRobot1 = new Pose(50.0,20.0, Math.PI/2);	
 	Pose startPoseRobot2 = new Pose(50.0,190.0, 3*Math.PI/2);	
-
-	//Place robots in their initial locations (looked up in the data file that was loaded above)
-	tec.placeRobot(1, startPoseRobot1);
-	tec.placeRobot(2, cell1);
-
-	ArrayList<PoseSteering[]> paths = new ArrayList<PoseSteering[]>();
-
-
+	Pose startPoseRobot3 = new Pose(50.0,100.0, 3*Math.PI/2);
+	Pose storagePlace1 = new Pose(63.0,68.0, 0.0);	
     
-	// missions for R1
-	rsp.setStart(startPoseRobot1);
-	rsp.setGoals(startPoseRobot2);
-	if (!rsp.plan()) throw new Error ("No path between " + startPoseRobot1 + " and " + startPoseRobot2);
-	PoseSteering[] r1m1 = rsp.getPath();
-    PoseSteering[] r1m2 = rsp.getPathInv();
+	Pose[] poses = { startPoseRobot1, startPoseRobot2 };
 
-    // missions for R2
-	rsp.setStart(cell1);
-	rsp.setGoals(cell10);
-	if (!rsp.plan()) throw new Error ("No path between " + startPoseRobot1 + " and " + startPoseRobot2);
-    PoseSteering[] r2m1 = rsp.getPath();
-    PoseSteering[] r2m2 = rsp.getPathInv();
-	
-    /*
-	Missions.enqueueMission(new Mission(1, r1m1));
-	Missions.enqueueMission(new Mission(1, r1m2));
+	Router router = new Router();
 
-    Missions.enqueueMission(new Mission(2, r2m1));
-    Missions.enqueueMission(new Mission(2, r2m2));
-	*/
-	
-	//Missions.startMissionDispatchers(tec, 1,2);
-
-
-    HashMap<Integer, ArrayList<Mission>> missions = new HashMap<Integer, ArrayList<Mission>>();
-
-    for (final int robotID : robotIDs) {
-        missions.put(robotID, new ArrayList<Mission>());
-    }
-
-    Thread missionThread = new Thread() {
-        @Override
+	Thread t3 = new Thread() {
 		public void run() {
-            this.setPriority(Thread.MAX_PRIORITY);
-            while (true) {
-                synchronized(missions) {
-                    missions.get(1).add(new Mission(1, r1m1));
-                    missions.get(1).add(new Mission(1, r1m2));
-
-                    missions.get(2).add(new Mission(2, r2m1));
-                    missions.get(2).add(new Mission(2, r2m2));
-                }
-
-                try { Thread.sleep(10000); }
-                catch (InterruptedException e) { e.printStackTrace(); }
-            }
-        }
-
-    }; 
-    missionThread.start();
+			router.run();
+		}
+	};
+	t3.start();
 
 
 	// Create all robots
@@ -194,26 +147,41 @@ public class MultiThreadFirstMap {
 			public void run() {
                 this.setPriority(Thread.MAX_PRIORITY);
 
-				while (true) {
-
-					// TODO Instantiate robot object. 
-                    Mission m = missions.get(robotID).get(0);
-
-                    synchronized(tec) {
-                        if (tec.addMissions(m)) {
-                            m = missions.get(robotID).remove(0);
-                        };
-                    }
-
-                    try { Thread.sleep(2000); }
-                    catch (InterruptedException e) { e.printStackTrace(); }
-                }
+				RobotAgent r = new RobotAgent(robotID, tec, rsp, poses[robotID-1], router);
+				//r.start();
+				r.addRobotToSimulation();
+				r.listener();
+			}
                 
-            }
-        };
+		};
         t.start();
+		try { Thread.sleep(1200); }
+		catch (InterruptedException e) { e.printStackTrace(); }
 
     }
+
+	final int[] numStorages = {5001};
+
+	for (final int storageID : numStorages) {
+
+		Thread storageThread = new Thread() {
+			@Override
+			public void run() {
+				this.setPriority(Thread.MAX_PRIORITY);
+
+				StorageAgent s = new StorageAgent(storageID, router, 100.0, storagePlace1);
+				s.start();
+			
+			}
+		};
+		storageThread.start();
+
+	}
+	
+	
+	
+	
+
 
 }
 
