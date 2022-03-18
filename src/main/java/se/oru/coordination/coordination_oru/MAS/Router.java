@@ -11,7 +11,7 @@ import java.util.Map;
 
 public class Router {
 
-    protected int periodMili = 1000;
+    protected int periodMili = 400;
 
     public HashMap<Integer, ArrayList<Message>> inboxes = new HashMap<Integer, ArrayList<Message>>();
     public HashMap<Integer, ArrayList<Message>> outboxes = new HashMap<Integer, ArrayList<Message>>();
@@ -83,7 +83,7 @@ public class Router {
                 System.out.println("outbox r" + t.getKey() +":");
 
                 for (Message m : t.getValue()){
-                    System.out.println(" - " + m.type + ": " + m.body);
+                    System.out.println(" - " + m.type + ": " + m.body + ":: to " + m.receiver);
                 }
             }
         }

@@ -124,6 +124,8 @@ public class RobotAgent extends CommunicationAid{
 
     public void planState(Pose goal){
 
+        System.out.println(this.robotID + "-- in planState with pose: " + goal);
+
         this.mp.setStart(tec.getRobotReport(this.robotID).getPose());
         this.mp.setGoals(goal);
         if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + goal);
@@ -149,6 +151,7 @@ public class RobotAgent extends CommunicationAid{
         }
 
         else if(taskInfo[0] == "offer"){   // we sent an offer to a SA and got accept reply
+            System.out.println(this.robotID + ", in taskhandler: " + taskInfo);
             //TODO do mission
             //String[] mParts = this.parseMessage( m, "", true);
 

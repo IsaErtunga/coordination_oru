@@ -19,7 +19,7 @@ public class CommunicationAid {
     protected int lowerTaskIDBound = 1000;
     protected int upperTaskIDBound = 9999;
     protected String separator = ",";
-    protected int robotID;
+    public int robotID;
 
     public ArrayList<Integer> robotsInNetwork = new ArrayList<Integer>();
     protected ArrayList<Message> offers = new ArrayList<Message>();
@@ -68,6 +68,7 @@ public class CommunicationAid {
      */
     public int sendMessage(Message m, boolean genTaskID){
         int taskID = -1;
+
         if (genTaskID){
             taskID = this.tID();
 
@@ -76,9 +77,7 @@ public class CommunicationAid {
 
             this.logTask(taskID, m.type);
         }
-        
         synchronized(this.outbox){ this.outbox.add(m); }
-
         return taskID;
     }
     
@@ -160,7 +159,7 @@ public class CommunicationAid {
         System.out.println("======================3");
 
         //sleep 6 sec before looking at offers
-        try { Thread.sleep(6000); }
+        try { Thread.sleep(2500); }
         catch (InterruptedException e) { e.printStackTrace(); }
         System.out.println("======================4");
 
@@ -171,8 +170,8 @@ public class CommunicationAid {
             // Send response: Mission to best offer sender, and deny all the other ones.
             Message acceptMessage = new Message(robotID, bestOffer.sender, "accept", Integer.toString(taskID) );
             this.sendMessage(acceptMessage);
-    
-            receivers.remove(bestOffer.sender);
+
+            receivers.removeIf(i -> i==bestOffer.sender);    //storage agents has robotID > 5000
     
             // Send decline message to all the others. 
             Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));
@@ -204,7 +203,9 @@ public class CommunicationAid {
         this.sendMessage(resp);
         this.logTask(Integer.parseInt(mParts[0]),
             "offer" + this.separator + m.sender + this.separator + mParts[2] ); //TODO make better
-
+        
+        System.out.println(this.robotID + ", task: " + this.activeTasks.get(Integer.parseInt(mParts[0])));
+        
         return true;
     }
 
@@ -219,15 +220,17 @@ public class CommunicationAid {
         
         // Sort offers for the best one
         for ( Message m : this.offers ){
-            int mTaskID = Integer.parseInt(this.parseMessage( m, "taskID")[0]); // sort out offer not part of current auction(taskID)
-            if (mTaskID != taskID) continue;
+
+            String[] mParts = this.parseMessage( m, "", true); // sort out offer not part of current auction(taskID)
+            if (Integer.parseInt(mParts[0]) != taskID) continue;
                 
-            int val = Integer.parseInt(m.body);
+            int val = Integer.parseInt(mParts[1]);
             if (val > offerVal){
                 offerVal = val;
                 bestOffer = m;
             }
         }
+        System.out.println("in handleOffers: " + bestOffer.type +":"+bestOffer.body);
 
         //TODO make it able to choose another offer if OG one was not possible
         return bestOffer;

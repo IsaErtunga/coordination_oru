@@ -31,16 +31,11 @@ import se.oru.coordination.coordination_oru.MAS.Router;
 
 
 public class StorageAgent extends CommunicationAid{
-    protected int robotID;
     protected Pose startPose;
     protected double capacity;  // capacity of storage = max ore it can store in TONS
     protected double amount;    // the current amount it has stored in TONS
 
     public boolean beingUsed = false;
-
-    public ArrayList<Message> inbox = new ArrayList<Message>();
-    public ArrayList<Message> outbox = new ArrayList<Message>();
-
 
     public StorageAgent(int id){this.robotID = id;}     // for testing
 
@@ -55,6 +50,7 @@ public class StorageAgent extends CommunicationAid{
 
         String type = "hello-world";
         this.sendMessage(new Message(this.robotID, type, ""), true);
+
     }
 
     public void start(){
@@ -66,10 +62,10 @@ public class StorageAgent extends CommunicationAid{
         };
         listener.start();
 
-        try { Thread.sleep(200); }
+        try { Thread.sleep(2000); }
         catch (InterruptedException e) { e.printStackTrace(); }
 
-        This.offerService();
+        this.offerService();
 
     }
 

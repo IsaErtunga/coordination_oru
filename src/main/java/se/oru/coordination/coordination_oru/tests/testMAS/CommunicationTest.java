@@ -25,6 +25,7 @@ import se.oru.coordination.coordination_oru.util.Missions;
 import se.oru.coordination.coordination_oru.MAS.RobotAgent;
 import se.oru.coordination.coordination_oru.MAS.Router;
 import se.oru.coordination.coordination_oru.MAS.StorageAgent;
+import se.oru.coordination.coordination_oru.MAS.Message;
 
 public class CommunicationTest {
 
@@ -142,12 +143,14 @@ public class CommunicationTest {
 		// Thread for each robot object
         Thread t = new Thread() {
             
-            //@Override
+            @Override
 			public void run() {
-                //this.setPriority(Thread.MAX_PRIORITY);
+                this.setPriority(Thread.MAX_PRIORITY);
 
 				RobotAgent r = new RobotAgent(robotID, tec, rsp, poses[robotID-1], router);
-				r.start();
+				//r.start();
+				r.addRobotToSimulation();
+				r.listener();
 			}
                 
 		};
@@ -156,14 +159,27 @@ public class CommunicationTest {
 		catch (InterruptedException e) { e.printStackTrace(); }
 
     }
+
+	final int[] numStorages = {5001};
+
+	for (final int storageID : numStorages) {
+
+		Thread storageThread = new Thread() {
+			@Override
+			public void run() {
+				this.setPriority(Thread.MAX_PRIORITY);
+
+				StorageAgent s = new StorageAgent(storageID, router, 100.0, storagePlace1);
+				s.start();
+			
+			}
+		};
+		storageThread.start();
+
+	}
 	
-	Thread storageThread = new Thread() {
-		public void run() {
-			StorageAgent s = new StorageAgent(numRobots+5000, router, 100.0, storagePlace1);
-			s.start();
-		}
-	};
-	storageThread.start();
+	
+	
 	
 
 
