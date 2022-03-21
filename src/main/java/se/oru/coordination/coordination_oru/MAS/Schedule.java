@@ -27,7 +27,7 @@ import java.util.Arrays;
 import com.vividsolutions.jts.geom.Coordinate;
 
 import org.metacsp.multi.spatioTemporal.paths.PoseSteering;
-import org.metacsp.multi.spatioTemporal.paths.Pose;
+
 
 import se.oru.coordination.coordination_oru.simulation2D.TrajectoryEnvelopeCoordinatorSimulation;
 import se.oru.coordination.coordination_oru.Mission;
@@ -35,13 +35,18 @@ import se.oru.coordination.coordination_oru.motionplanning.ompl.ReedsSheppCarPla
 import se.oru.coordination.coordination_oru.ConstantAccelerationForwardModel;
 */
 
+import org.metacsp.multi.spatioTemporal.paths.Pose;
+
 public class Schedule {
+
+    protected Pose lastToPose;
     
     // Data structure for storing tasks. 
     private ArrayList<Task> schedule = new ArrayList<Task>();
 
     protected void enqueue(Task task) {
         // Add to end of schedule queue
+        this.lastToPose = task.mission.getToPose();
         this.schedule.add(task);
     }
 

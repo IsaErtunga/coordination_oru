@@ -31,7 +31,7 @@ public class CommunicationTest {
 
 	public static void main(String[] args) throws InterruptedException {
 
-    final int numRobots = 2;
+    final int numRobots = 1;
 
 	// Max acceleration and velocity
 	double MAX_ACCEL = 10.0;
@@ -45,6 +45,7 @@ public class CommunicationTest {
 	// Dont know the difference between this and icaps
 	// TODO learn what this is.
 	final TrajectoryEnvelopeCoordinatorSimulation tec = new TrajectoryEnvelopeCoordinatorSimulation(MAX_VEL,MAX_ACCEL);
+	tec.setQuiet(true);
 
 	//Provide a heuristic for determining orderings thru critical sections
 	tec.addComparator(new Comparator<RobotAtCriticalSection> () {
@@ -124,6 +125,7 @@ public class CommunicationTest {
 	Pose startPoseRobot2 = new Pose(50.0,190.0, 3*Math.PI/2);	
 	Pose startPoseRobot3 = new Pose(50.0,100.0, 3*Math.PI/2);
 	Pose storagePlace1 = new Pose(63.0,68.0, 0.0);	
+	Pose storagePlace2 = new Pose(63.0,142.0, 0.0);
     
 	Pose[] poses = { startPoseRobot1, startPoseRobot2 };
 
@@ -148,9 +150,9 @@ public class CommunicationTest {
                 this.setPriority(Thread.MAX_PRIORITY);
 
 				RobotAgent r = new RobotAgent(robotID, tec, rsp, poses[robotID-1], router);
-				//r.start();
-				r.addRobotToSimulation();
-				r.listener();
+				r.start();
+				// r.addRobotToSimulation();
+				// r.listener();
 			}
                 
 		};

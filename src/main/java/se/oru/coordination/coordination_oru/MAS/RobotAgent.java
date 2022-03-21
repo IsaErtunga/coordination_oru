@@ -36,7 +36,7 @@ public class RobotAgent extends CommunicationAid{
     protected Coordinate[] rShape;
     protected Pose startPose;
 
-    Schedule schedule;
+    protected Schedule schedule;
 
     public ArrayList<Message> missionList = new ArrayList<Message>();
 
@@ -87,13 +87,14 @@ public class RobotAgent extends CommunicationAid{
         RobotAgent This = this;
 
         This.addRobotToSimulation();
-
+        System.out.println("----------------THREAD NOT STARTED ----------------");
         Thread listenerThread = new Thread() {
             public void run() {
                 This.listener();
             }
         };
         listenerThread.start();
+        System.out.println("----------------THREAD STARTED ----------------");
         this.executeTasks();
 
         //try { Thread.sleep(5000); }
@@ -159,7 +160,13 @@ public class RobotAgent extends CommunicationAid{
             //this.planState(pos); //TODO change in future
 
             // Setting up the mission
-            this.mp.setStart(tec.getRobotReport(this.robotID).getPose());
+            
+            if (this.schedule.lastToPose != null) {
+                this.mp.setStart(this.schedule.lastToPose);
+            } else {
+                this.mp.setStart(this.tec.getRobotReport(this.robotID).getPose());
+            }
+            
             this.mp.setGoals(goal);
             if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + goal);
             PoseSteering[] path = this.mp.getPath();
@@ -168,14 +175,22 @@ public class RobotAgent extends CommunicationAid{
             Task task = new Task(taskID, new Mission(this.robotID, path), 0, m.sender, "NOT STARTED");
             this.schedule.enqueue(task);
 
+            System.out.println("SCHEDULE SIZE =====" + this.schedule.getSize());
+
             //this.planState();
         }
     }
 
     protected Boolean isMissionDone (Task task) {
         // Distance from robots actual position to task goal pose
-        System.out.println("DISTANCE: ---> " + this.tec.getRobotReport(this.robotID).getPose().distanceTo(task.mission.getToPose()));
+        System.out.println("______________________________________________________________________________________________");
+        System.out.println("ACTUAL POSITION: " + this.tec.getRobotReport(this.robotID).getPose().toString());
+        System.out.println("GOAL : " + task.mission.getToPose().toString());
+
+        // System.out.println("DISTANCE: ---> " + this.tec.getRobotReport(this.robotID).getPose().distanceTo(task.mission.getToPose()));
+        System.out.println("______________________________________________________________________________________________");
         if (this.tec.getRobotReport(this.robotID).getPose().distanceTo(task.mission.getToPose()) < 0.5) {
+            System.out.println(":::::::::::::::::::MISSION DONE, DISTANCE TO CLOSE::::::::::::ROBOT: "+ this.robotID);
             return true;
         }
         return false;
@@ -188,6 +203,7 @@ public class RobotAgent extends CommunicationAid{
                 this.tec.addMissions(task.mission);
                 
                 while (isMissionDone(task) == false) {
+                    System.out.println("PPPPPPPPPPPPPPPP -- HÄR");
                     try { Thread.sleep(500); }
                     catch (InterruptedException e) { e.printStackTrace(); }
                 }
@@ -237,7 +253,7 @@ public class RobotAgent extends CommunicationAid{
                 
             }
         
-            System.out.println(this.robotID + " -- " + this.robotsInNetwork);
+            // System.out.println(this.robotID + " -- " + this.robotsInNetwork);
             try { Thread.sleep(1000); }
             catch (InterruptedException e) { e.printStackTrace(); }
         }
