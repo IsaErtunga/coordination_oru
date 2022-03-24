@@ -114,9 +114,12 @@ public class RobotAgent extends CommunicationAid{
             this.tec.getControlPeriod(), 
             this.tec.getRobotTrackingPeriodInMillis(this.robotID)));
 
-        tec.setFootprint(this.robotID, this.rShape);
+        this.tec.setFootprint(this.robotID, this.rShape);
 
-        tec.placeRobot(this.robotID, this.startPose);
+        this.tec.placeRobot(this.robotID, this.startPose);
+
+        // Motion planner
+        tec.setMotionPlanner(this.robotID, this.mp);
 
     }
 

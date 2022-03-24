@@ -153,7 +153,7 @@ public class CommunicationAid {
 
         // broadcast message to all transport agents
         //Pose pos = new Pose(63.0,68.0, 0.0);
-        String[] saLocations = new String[]{"63.0 68.0 0.0", "63.0 142.0 0.0", "50.0 20.0 0.0", "50.0 190.0 0.0"};
+        String[] saLocations = new String[]{"63.0 68.0 0.0", "63.0 142.0 0.0", "50.0 20.0 0.0", "50.0 190.0 0.0", "50.0 170.0 0.0", "50.0 130.0 0.0", "50.0 90.0 0.0"};
         String body = this.robotID + this.separator + saLocations[this.rand.nextInt(saLocations.length)];
         Message m = new Message(this.robotID, receivers, "cnp-service", body);
         int taskID = this.sendMessage(m, true);

@@ -45,6 +45,7 @@ public class CommunicationTest {
 	// Dont know the difference between this and icaps
 	// TODO learn what this is.
 	final TrajectoryEnvelopeCoordinatorSimulation tec = new TrajectoryEnvelopeCoordinatorSimulation(MAX_VEL,MAX_ACCEL);
+	tec.setBreakDeadlocks(true, true, true);
 	tec.setQuiet(true);
 
 	//Provide a heuristic for determining orderings thru critical sections
