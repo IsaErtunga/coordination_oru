@@ -32,6 +32,10 @@ import se.oru.coordination.coordination_oru.util.Missions;
 import se.oru.coordination.coordination_oru.Mission;
 
 public class DrawAgent extends CommunicationAid{
+
+    private final static double finalXPos = 4.0;
+    protected double initalXPos;
+
     protected Pose pos;
     protected double amount;
     protected double capacity; 
@@ -42,6 +46,7 @@ public class DrawAgent extends CommunicationAid{
         this.capacity = capacity;
         this.amount = capacity; // 100% full in beginning
         this.pos = pos;
+        this.initalXPos = pos.getX();
 
         this.schedule = new Schedule();
 
@@ -60,7 +65,7 @@ public class DrawAgent extends CommunicationAid{
         100% left -> 4+36 = x.pos = 40
         0% left -> 4+0 = x.pos = 4
         */
-        double x = 4 + 36.0*this.amount/this.capacity;
+        double x = this.finalXPos + (this.initalXPos - this.finalXPos) * this.amount / this.capacity;
         this.pos = new Pose( x, pos.getY(), pos.getYaw() );
 
     }
