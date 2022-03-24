@@ -33,30 +33,6 @@ public class CommunicationAid {
     public Random rand = new Random(System.currentTimeMillis());
     
 
-
-    // robot?
-    public void listener2(){
-        //this.taskHandler()
-        //this.parseMessage()
-        //this.offerService()
-        //this.handleService()
-    }
-    public void taskHandler2(int taskID, Message m){} // in robot?
-    
-    // comm aid
-    public void sendMsg2(Message m){}
-    public void logTask2(int taskID, String info){}
-    public String[] parseMessage2(Message m, String get, boolean retriveAll){ return null;}
-    public int tID2(){ return 0;}
-
-    // CNP
-    public void offerService2(){}
-    public boolean handleService2(Message m){ return true; }
-    public Message handleOffers2(int taskID){return null;}
-
-
-
-
     public int sendMessage(Message m){
         return this.sendMessage(m, false); 
     }
@@ -148,7 +124,7 @@ public class CommunicationAid {
         System.out.println("======================1");
 
         ArrayList<Integer> receivers = new ArrayList<Integer>(this.robotsInNetwork);
-        receivers.removeIf(i -> i>5000);    //storage agents has robotID > 5000
+        receivers.removeIf(i -> i>5000 && i<10000);    //storage agents has robotID > 5000
         System.out.println("======================2");
 
         // broadcast message to all transport agents

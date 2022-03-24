@@ -136,6 +136,8 @@ public class DrawAgent extends CommunicationAid{
 
         //calc euclidean dist between DA -> TA, and capacity evaluation
         //TODO also include schedule: look if other agent will collect ore here at same time.
+        //TODO add poseSteering.length
+
         double dist_eval = this.pos.distanceTo(new Pose(coordinates[0], coordinates[1], coordinates[2]));
         double capacity_eval = 100.0 * this.amount / this.capacity; 
         

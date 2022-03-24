@@ -27,7 +27,7 @@ import se.oru.coordination.coordination_oru.MAS.Router;
 import se.oru.coordination.coordination_oru.MAS.StorageAgent;
 import se.oru.coordination.coordination_oru.MAS.Message;
 
-public class CommunicationTest {
+public class CommunicationDraw {
 
 	public static void main(String[] args) throws InterruptedException {
 
@@ -38,6 +38,8 @@ public class CommunicationTest {
 	double MAX_VEL = 20.0;
 
 	// final ArrayList<Integer> robotsInUse = new ArrayList<Integer>();
+
+
 
 	//Instantiate a trajectory envelope coordinator
 	// Dont know the difference between this and icaps

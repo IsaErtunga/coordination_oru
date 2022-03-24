@@ -41,7 +41,6 @@ public class RobotAgent extends CommunicationAid{
     public ArrayList<Message> missionList = new ArrayList<Message>();
 
 
-
     public RobotAgent(int id){this.robotID = id;}   // for testing
 
     public RobotAgent(  int r_id, TrajectoryEnvelopeCoordinatorSimulation tec,
