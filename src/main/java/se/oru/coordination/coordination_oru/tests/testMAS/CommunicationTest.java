@@ -31,7 +31,7 @@ public class CommunicationTest {
 
 	public static void main(String[] args) throws InterruptedException {
 
-    final int numRobots = 1;
+    final int numTransportAgents = 2;
 
 	// Max acceleration and velocity
 	double MAX_ACCEL = 10.0;
@@ -96,17 +96,17 @@ public class CommunicationTest {
 
 	//MetaCSPLogging.setLevel(tec.getClass().getSuperclass(), Level.FINEST);
 
-	//Instantiate a simple motion planner (no map given here, otherwise provide yaml file)
-	ReedsSheppCarPlanner rsp = new ReedsSheppCarPlanner();
-	//rsp.setRadius(0.2);						default is 1.0
-	rsp.setFootprint(footprint1, footprint2, footprint3, footprint4);
-	rsp.setTurningRadius(4.0); 				//default is 1.0
-	//rsp.setDistanceBetweenPathPoints(0.5); 	default is 0.5 
-	rsp.setMap(yamlFile);
+	// //Instantiate a simple motion planner (no map given here, otherwise provide yaml file)
+	// ReedsSheppCarPlanner rsp = new ReedsSheppCarPlanner();
+	// //rsp.setRadius(0.2);						default is 1.0
+	// rsp.setFootprint(footprint1, footprint2, footprint3, footprint4);
+	// rsp.setTurningRadius(4.0); 				//default is 1.0
+	// //rsp.setDistanceBetweenPathPoints(0.5); 	default is 0.5 
+	// rsp.setMap(yamlFile);
 
     // Define robots with poses
-    final int[] robotIDs = new int[numRobots];
-    for (int i = 0; i < numRobots; i++) robotIDs[i] = i+1;
+    final int[] robotIDs = new int[numTransportAgents];
+    for (int i = 0; i < numTransportAgents; i++) robotIDs[i] = i+1;
 
 
 
@@ -149,6 +149,16 @@ public class CommunicationTest {
 			public void run() {
                 this.setPriority(Thread.MAX_PRIORITY);
 
+				String yamlFile = null;
+				yamlFile = "maps/test-map.yaml";
+
+					//Instantiate a simple motion planner (no map given here, otherwise provide yaml file)
+				ReedsSheppCarPlanner rsp = new ReedsSheppCarPlanner();
+				//rsp.setRadius(0.2);						default is 1.0
+				rsp.setFootprint(footprint1, footprint2, footprint3, footprint4);
+				rsp.setTurningRadius(4.0); 				//default is 1.0
+				//rsp.setDistanceBetweenPathPoints(0.5); 	default is 0.5 
+				rsp.setMap(yamlFile);
 				RobotAgent r = new RobotAgent(robotID, tec, rsp, poses[robotID-1], router);
 				r.start();
 				// r.addRobotToSimulation();

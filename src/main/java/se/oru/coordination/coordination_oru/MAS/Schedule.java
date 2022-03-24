@@ -46,7 +46,6 @@ public class Schedule {
 
     protected void enqueue(Task task) {
         // Add to end of schedule queue
-        System.out.println("TO POSE ----->>>>>"+task.taskID);
         this.lastToPose = task.toPose;
         this.schedule.add(task);
     }

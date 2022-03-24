@@ -218,7 +218,7 @@ public class RobotAgent extends CommunicationAid{
                 }
 
                 // if robot managed to complete task 
-                Message doneMessage = new Message(this.robotID, task.taskProvider, "inform", task.taskID + "," + "done" + "," + "15");
+                Message doneMessage = new Message(this.robotID, task.taskProvider, "inform", task.taskID + "," + "done" + "," + "5");
                 this.sendMessage(doneMessage, false);
                 this.logTask(task.taskID, "done");
 

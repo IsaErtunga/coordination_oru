@@ -72,14 +72,15 @@ public class StorageAgent extends CommunicationAid{
      */
     public void status () {
         while(true) {
-            if (this.amount < 0.2 * capacity) {
+            if (this.amount < 0.9 * capacity) {
                 Message bestOffer = this.offerService();
                 String taskID = this.parseMessage(bestOffer, "taskID")[0];
                 Task task = new Task(Integer.parseInt(taskID), 0, "status", 15);
                 this.schedule.enqueue(task);
                 
                 System.out.println("CURRENT ORE LEVEL: ------------> "+ this.amount);
-                try { Thread.sleep(2000); }
+                
+                try { Thread.sleep(1000); }
                 catch (InterruptedException e) { e.printStackTrace(); }
                 // TODO Pop when it receives inform = DONE
                 // if (task.status.equals(new String("DONE"))) {
@@ -88,6 +89,7 @@ public class StorageAgent extends CommunicationAid{
                 // }
             }
             // Ore level is too high 
+            System.out.println("ORE LEVEL TO HIGH WARNING WARNIGN WARNAGsalkjHASLKJFhaskjhlaskjflija");
         }
     }
 
