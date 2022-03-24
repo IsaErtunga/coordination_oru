@@ -72,14 +72,22 @@ public class StorageAgent extends CommunicationAid{
      */
     public void status () {
         while(true) {
-            if (this.amount < 0.9 * capacity) {
+            if (this.amount < 0.2 * capacity) {
                 Message bestOffer = this.offerService();
                 String taskID = this.parseMessage(bestOffer, "taskID")[0];
                 Task task = new Task(Integer.parseInt(taskID), 0, "status", 15);
                 this.schedule.enqueue(task);
-
+                
+                System.out.println("CURRENT ORE LEVEL: ------------> "+ this.amount);
+                try { Thread.sleep(2000); }
+                catch (InterruptedException e) { e.printStackTrace(); }
                 // TODO Pop when it receives inform = DONE
+                // if (task.status.equals(new String("DONE"))) {
+                //     System.out.println("DONEDODOASDODODODDONE NODODODASDN");
+                //     break;
+                // }
             }
+            // Ore level is too high 
         }
     }
 
@@ -163,14 +171,22 @@ public class StorageAgent extends CommunicationAid{
                 else if (m.type == "inform") {
                     // TA informs SA when its done with a task.
                     String informVal = this.parseMessage(m, "informVal")[0]; 
-                    if (informVal == "abort") {
+                    String taskID = this.parseMessage(m, "taskID")[0];
+                    Integer ore = Integer.parseInt(this.parseMessage(m, "oreChange")[0]);
+    
+                    if (informVal.equals(new String("abort"))) {
                         // Create a new task. 
                         // offerService();
                     } 
-                    else if (informVal == "done") {
-                        
+                    else if (informVal.equals(new String("done"))) {
+                        System.out.println("****************** DONE ***********************");
+                        if (ore >= 0) {
+                            addOre(ore);
+                        } else {
+                            dumpOre(ore);
+                        }
                     }
-                    else if (informVal == "result") {
+                    else if (informVal.equals(new String("result"))) {
                         
                     }
                     

@@ -155,16 +155,21 @@ public class RobotAgent extends CommunicationAid{
             .mapToDouble(Double::parseDouble)
             .toArray();
 
+            Pose start;
             Pose goal = new Pose(coordinates[0], coordinates[1], coordinates[2]);
 
             //this.planState(pos); //TODO change in future
 
             // Setting up the mission
             
+            
             if (this.schedule.lastToPose != null) {
+                System.out.println("USES LAST TO POSE <------------------------------------------");
                 this.mp.setStart(this.schedule.lastToPose);
+                start = this.schedule.lastToPose;
             } else {
                 this.mp.setStart(this.tec.getRobotReport(this.robotID).getPose());
+                start = this.tec.getRobotReport(this.robotID).getPose();
             }
             
             this.mp.setGoals(goal);
@@ -172,7 +177,7 @@ public class RobotAgent extends CommunicationAid{
             PoseSteering[] path = this.mp.getPath();
     
             // Create task and add it to schedule
-            Task task = new Task(taskID, new Mission(this.robotID, path), 0, m.sender, "NOT STARTED");
+            Task task = new Task(taskID, new Mission(this.robotID, path), 0, m.sender, "NOT STARTED", start, goal);
             this.schedule.enqueue(task);
 
             System.out.println("SCHEDULE SIZE =====" + this.schedule.getSize());
@@ -196,17 +201,28 @@ public class RobotAgent extends CommunicationAid{
         return false;
     }
 
+    /**
+     * Function enabling TA to execute the tasks in its schedule. 
+     * TODO Add functionality for knowing if robot managed to complete a task or not. 
+     */
     protected void executeTasks () {
         while (true) {
+            // Execute task while its schedule is not empty
             if (this.schedule.getSize() > 0) {
                 Task task = this.schedule.dequeue();
                 this.tec.addMissions(task.mission);
                 
                 while (isMissionDone(task) == false) {
-                    System.out.println("PPPPPPPPPPPPPPPP -- HÄR");
                     try { Thread.sleep(500); }
                     catch (InterruptedException e) { e.printStackTrace(); }
                 }
+
+                // if robot managed to complete task 
+                Message doneMessage = new Message(this.robotID, task.taskProvider, "inform", task.taskID + "," + "done" + "," + "15");
+                this.sendMessage(doneMessage, false);
+                this.logTask(task.taskID, "done");
+
+                // if robot didn't manage to complete task
             }
             try { Thread.sleep(500); }
             catch (InterruptedException e) { e.printStackTrace(); }
