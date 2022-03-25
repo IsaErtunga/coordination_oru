@@ -283,11 +283,11 @@ public class TransportAgent extends CommunicationAid{
     @Override
     public Message offerService(){
 
-        System.out.println("======================1");
+        System.out.println(this.robotID + " ======================1");
 
         ArrayList<Integer> receivers = new ArrayList<Integer>(this.robotsInNetwork);
         receivers.removeIf(i -> i<10000);    //draw agents has robotID > 10000
-        System.out.println("======================2");
+        System.out.println(this.robotID +"======================2");
 
         // broadcast message to all transport agents
         //Pose pos = new Pose(63.0,68.0, 0.0);
@@ -302,15 +302,15 @@ public class TransportAgent extends CommunicationAid{
         String body = this.robotID + this.separator + startPos;
         Message m = new Message(this.robotID, receivers, "cnp-service", body);
         int taskID = this.sendMessage(m, true);
-        System.out.println("======================3");
+        System.out.println(this.robotID +"======================3");
 
         //sleep 6 sec before looking at offers
         try { Thread.sleep(2500); }
         catch (InterruptedException e) { e.printStackTrace(); }
-        System.out.println("======================4");
+        System.out.println(this.robotID +"======================4");
 
         Message bestOffer = this.handleOffers(taskID); //extract best offer
-        System.out.println("======================5");
+        System.out.println(this.robotID +"======================5");
 
         if (bestOffer != null){        
             // Send response: Mission to best offer sender, and deny all the other ones.
