@@ -80,7 +80,7 @@ public class StorageAgent extends CommunicationAid{
                 
                 System.out.println("CURRENT ORE LEVEL: ------------> "+ this.amount);
                 
-                try { Thread.sleep(1000); }
+                try { Thread.sleep(8000); }
                 catch (InterruptedException e) { e.printStackTrace(); }
                 // TODO Pop when it receives inform = DONE
                 // if (task.status.equals(new String("DONE"))) {
@@ -89,7 +89,6 @@ public class StorageAgent extends CommunicationAid{
                 // }
             }
             // Ore level is too high 
-            System.out.println("ORE LEVEL TO HIGH WARNING WARNIGN WARNAGsalkjHASLKJFhaskjhlaskjflija");
         }
     }
 
@@ -193,14 +192,10 @@ public class StorageAgent extends CommunicationAid{
                     }
                     
                 }
-
-                else if (m.type == "cnp-service"){
-                    this.handleService(m);
-                }
                 
             }
 
-            System.out.println(this.robotID + " -- " + this.robotsInNetwork);
+            //System.out.println(this.robotID + " -- " + this.robotsInNetwork);
             try { Thread.sleep(1000); }
             catch (InterruptedException e) { e.printStackTrace(); }
         }

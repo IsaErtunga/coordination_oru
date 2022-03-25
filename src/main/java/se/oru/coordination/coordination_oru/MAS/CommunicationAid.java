@@ -81,7 +81,7 @@ public class CommunicationAid {
             String[] attributes = {};
 
             if (m.type == "offer"){
-                attributes = new String[] {"taskID", "offerVal"};
+                attributes = new String[] {"taskID", "offerVal", "pos"};
             }
 
             else if (m.type == "inform") {
@@ -117,15 +117,15 @@ public class CommunicationAid {
     
     /** offerService is called when a robot want to plan in a new task to execute.
      * 
-     * @param robotID id of robot{@link RobotAgent} calling this
+     * @param robotID id of robot{@link TransportAgent} calling this
      */
     public Message offerService(){
 
-        System.out.println("======================1");
+        System.out.println(this.robotID +"======================1");
 
         ArrayList<Integer> receivers = new ArrayList<Integer>(this.robotsInNetwork);
-        receivers.removeIf(i -> i>5000 && i<10000);    //storage agents has robotID > 5000
-        System.out.println("======================2");
+        receivers.removeIf(i -> i>5000);    //storage agents has robotID > 5000
+        System.out.println(this.robotID +"======================2");
 
         // broadcast message to all transport agents
         //Pose pos = new Pose(63.0,68.0, 0.0);
@@ -133,15 +133,15 @@ public class CommunicationAid {
         String body = this.robotID + this.separator + saLocations[this.rand.nextInt(saLocations.length)];
         Message m = new Message(this.robotID, receivers, "cnp-service", body);
         int taskID = this.sendMessage(m, true);
-        System.out.println("======================3");
+        System.out.println(this.robotID +"======================3");
 
         //sleep 6 sec before looking at offers
         try { Thread.sleep(2500); }
         catch (InterruptedException e) { e.printStackTrace(); }
-        System.out.println("======================4");
+        System.out.println(this.robotID +"======================4");
 
         Message bestOffer = this.handleOffers(taskID); //extract best offer
-        System.out.println("======================5");
+        System.out.println(this.robotID +"======================5");
 
         if (bestOffer != null){        
             // Send response: Mission to best offer sender, and deny all the other ones.
@@ -209,7 +209,7 @@ public class CommunicationAid {
                 bestOffer = m;
             }
         }
-        System.out.println("in handleOffers: " + bestOffer.type +":"+bestOffer.body);
+        System.out.println(this.robotID +", in handleOffers: " + bestOffer.type +":"+bestOffer.body);
 
         //TODO make it able to choose another offer if OG one was not possible
         return bestOffer;

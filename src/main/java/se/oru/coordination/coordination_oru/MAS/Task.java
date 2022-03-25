@@ -12,6 +12,7 @@ public class Task {
     int taskID;
     float expiryTime;
     String status;
+    boolean isSATask;
 
     // TA
     Mission mission;
@@ -23,8 +24,9 @@ public class Task {
     double ore;
 
 
-    Task(int taskID, Mission mission, float expiryTime, int taskProvider, String status, Pose fromPose, Pose toPose) {
+    Task(int taskID, Mission mission, float expiryTime, int taskProvider, String status, Pose fromPose, Pose toPose, boolean isSATask) {
         // Constructor for TA
+        this.isSATask = isSATask;
         this.taskID = taskID;
         this.mission = mission;
         this.expiryTime = expiryTime;

@@ -22,7 +22,7 @@ import se.oru.coordination.coordination_oru.util.BrowserVisualization;
 import se.oru.coordination.coordination_oru.util.JTSDrawingPanelVisualization;
 import se.oru.coordination.coordination_oru.util.Missions;
 
-import se.oru.coordination.coordination_oru.MAS.RobotAgent;
+import se.oru.coordination.coordination_oru.MAS.TransportAgent;
 
 public class MultiThreadFirstMap {
 

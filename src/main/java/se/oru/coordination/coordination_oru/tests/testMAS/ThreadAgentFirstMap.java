@@ -22,7 +22,7 @@ import se.oru.coordination.coordination_oru.util.BrowserVisualization;
 import se.oru.coordination.coordination_oru.util.JTSDrawingPanelVisualization;
 import se.oru.coordination.coordination_oru.util.Missions;
 
-import se.oru.coordination.coordination_oru.MAS.RobotAgent;
+import se.oru.coordination.coordination_oru.MAS.TransportAgent;
 import se.oru.coordination.coordination_oru.MAS.Router;
 
 public class ThreadAgentFirstMap {
@@ -137,7 +137,7 @@ public class ThreadAgentFirstMap {
 			public void run() {
                 this.setPriority(Thread.MAX_PRIORITY);
 
-				RobotAgent r = new RobotAgent(robotID, tec, rsp, poses[robotID-1], router);
+				TransportAgent r = new TransportAgent(robotID, tec, rsp, poses[robotID-1], router);
 				r.addRobotToSimulation();
 				r.communicateState(1);
 			}

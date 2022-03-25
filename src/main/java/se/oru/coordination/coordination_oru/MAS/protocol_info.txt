@@ -26,11 +26,12 @@ body -> int taskID :
 
 6:
 tag -> inform
-body -> taskID & ( informVal : (abort | done | result ))
+body -> taskID & ( informVal : (abort | done | result )) & oreChange
 
 7:
 tag -> offer
-body -> int taskID & int offerVal
+body -> int taskID & int offerVal & pos
+: pos = '1.0 1.0 1.0'
 
 
 Body: taskID.dasda.offerval

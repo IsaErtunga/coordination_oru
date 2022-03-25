@@ -76,6 +76,16 @@ public class Schedule {
         return this.schedule.size();
     }
 
+    protected boolean isLastTaskSA(){
+
+        if (this.schedule.size()<=0) return true;
+
+        Task task = this.schedule.get(this.schedule.size() - 1);
+
+        return task.isSATask;
+
+    }
+
     protected void changeTaskOrder() {}
 
 }

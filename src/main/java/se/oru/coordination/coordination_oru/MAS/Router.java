@@ -1,6 +1,6 @@
 package se.oru.coordination.coordination_oru.MAS;
 
-import se.oru.coordination.coordination_oru.MAS.RobotAgent;
+import se.oru.coordination.coordination_oru.MAS.TransportAgent;
 import se.oru.coordination.coordination_oru.MAS.StorageAgent;
 import se.oru.coordination.coordination_oru.MAS.Message;
 
@@ -17,7 +17,7 @@ public class Router {
     public HashMap<Integer, ArrayList<Message>> outboxes = new HashMap<Integer, ArrayList<Message>>();
 
 
-    public void enterNetwork(RobotAgent a){
+    public void enterNetwork(TransportAgent a){
         synchronized(this.inboxes){ this.inboxes.put(a.robotID, a.inbox); }
         synchronized(this.outboxes){ this.outboxes.put(a.robotID, a.outbox); }
     }
@@ -38,7 +38,7 @@ public class Router {
         ArrayList<Message> outputMessages = new ArrayList<Message>();
 
         while(true){
-            // this.print();
+            //this.print();
 
             synchronized(this.outboxes){
                 

@@ -22,9 +22,10 @@ import se.oru.coordination.coordination_oru.util.BrowserVisualization;
 import se.oru.coordination.coordination_oru.util.JTSDrawingPanelVisualization;
 import se.oru.coordination.coordination_oru.util.Missions;
 
-import se.oru.coordination.coordination_oru.MAS.RobotAgent;
+import se.oru.coordination.coordination_oru.MAS.TransportAgent;
 import se.oru.coordination.coordination_oru.MAS.Router;
 import se.oru.coordination.coordination_oru.MAS.StorageAgent;
+import se.oru.coordination.coordination_oru.MAS.DrawAgent;
 import se.oru.coordination.coordination_oru.MAS.Message;
 
 public class CommunicationDraw {
@@ -82,8 +83,8 @@ public class CommunicationDraw {
 	tec.startInference();
 
 	// viz map file
-	String yamlFile = null;
-	yamlFile = "maps/test-map.yaml";	
+	final String yamlFile = "maps/test-map.yaml";
+	//yamlFile = "maps/test-map.yaml";	
 
 	//Set up a simple GUI
 	BrowserVisualization viz = new BrowserVisualization();
@@ -116,22 +117,22 @@ public class CommunicationDraw {
 	
 
 	//Place robots in their initial locations (looked up in the data file that was loaded above)
-	//tec.placeRobot(1, startPoseRobot1);
+	//tec.placeRobot(1, TA1pos);
 	//tec.placeRobot(2, cell1);
 
     
-	Pose cell1 = new Pose(10.0, 15.0, Math.PI);
-	Pose cell10 = new Pose(10.0, 135.0, Math.PI);
-	Pose startPoseRobot1 = new Pose(50.0,20.0, Math.PI/2);	
-	Pose startPoseRobot2 = new Pose(50.0,190.0, 3*Math.PI/2);	
-	Pose startPoseRobot3 = new Pose(50.0,100.0, 3*Math.PI/2);
-	Pose storagePlace1 = new Pose(63.0,68.0, 0.0);	
-	Pose storagePlace2 = new Pose(63.0,142.0, 0.0);
-    
-	Pose[] poses = { startPoseRobot1, startPoseRobot2 };
 
+	Pose DA1pos = new Pose(36.0, 35.0, Math.PI);
+	Pose DA2pos = new Pose(36.0, 115.0, Math.PI);
+	Pose DA3pos = new Pose(36.0, 135.0, Math.PI);
+	Pose TA1pos = new Pose(50.0,20.0, Math.PI/2);	
+	Pose TA2pos = new Pose(50.0,190.0, 3*Math.PI/2);	
+	Pose TA3pos = new Pose(50.0,100.0, 3*Math.PI/2);
+	Pose SA1pos = new Pose(63.0,68.0, 0.0);	
+	Pose SA2pos = new Pose(63.0,142.0, 0.0);
+
+    												/*		ROUTER THREAD	*/
 	Router router = new Router();
-
 	Thread t3 = new Thread() {
 		public void run() {
 			router.run();
@@ -140,8 +141,12 @@ public class CommunicationDraw {
 	t3.start();
 
 
-	// Create all robots
-    for (final int robotID : robotIDs) {
+												/*		TRANSPORT AGENT	*/
+	final int[] numTransport = {1, 2};
+	final int[] iter = {0,1};
+	Pose[] transportPoses = { TA1pos, TA2pos };    
+	
+	for (final int i : iter) {
 
 		// Thread for each robot object
         Thread t = new Thread() {
@@ -150,44 +155,68 @@ public class CommunicationDraw {
 			public void run() {
                 this.setPriority(Thread.MAX_PRIORITY);
 
-				String yamlFile = null;
-				yamlFile = "maps/test-map.yaml";
 
-					//Instantiate a simple motion planner (no map given here, otherwise provide yaml file)
+
+				//Instantiate a simple motion planner (no map given here, otherwise provide yaml file)
 				ReedsSheppCarPlanner rsp = new ReedsSheppCarPlanner();
-				//rsp.setRadius(0.2);						default is 1.0
 				rsp.setFootprint(footprint1, footprint2, footprint3, footprint4);
 				rsp.setTurningRadius(4.0); 				//default is 1.0
-				//rsp.setDistanceBetweenPathPoints(0.5); 	default is 0.5 
 				rsp.setMap(yamlFile);
-				RobotAgent r = new RobotAgent(robotID, tec, rsp, poses[robotID-1], router);
+
+				TransportAgent r = new TransportAgent(numTransport[i], tec, rsp, transportPoses[i], router);
 				r.start();
-				// r.addRobotToSimulation();
-				// r.listener();
+
 			}
                 
 		};
         t.start();
-		try { Thread.sleep(1200); }
-		catch (InterruptedException e) { e.printStackTrace(); }
-
     }
 
-	final int[] numStorages = {5001};
 
-	for (final int storageID : numStorages) {
+													/*		STORAGE AGENT	*/
+	final int[] numStorages = {5001, 5002};
+	Pose[] storagePoses = { SA1pos, SA2pos };
+	final int[] iter2 = {0};
+
+	for (final int i : iter2) {
 
 		Thread storageThread = new Thread() {
 			@Override
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);
 
-				StorageAgent s = new StorageAgent(storageID, router, 100.0, storagePlace1);
-				s.start();
+				StorageAgent SA = new StorageAgent(numStorages[i], router, 100.0, storagePoses[i]);
+				SA.start();
 			
 			}
 		};
 		storageThread.start();
+	}
+
+
+												/*		DRAW AGENT	*/
+	final int[] numDraw = {10001, 10002};
+	Pose[] drawPoses = { DA1pos, DA2pos, DA3pos };
+	final int[] iter3 = {0,1,2};
+
+	ReedsSheppCarPlanner mp = new ReedsSheppCarPlanner();
+	mp.setFootprint(footprint1, footprint2, footprint3, footprint4);
+	mp.setTurningRadius(4.0); 				//default is 1.0
+	mp.setMap(yamlFile);
+
+	for (final int i : iter3) {
+
+		Thread drawAgentThread = new Thread() {
+			@Override
+			public void run() {
+				this.setPriority(Thread.MAX_PRIORITY);
+
+				DrawAgent DA = new DrawAgent(numDraw[i], router, 200.0, drawPoses[i], mp);
+				DA.listener();
+				
+			}
+		};
+		drawAgentThread.start();
 
 	}
 	

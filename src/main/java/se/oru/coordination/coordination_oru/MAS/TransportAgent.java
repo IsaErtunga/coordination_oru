@@ -30,20 +30,21 @@ import se.oru.coordination.coordination_oru.motionplanning.ompl.ReedsSheppCarPla
 import se.oru.coordination.coordination_oru.ConstantAccelerationForwardModel;
 
 
-public class RobotAgent extends CommunicationAid{
+public class TransportAgent extends CommunicationAid{
     protected TrajectoryEnvelopeCoordinatorSimulation tec;
     protected ReedsSheppCarPlanner mp;
     protected Coordinate[] rShape;
     protected Pose startPose;
+    protected final int oreCap = 15;
 
     protected Schedule schedule;
 
     public ArrayList<Message> missionList = new ArrayList<Message>();
 
 
-    public RobotAgent(int id){this.robotID = id;}   // for testing
+    public TransportAgent(int id){this.robotID = id;}   // for testing
 
-    public RobotAgent(  int r_id, TrajectoryEnvelopeCoordinatorSimulation tec,
+    public TransportAgent(  int r_id, TrajectoryEnvelopeCoordinatorSimulation tec,
                         ReedsSheppCarPlanner mp, Pose startPos, Router router ){
             
                             System.out.println("#######################");
@@ -69,7 +70,7 @@ public class RobotAgent extends CommunicationAid{
 
     }
 
-    public RobotAgent( //old constructor 
+    public TransportAgent( //old constructor 
         int r_id,
         TrajectoryEnvelopeCoordinatorSimulation tec,
         ReedsSheppCarPlanner mp,
@@ -83,19 +84,28 @@ public class RobotAgent extends CommunicationAid{
 
 
     public void start(){
-        RobotAgent This = this;
+        TransportAgent This = this;
 
         This.addRobotToSimulation();
-        System.out.println("----------------THREAD NOT STARTED ----------------");
+
         Thread listenerThread = new Thread() {
             public void run() {
                 This.listener();
             }
         };
         listenerThread.start();
-        System.out.println("----------------THREAD STARTED ----------------");
-        this.executeTasks();
 
+        try { Thread.sleep(2000); }
+        catch (InterruptedException e) { e.printStackTrace(); }
+
+        Thread stateThread = new Thread() {
+            public void run() {
+                This.initialState();
+            }
+        };
+        stateThread.start();
+
+        this.executeTasks();
         //try { Thread.sleep(5000); }
         //catch (InterruptedException e) { e.printStackTrace(); }
 
@@ -179,7 +189,7 @@ public class RobotAgent extends CommunicationAid{
             PoseSteering[] path = this.mp.getPath();
     
             // Create task and add it to schedule
-            Task task = new Task(taskID, new Mission(this.robotID, path), 0, m.sender, "NOT STARTED", start, goal);
+            Task task = new Task(taskID, new Mission(this.robotID, path), 0, m.sender, "NOT STARTED", start, goal, true);
             this.schedule.enqueue(task);
 
             System.out.println("SCHEDULE SIZE =====" + this.schedule.getSize());
@@ -190,17 +200,7 @@ public class RobotAgent extends CommunicationAid{
 
     protected Boolean isMissionDone (Task task) {
         // Distance from robots actual position to task goal pose
-        System.out.println("______________________________________________________________________________________________");
-        System.out.println("ACTUAL POSITION: " + this.tec.getRobotReport(this.robotID).getPose().toString());
-        System.out.println("GOAL : " + task.mission.getToPose().toString());
-
-        // System.out.println("DISTANCE: ---> " + this.tec.getRobotReport(this.robotID).getPose().distanceTo(task.mission.getToPose()));
-        System.out.println("______________________________________________________________________________________________");
-        if (this.tec.getRobotReport(this.robotID).getPose().distanceTo(task.mission.getToPose()) < 0.5) {
-            System.out.println(":::::::::::::::::::MISSION DONE, DISTANCE TO CLOSE::::::::::::ROBOT: "+ this.robotID);
-            return true;
-        }
-        return false;
+        return this.tec.getRobotReport(this.robotID).getPose().distanceTo(task.mission.getToPose()) < 0.5;
     }
 
     /**
@@ -220,7 +220,8 @@ public class RobotAgent extends CommunicationAid{
                 }
 
                 // if robot managed to complete task 
-                Message doneMessage = new Message(this.robotID, task.taskProvider, "inform", task.taskID + "," + "done" + "," + "5");
+                String oreChange = task.isSATask ? Integer.toString(this.oreCap) : Integer.toString(-this.oreCap);
+                Message doneMessage = new Message(this.robotID, task.taskProvider, "inform", task.taskID + "," + "done" + "," + oreChange);
                 this.sendMessage(doneMessage, false);
                 this.logTask(task.taskID, "done");
 
@@ -229,6 +230,108 @@ public class RobotAgent extends CommunicationAid{
             try { Thread.sleep(500); }
             catch (InterruptedException e) { e.printStackTrace(); }
         }
+    }
+
+
+    protected void initialState() {
+
+        while (true){
+
+            // start CNP with DA
+            Message bestOffer = this.offerService();
+            String[] parts = this.parseMessage(bestOffer, "", true);
+
+            // queue mission to DA
+            Pose start;
+            if (this.schedule.lastToPose != null) {
+                this.mp.setStart(this.schedule.lastToPose);
+                start = this.schedule.lastToPose;
+            } else {
+                this.mp.setStart(this.tec.getRobotReport(this.robotID).getPose());
+                start = this.tec.getRobotReport(this.robotID).getPose();
+            }
+
+            double[] coordinates = Arrays.stream(parts[2].split(" "))
+            .mapToDouble(Double::parseDouble)
+            .toArray();
+            Pose goal = new Pose(coordinates[0], coordinates[1], coordinates[2]);
+            
+            this.mp.setGoals(goal);
+            if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + goal);
+            PoseSteering[] path = this.mp.getPath();
+    
+            // Create task and add it to schedule
+            Task task = new Task(Integer.parseInt(parts[0]),
+            new Mission(this.robotID, path), 0, bestOffer.sender, "NOT STARTED", start, goal, false);
+            this.schedule.enqueue(task);    //TODO fix so it is added after a SA mission
+
+
+            // wait for SA mission to be added
+            while (!this.schedule.isLastTaskSA()){
+                try { Thread.sleep(300); }
+                catch (InterruptedException e) { e.printStackTrace(); }
+            }
+
+        }
+
+    }
+
+    /** offerService is called when a robot want to plan in a new task to execute.
+     * 
+     * @param robotID id of robot{@link TransportAgent} calling this
+     */
+    @Override
+    public Message offerService(){
+
+        System.out.println("======================1");
+
+        ArrayList<Integer> receivers = new ArrayList<Integer>(this.robotsInNetwork);
+        receivers.removeIf(i -> i<10000);    //draw agents has robotID > 10000
+        System.out.println("======================2");
+
+        // broadcast message to all transport agents
+        //Pose pos = new Pose(63.0,68.0, 0.0);
+        Pose start;
+        if (this.schedule.lastToPose != null) {
+            start = this.schedule.lastToPose;
+        } else {
+            start = this.tec.getRobotReport(this.robotID).getPose();
+        }
+        String startPos = start.getX() + " " + start.getY() + " " + start.getYaw();
+
+        String body = this.robotID + this.separator + startPos;
+        Message m = new Message(this.robotID, receivers, "cnp-service", body);
+        int taskID = this.sendMessage(m, true);
+        System.out.println("======================3");
+
+        //sleep 6 sec before looking at offers
+        try { Thread.sleep(2500); }
+        catch (InterruptedException e) { e.printStackTrace(); }
+        System.out.println("======================4");
+
+        Message bestOffer = this.handleOffers(taskID); //extract best offer
+        System.out.println("======================5");
+
+        if (bestOffer != null){        
+            // Send response: Mission to best offer sender, and deny all the other ones.
+            Message acceptMessage = new Message(robotID, bestOffer.sender, "accept", Integer.toString(taskID) );
+            this.sendMessage(acceptMessage);
+
+            receivers.removeIf(i -> i==bestOffer.sender);
+
+            if (receivers.size() > 0){
+                // Send decline message to all the others. 
+                Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));
+                this.sendMessage(declineMessage);
+
+                //TODO add amout A to be received at time T in schedule
+            }
+    
+            
+
+            return bestOffer;
+        }
+        return null;
     }
 
 
@@ -268,6 +371,10 @@ public class RobotAgent extends CommunicationAid{
                 else if (m.type == "cnp-service"){
                     this.handleService(m);
                 }
+
+                else if (m.type == "offer"){
+                    this.offers.add(m);
+                }
                 
             }
         
@@ -277,87 +384,3 @@ public class RobotAgent extends CommunicationAid{
         }
     }
 }
-
-
-/* OLD */
-
-/*
-
-public void taskHandler(int taskID, Message m){
-        String[] taskInfo = this.activeTasks.get(taskID).split(this.separator);
-
-        if (taskInfo[0] == "hello-world" && !this.robotsInNetwork.contains(m.sender)){
-            this.robotsInNetwork.add(m.sender);
-        }
-
-        else if(taskInfo[0] == "offer"){   // we sent an offer to a SA and got accept reply
-            //TODO do mission
-            //String[] mParts = this.parseMessage( m, "", true);
-
-            double[] coordinates = Arrays.stream(taskInfo[3].split(this.separator))
-            .mapToDouble(Double::parseDouble)
-            .toArray();
-
-            Pose pos = new Pose(coordinates[0], coordinates[1], coordinates[2]);
-
-            this.planState(pos); //TODO change in future
-
-        }
-
-    }
-
-public void listener(){
-        ArrayList<Message> inbox_copy;
-
-        while(true){
-        
-            synchronized(inbox){
-                inbox_copy = new ArrayList<Message>(this.inbox);
-                this.inbox.clear();
-            }
-
-            for (Message m : inbox_copy){
-                if (m.type == "hello-world"){
-                    this.robotsInNetwork.add(m.sender);
-                    this.sendMessage(
-                        new Message( m.receiver.get(0), m.sender, "accept", m.body));
-                } 
-
-                else if (m.type == "offer"){
-                    this.offers.add(m);
-                }
-
-                else if (m.type == "accept"){
-                    this.taskHandler(Integer.parseInt(m.body), m);
-                }
-
-                
-                else if (m.type == "inform") {
-                    // TA informs SA when its done with a task.
-                    String message = this.parseMessage(m, "informVal")[0]; 
-                    if (message == "abort") {
-                        // Create a new task. 
-                        offerService();
-                    } 
-                    else if (message == "done") {
-                        
-                    }
-                    else if (message == "result") {
-                        
-                    }
-                    
-                }
-
-                else if (m.type == "cnp-service"){
-                    this.handleService(m);
-                }
-                
-            }
-
-            System.out.println(this.robotID + " -- " + this.robotsInNetwork);
-            try { Thread.sleep(1000); }
-            catch (InterruptedException e) { e.printStackTrace(); }
-        }
-
-    }
-*/

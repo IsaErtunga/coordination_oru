@@ -22,7 +22,7 @@ import se.oru.coordination.coordination_oru.util.BrowserVisualization;
 import se.oru.coordination.coordination_oru.util.JTSDrawingPanelVisualization;
 import se.oru.coordination.coordination_oru.util.Missions;
 
-import se.oru.coordination.coordination_oru.MAS.RobotAgent;
+import se.oru.coordination.coordination_oru.MAS.TransportAgent;
 import se.oru.coordination.coordination_oru.MAS.Router;
 import se.oru.coordination.coordination_oru.MAS.StorageAgent;
 import se.oru.coordination.coordination_oru.MAS.Message;
@@ -158,7 +158,7 @@ public class CommunicationTest {
 				rsp.setTurningRadius(4.0); 				//default is 1.0
 				//rsp.setDistanceBetweenPathPoints(0.5); 	default is 0.5 
 				rsp.setMap(yamlFile);
-				RobotAgent r = new RobotAgent(robotID, tec, rsp, poses[robotID-1], router);
+				TransportAgent r = new TransportAgent(robotID, tec, rsp, poses[robotID-1], router);
 				r.start();
 				// r.addRobotToSimulation();
 				// r.listener();

@@ -17,7 +17,6 @@ import se.oru.coordination.coordination_oru.util.BrowserVisualization;
 import se.oru.coordination.coordination_oru.util.JTSDrawingPanelVisualization;
 
 import se.oru.coordination.coordination_oru.simulation2D.TrajectoryEnvelopeCoordinatorSimulation;
-import se.oru.coordination.coordination_oru.motionplanning.ompl.ReedsSheppCarPlanner;
 import se.oru.coordination.coordination_oru.ConstantAccelerationForwardModel;
 import se.oru.coordination.coordination_oru.MAS.Router;
 */
@@ -27,6 +26,7 @@ import java.util.Arrays;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 import se.oru.coordination.coordination_oru.MAS.Router;
 import se.oru.coordination.coordination_oru.MAS.Schedule;
+import se.oru.coordination.coordination_oru.motionplanning.ompl.ReedsSheppCarPlanner;
 
 import se.oru.coordination.coordination_oru.util.Missions;
 import se.oru.coordination.coordination_oru.Mission;
@@ -40,11 +40,13 @@ public class DrawAgent extends CommunicationAid{
     protected double amount;
     protected double capacity; 
     protected Schedule schedule;
+    protected ReedsSheppCarPlanner mp;
 
-    public DrawAgent(int robotID, Router router, double capacity, Pose pos){
+    public DrawAgent(int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp){
         this.robotID = robotID; // drawID >10'000
         this.capacity = capacity;
         this.amount = capacity; // 100% full in beginning
+        this.mp = mp;
         this.pos = pos;
         this.initalXPos = pos.getX();
 
@@ -55,18 +57,15 @@ public class DrawAgent extends CommunicationAid{
 
     }
 
-    public void takeOre(double a){
+    public void takeOre(double oreChange){
         // alter ore amount
-        if (this.amount - a > 0.0) this.amount -= a;
-        else this.amount = 0;
+        if (this.amount + oreChange > 0.0) this.amount += oreChange;
+        else this.amount = 0; //TODO fix case, TA can think it gets 15 tons but dont
 
-        // alter position
-        /*
-        100% left -> 4+36 = x.pos = 40
-        0% left -> 4+0 = x.pos = 4
-        */
         double x = this.finalXPos + (this.initalXPos - this.finalXPos) * this.amount / this.capacity;
         this.pos = new Pose( x, pos.getY(), pos.getYaw() );
+
+        System.out.println(this.robotID + " oreChange, new pos -------------->" + this.pos.toString());
 
     }
 
@@ -114,9 +113,24 @@ public class DrawAgent extends CommunicationAid{
                 else if (m.type == "cnp-service"){
                     this.handleService(m);
                 }
+
+                else if (m.type.equals(new String("inform"))) {
+                    // TA informs SA when its done with a task.
+                    String informVal = this.parseMessage(m, "informVal")[0]; 
+                    Integer ore = Integer.parseInt(this.parseMessage(m, "oreChange")[0]);
+                    if (informVal.equals(new String("abort"))) {
+                    } 
+                    else if (informVal.equals(new String("done"))) {
+                        this.takeOre(ore);
+                    }
+                    else if (informVal.equals(new String("result"))) {
+                        
+                    }
+                }
                 
             }
 
+            //System.out.println(this.robotID + " -- " + this.robotsInNetwork);
             try { Thread.sleep(1000); }
             catch (InterruptedException e) { e.printStackTrace(); }
         }
@@ -135,15 +149,22 @@ public class DrawAgent extends CommunicationAid{
             .toArray();
 
         //calc euclidean dist between DA -> TA, and capacity evaluation
+        // this.mp.setGoals(goal);
+        //     if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + goal);
+        // PoseSteering[] path = this.mp.getPath();
+
         //TODO also include schedule: look if other agent will collect ore here at same time.
         //TODO add poseSteering.length
 
         double dist_eval = this.pos.distanceTo(new Pose(coordinates[0], coordinates[1], coordinates[2]));
+        dist_eval = 100.0 * 1.0 / dist_eval;
+        System.out.println(this.robotID + " dist eval --------->" + dist_eval );
         double capacity_eval = 100.0 * this.amount / this.capacity; 
         
         // generate offer..
-        double offer = dist_eval + capacity_eval;
-        String body = mParts[0] + this.separator + offer;
+        String position = this.pos.getX() + " " + this.pos.getY() + " " + this.pos.getYaw();
+        int offer = (int)(dist_eval + capacity_eval);
+        String body = mParts[0] + this.separator + offer + this.separator + position;
         Message resp = new Message(this.robotID, m.sender, "offer", body);
     
         //send offer and log event
