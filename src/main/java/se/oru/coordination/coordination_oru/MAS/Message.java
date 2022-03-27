@@ -7,6 +7,7 @@ public class Message {
     ArrayList<Integer> receiver; // if empty = broadcast
     String type;
     String body;
+    boolean isNull = true;
 
     
     public Message(Message m){
@@ -26,6 +27,7 @@ public class Message {
         this.receiver = to;
         this.type = t;
         this.body = b;
+        this.isNull = false;
     }
 
     public Message(){}

@@ -66,7 +66,6 @@ public class CommunicationDraw {
 		}
 	});
 
-
 	//Define robot geometries (here, the same for all robots)
 
 	double xl = 5.0;
@@ -140,10 +139,9 @@ public class CommunicationDraw {
 	};
 	t3.start();
 
-
 												/*		TRANSPORT AGENT	*/
 	final int[] numTransport = {1, 2};
-	final int[] iter = {0,1};
+	final int[] iter = {0, 1};
 	Pose[] transportPoses = { TA1pos, TA2pos };    
 	
 	for (final int i : iter) {
@@ -154,8 +152,6 @@ public class CommunicationDraw {
             @Override
 			public void run() {
                 this.setPriority(Thread.MAX_PRIORITY);
-
-
 
 				//Instantiate a simple motion planner (no map given here, otherwise provide yaml file)
 				ReedsSheppCarPlanner rsp = new ReedsSheppCarPlanner();
@@ -172,30 +168,8 @@ public class CommunicationDraw {
         t.start();
     }
 
-
-													/*		STORAGE AGENT	*/
-	final int[] numStorages = {5001, 5002};
-	Pose[] storagePoses = { SA1pos, SA2pos };
-	final int[] iter2 = {0};
-
-	for (final int i : iter2) {
-
-		Thread storageThread = new Thread() {
-			@Override
-			public void run() {
-				this.setPriority(Thread.MAX_PRIORITY);
-
-				StorageAgent SA = new StorageAgent(numStorages[i], router, 100.0, storagePoses[i]);
-				SA.start();
-			
-			}
-		};
-		storageThread.start();
-	}
-
-
-												/*		DRAW AGENT	*/
-	final int[] numDraw = {10001, 10002};
+													/*		DRAW AGENT	*/
+	final int[] numDraw = {10001, 10002, 10003};
 	Pose[] drawPoses = { DA1pos, DA2pos, DA3pos };
 	final int[] iter3 = {0,1,2};
 
@@ -211,7 +185,7 @@ public class CommunicationDraw {
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);
 
-				DrawAgent DA = new DrawAgent(numDraw[i], router, 200.0, drawPoses[i], mp);
+				DrawAgent DA = new DrawAgent(numDraw[i], router, 45.0, drawPoses[i], mp);
 				DA.listener();
 				
 			}
@@ -219,11 +193,29 @@ public class CommunicationDraw {
 		drawAgentThread.start();
 
 	}
-	
-	
-	
-	
 
+													/*		STORAGE AGENT	*/
+	final int[] numStorages = {5001, 5002};
+	Pose[] storagePoses = { SA1pos, SA2pos };
+	final int[] iter2 = {0, 1};
+
+	for (final int i : iter2) {
+
+		Thread storageThread = new Thread() {
+			@Override
+			public void run() {
+				this.setPriority(Thread.MAX_PRIORITY);
+
+				StorageAgent SA = new StorageAgent(numStorages[i], router, 100.0, storagePoses[i]);
+				SA.start();
+			
+			}
+		};
+		storageThread.start();
+
+		try { Thread.sleep(3000); }
+		catch (InterruptedException e) { e.printStackTrace(); }
+	}
 
 }
 

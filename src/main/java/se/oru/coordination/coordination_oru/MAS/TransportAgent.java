@@ -177,11 +177,17 @@ public class TransportAgent extends CommunicationAid{
             
             if (this.schedule.lastToPose != null) {
                 System.out.println("USES LAST TO POSE <------------------------------------------");
-                this.mp.setStart(this.schedule.lastToPose);
                 start = this.schedule.lastToPose;
+                this.mp.setStart(start);
             } else {
-                this.mp.setStart(this.tec.getRobotReport(this.robotID).getPose());
-                start = this.tec.getRobotReport(this.robotID).getPose();
+                if (this.schedule.currentTask == null){
+                    start = this.tec.getRobotReport(this.robotID).getPose();
+                    this.mp.setStart(start);
+                }
+                else {
+                    start = this.schedule.currentTask.toPose;
+                    this.mp.setStart(start);
+                }
             }
             
             this.mp.setGoals(goal);
@@ -191,6 +197,7 @@ public class TransportAgent extends CommunicationAid{
             // Create task and add it to schedule
             Task task = new Task(taskID, new Mission(this.robotID, path), 0, m.sender, "NOT STARTED", start, goal, true);
             this.schedule.enqueue(task);
+            this.schedule.printSchedule();
 
             System.out.println("SCHEDULE SIZE =====" + this.schedule.getSize());
 
@@ -239,6 +246,11 @@ public class TransportAgent extends CommunicationAid{
 
             // start CNP with DA
             Message bestOffer = this.offerService();
+            if (bestOffer.isNull){ // if we got no offers from auction we sleep and try again
+                try { Thread.sleep(100); }
+                catch (InterruptedException e) { e.printStackTrace(); }
+                continue;
+            }
             String[] parts = this.parseMessage(bestOffer, "", true);
 
             // queue mission to DA
@@ -264,10 +276,12 @@ public class TransportAgent extends CommunicationAid{
             Task task = new Task(Integer.parseInt(parts[0]),
             new Mission(this.robotID, path), 0, bestOffer.sender, "NOT STARTED", start, goal, false);
             this.schedule.enqueue(task);    //TODO fix so it is added after a SA mission
+            this.schedule.printSchedule();
 
 
             // wait for SA mission to be added
             while (!this.schedule.isLastTaskSA()){
+
                 try { Thread.sleep(300); }
                 catch (InterruptedException e) { e.printStackTrace(); }
             }
@@ -312,7 +326,7 @@ public class TransportAgent extends CommunicationAid{
         Message bestOffer = this.handleOffers(taskID); //extract best offer
         System.out.println(this.robotID +"======================5");
 
-        if (bestOffer != null){        
+        if (!bestOffer.isNull){        
             // Send response: Mission to best offer sender, and deny all the other ones.
             Message acceptMessage = new Message(robotID, bestOffer.sender, "accept", Integer.toString(taskID) );
             this.sendMessage(acceptMessage);
@@ -326,12 +340,52 @@ public class TransportAgent extends CommunicationAid{
 
                 //TODO add amout A to be received at time T in schedule
             }
-    
-            
-
-            return bestOffer;
         }
-        return null;
+        return bestOffer;
+    }
+
+    /** handleService is called from within a TA, when a TA did a {@link offerService}
+     * 
+     * @param m the message with the service
+     * @param robotID the robotID of this object
+     * @return true if we send offer = we expect resp.
+     */
+    @Override
+    public boolean handleService(Message m){ 
+
+        if (m.type != "cnp-service") return false;
+
+        String[] mParts = this.parseMessage( m, "", true);
+
+
+        double[] coordinates = Arrays.stream(mParts[2].split(" "))
+        .mapToDouble(Double::parseDouble)
+        .toArray();
+
+        //calc euclidean dist between DA -> TA, and capacity evaluation
+        // this.mp.setGoals(goal);
+        //     if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + goal);
+        // PoseSteering[] path = this.mp.getPath();
+
+        //TODO also include schedule: look if other agent will collect ore here at same time.
+        //TODO add poseSteering.length
+
+        double dist_eval = this.tec.getRobotReport(this.robotID).getPose().distanceTo(new Pose(coordinates[0], coordinates[1], coordinates[2]));
+        if (dist_eval <= 0.0) dist_eval = 150.0; //TODO temp fix
+        int offer = (int)(100.0 * 1.0 / dist_eval);
+
+        String body = mParts[0] + this.separator + offer;
+
+        Message resp = new Message(this.robotID, m.sender, "offer", body);
+    
+        // räkna ut ett bud och skicka det.
+        this.sendMessage(resp);
+        this.logTask(Integer.parseInt(mParts[0]),
+            "offer" + this.separator + m.sender + this.separator + mParts[2] ); //TODO make better
+        
+        System.out.println(this.robotID + ", task: " + this.activeTasks.get(Integer.parseInt(mParts[0])));
+        
+        return true;
     }
 
 

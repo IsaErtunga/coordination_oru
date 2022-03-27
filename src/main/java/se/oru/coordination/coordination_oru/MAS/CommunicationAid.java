@@ -143,7 +143,7 @@ public class CommunicationAid {
         Message bestOffer = this.handleOffers(taskID); //extract best offer
         System.out.println(this.robotID +"======================5");
 
-        if (bestOffer != null){        
+        if (!bestOffer.isNull){        
             // Send response: Mission to best offer sender, and deny all the other ones.
             Message acceptMessage = new Message(robotID, bestOffer.sender, "accept", Integer.toString(taskID) );
             this.sendMessage(acceptMessage);
@@ -198,19 +198,20 @@ public class CommunicationAid {
         int offerVal = 0;
         
         // Sort offers for the best one
-        for ( Message m : this.offers ){
 
-            String[] mParts = this.parseMessage( m, "", true); // sort out offer not part of current auction(taskID)
-            if (Integer.parseInt(mParts[0]) != taskID) continue;
-                
-            int val = Integer.parseInt(mParts[1]);
-            if (val > offerVal){
-                offerVal = val;
-                bestOffer = m;
+        for ( Message m : this.offers ){
+            if(!m.isNull){
+                String[] mParts = this.parseMessage( m, "", true); // sort out offer not part of current auction(taskID)
+                if (Integer.parseInt(mParts[0]) == taskID){
+                    int val = Integer.parseInt(mParts[1]);
+                    if (val > offerVal){
+                        offerVal = val;
+                        bestOffer = new Message(m);
+                    }
+                    //this.offers.remove(m);
+                }
             }
         }
-        System.out.println(this.robotID +", in handleOffers: " + bestOffer.type +":"+bestOffer.body);
-
         //TODO make it able to choose another offer if OG one was not possible
         return bestOffer;
     }
@@ -251,7 +252,5 @@ public class CommunicationAid {
 
            */ 
     }
-
-
 
 }

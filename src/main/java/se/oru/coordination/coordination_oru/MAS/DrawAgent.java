@@ -157,6 +157,7 @@ public class DrawAgent extends CommunicationAid{
         //TODO add poseSteering.length
 
         double dist_eval = this.pos.distanceTo(new Pose(coordinates[0], coordinates[1], coordinates[2]));
+        if (dist_eval <= 0.0) dist_eval = 150.0; //TODO temp fix
         dist_eval = 100.0 * 1.0 / dist_eval;
         System.out.println(this.robotID + " dist eval --------->" + dist_eval );
         double capacity_eval = 100.0 * this.amount / this.capacity; 

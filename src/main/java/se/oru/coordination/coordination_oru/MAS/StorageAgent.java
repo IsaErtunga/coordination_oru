@@ -74,11 +74,14 @@ public class StorageAgent extends CommunicationAid{
         while(true) {
             if (this.amount < 0.9 * capacity) {
                 Message bestOffer = this.offerService();
-                String taskID = this.parseMessage(bestOffer, "taskID")[0];
-                Task task = new Task(Integer.parseInt(taskID), 0, "status", 15);
-                this.schedule.enqueue(task);
+                if (!bestOffer.isNull){
+                    String taskID = this.parseMessage(bestOffer, "taskID")[0];
+                    Task task = new Task(Integer.parseInt(taskID), 0, "status", 15);
+                    this.schedule.enqueue(task);
+                    
+                    System.out.println("CURRENT ORE LEVEL: ------------> "+ this.amount);
+                }
                 
-                System.out.println("CURRENT ORE LEVEL: ------------> "+ this.amount);
                 
                 try { Thread.sleep(8000); }
                 catch (InterruptedException e) { e.printStackTrace(); }
@@ -200,6 +203,51 @@ public class StorageAgent extends CommunicationAid{
             catch (InterruptedException e) { e.printStackTrace(); }
         }
 
+    }
+
+    /** offerService is called when a robot want to plan in a new task to execute.
+     * 
+     * @param robotID id of robot{@link TransportAgent} calling this
+     */
+    @Override
+    public Message offerService(){
+
+        System.out.println(this.robotID +"======================1");
+
+        ArrayList<Integer> receivers = new ArrayList<Integer>(this.robotsInNetwork);
+        receivers.removeIf(i -> i>5000);    //storage agents has robotID > 5000
+        System.out.println(this.robotID +"======================2");
+
+        String startPos = this.startPose.getX() + " " + this.startPose.getY() + " " + this.startPose.getYaw();
+        
+        String body = this.robotID + this.separator + startPos;
+        Message m = new Message(this.robotID, receivers, "cnp-service", body);
+        int taskID = this.sendMessage(m, true);
+        System.out.println(this.robotID +"======================3");
+
+        //sleep 6 sec before looking at offers
+        try { Thread.sleep(2500); }
+        catch (InterruptedException e) { e.printStackTrace(); }
+        System.out.println(this.robotID +"======================4");
+
+        Message bestOffer = this.handleOffers(taskID); //extract best offer
+        System.out.println(this.robotID +"======================5");
+
+        if (!bestOffer.isNull){        
+            // Send response: Mission to best offer sender, and deny all the other ones.
+            Message acceptMessage = new Message(robotID, bestOffer.sender, "accept", Integer.toString(taskID) );
+            this.sendMessage(acceptMessage);
+
+            receivers.removeIf(i -> i==bestOffer.sender);    //storage agents has robotID > 5000
+    
+            // Send decline message to all the others. 
+            Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));
+            this.sendMessage(declineMessage);
+
+            //TODO add amout A to be received at time T in schedule
+
+        }
+        return bestOffer;
     }
 
 }
