@@ -10,8 +10,7 @@ body -> int robotID : the id of the robot leaving
 
 3: 
 tag -> cnp-service
-body -> taskID & storageID & 
-    pos & deliverTime & offerDuration
+body -> taskID & agentID & pos & deliverTime 
 
 : deliverTime is the time the storage agent wants ore to be delivered,
 offerDuration is how long the storage agent will accept offers.  

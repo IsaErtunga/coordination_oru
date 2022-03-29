@@ -8,7 +8,7 @@ import se.oru.coordination.coordination_oru.simulation2D.State;
 import se.oru.coordination.coordination_oru.simulation2D.TrajectoryEnvelopeTrackerRK4;
 
 public class ConstantAccelerationForwardModel implements ForwardModel {
-		
+	
 	private double maxAccel, maxVel;
 	private double temporalResolution = -1;
 	private int trackingPeriodInMillis = 0;

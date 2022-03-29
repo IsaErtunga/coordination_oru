@@ -28,11 +28,10 @@ import se.oru.coordination.coordination_oru.MAS.StorageAgent;
 import se.oru.coordination.coordination_oru.MAS.DrawAgent;
 import se.oru.coordination.coordination_oru.MAS.Message;
 
-public class CommunicationDraw {
+public class TimeTest {
 
 	public static void main(String[] args) throws InterruptedException {
 
-    final int numTransportAgents = 2;
 
 	// Max acceleration and velocity
 	double MAX_ACCEL = 10.0;
@@ -40,13 +39,12 @@ public class CommunicationDraw {
 
 	// final ArrayList<Integer> robotsInUse = new ArrayList<Integer>();
 
-
+	
 
 	//Instantiate a trajectory envelope coordinator
 	// Dont know the difference between this and icaps
 	// TODO learn what this is.
 	final TrajectoryEnvelopeCoordinatorSimulation tec = new TrajectoryEnvelopeCoordinatorSimulation(MAX_VEL,MAX_ACCEL);
-	tec.setBreakDeadlocks(true, true, true);
 	tec.setQuiet(true);
 
 	//Provide a heuristic for determining orderings thru critical sections
@@ -98,25 +96,22 @@ public class CommunicationDraw {
 	//MetaCSPLogging.setLevel(tec.getClass().getSuperclass(), Level.FINEST);
 
 	// //Instantiate a simple motion planner (no map given here, otherwise provide yaml file)
-	// ReedsSheppCarPlanner rsp = new ReedsSheppCarPlanner();
-	// //rsp.setRadius(0.2);						default is 1.0
-	// rsp.setFootprint(footprint1, footprint2, footprint3, footprint4);
-	// rsp.setTurningRadius(4.0); 				//default is 1.0
-	// //rsp.setDistanceBetweenPathPoints(0.5); 	default is 0.5 
-	// rsp.setMap(yamlFile);
-
-    // Define robots with poses
-    final int[] robotIDs = new int[numTransportAgents];
-    for (int i = 0; i < numTransportAgents; i++) robotIDs[i] = i+1;
+	ReedsSheppCarPlanner rsp = new ReedsSheppCarPlanner();
+	//rsp.setRadius(0.2);						default is 1.0
+	rsp.setFootprint(footprint1, footprint2, footprint3, footprint4);
+	rsp.setTurningRadius(4.0); 				//default is 1.0
+	//rsp.setDistanceBetweenPathPoints(0.5); 	default is 0.5 
+	rsp.setMap(yamlFile);
 
 
 
 
-	//Define poses for the scenario
+	System.out.println("__________________________________________________________________________________________-");
+
+
 	
 
 	//Place robots in their initial locations (looked up in the data file that was loaded above)
-	//tec.placeRobot(1, TA1pos);
 	//tec.placeRobot(2, cell1);
 
     
@@ -124,98 +119,109 @@ public class CommunicationDraw {
 	Pose DA1pos = new Pose(36.0, 35.0, Math.PI);
 	Pose DA2pos = new Pose(36.0, 115.0, Math.PI);
 	Pose DA3pos = new Pose(36.0, 135.0, Math.PI);
+
+
 	Pose TA1pos = new Pose(50.0,20.0, Math.PI/2);	
-	Pose TA2pos = new Pose(50.0,190.0, 3*Math.PI/2);	
-	Pose TA3pos = new Pose(50.0,100.0, 3*Math.PI/2);
-	Pose SA1pos = new Pose(63.0,68.0, 0.0);	
-	Pose SA2pos = new Pose(63.0,142.0, 0.0);
+	Pose goal = new Pose(36.0, 135.0, Math.PI);
 
-    												/*		ROUTER THREAD	*/
-	Router router = new Router();
-	Thread t3 = new Thread() {
-		public void run() {
-			router.run();
-		}
-	};
-	t3.start();
 
-												/*		TRANSPORT AGENT	*/
-	final int[] numTransport = {1, 2};
-	final int[] iter = {0, 1};
-	Pose[] transportPoses = { TA1pos, TA2pos };    
+	final int robotID = 1;
+
+
+	tec.placeRobot(robotID, TA1pos);
+
+
+
+
+	System.out.println("__________________________________________________________________________________________-");
+
+
+	tec.setForwardModel(robotID, new ConstantAccelerationForwardModel(
+		MAX_ACCEL, 
+		MAX_VEL, 
+		tec.getTemporalResolution(), 
+		tec.getControlPeriod(), 
+		tec.getRobotTrackingPeriodInMillis(robotID)));
+
+
+	System.out.println("__________________________________________________________________________________________-");
+
+	// Motion planner
+	tec.setMotionPlanner(robotID, rsp);
+
 	
-	for (final int i : iter) {
+	System.out.println("__________________________________________________________________________________________-");
 
-		// Thread for each robot object
-        Thread t = new Thread() {
-            
-            @Override
-			public void run() {
-                this.setPriority(Thread.MAX_PRIORITY);
+	rsp.setStart(TA1pos);
+	rsp.setGoals(goal);
+	if (!rsp.plan()) throw new Error ("No path between " + "current_pos" + " and " + goal);
+	PoseSteering[] path = rsp.getPath();
+	System.out.println("__________________________________________________________________________________________-");
 
-				//Instantiate a simple motion planner (no map given here, otherwise provide yaml file)
-				ReedsSheppCarPlanner rsp = new ReedsSheppCarPlanner();
-				rsp.setFootprint(footprint1, footprint2, footprint3, footprint4);
-				rsp.setTurningRadius(4.0); 				//default is 1.0
-				rsp.setMap(yamlFile);
+	System.out.println("length--->" + path.length);
 
-				TransportAgent r = new TransportAgent(numTransport[i], tec, rsp, transportPoses[i], router);
-				r.start();
+	double accumulatedDist = 0.0;
+	for (int i=0; i< path.length-1; i++){
+		Pose p1 = path[i].getPose();
+		Pose p2 = path[i+1].getPose();
 
-			}
-                
-		};
-        t.start();
-    }
+		double deltaS = p1.distanceTo(p2);
+		System.out.println("deltaS-->" + deltaS);
 
-													/*		DRAW AGENT	*/
-	final int[] numDraw = {10001, 10002, 10003};
-	Pose[] drawPoses = { DA1pos, DA2pos, DA3pos };
-	final int[] iter3 = {0,1,2};
+		accumulatedDist += deltaS;
+	}
+	System.out.println("__________________________________________________________________________________________-");
 
-	ReedsSheppCarPlanner mp = new ReedsSheppCarPlanner();
-	mp.setFootprint(footprint1, footprint2, footprint3, footprint4);
-	mp.setTurningRadius(4.0); 				//default is 1.0
-	mp.setMap(yamlFile);
-
-	for (final int i : iter3) {
-
-		Thread drawAgentThread = new Thread() {
-			@Override
-			public void run() {
-				this.setPriority(Thread.MAX_PRIORITY);
-
-				DrawAgent DA = new DrawAgent(numDraw[i], router, 45.0, drawPoses[i], mp);
-				DA.listener();
-				
-			}
-		};
-		drawAgentThread.start();
-
+	System.out.println("calculated length -----> " + accumulatedDist);
+	for (int i =1; i<=10; i++){
+		double vel = 0.06 + (double)(i)*0.002; //0.068
+		double time = vel * accumulatedDist;
+		System.out.println("vel = "+ vel + " time ----> " + time);
 	}
 
-													/*		STORAGE AGENT	*/
-	final int[] numStorages = {5001, 5002};
-	Pose[] storagePoses = { SA1pos, SA2pos };
-	final int[] iter2 = {0,1};
+	System.out.println("__________________________________________________________________________________________-");
 
-	for (final int i : iter2) {
 
-		Thread storageThread = new Thread() {
-			@Override
-			public void run() {
-				this.setPriority(Thread.MAX_PRIORITY);
+	tec.addMissions(new Mission(robotID, path));
 
-				StorageAgent SA = new StorageAgent(numStorages[i], router, 100.0, storagePoses[i]);
-				SA.start();
-			
-			}
-		};
-		storageThread.start();
+	System.out.println("starting timer:::");
+	long before = System.currentTimeMillis();  
+	while (true) {
 
-		try { Thread.sleep(3000); }
-		catch (InterruptedException e) { e.printStackTrace(); }
+		if (tec.getRobotReport(robotID).getPose().distanceTo(goal) < 0.1) break;
 	}
+	long after = System.currentTimeMillis(); 
+	System.out.println("stopping timer:::");
+
+	long diff = after - before;
+	double secs = (double)(diff)/1000.0;
+	
+
+
+	//double timeInSecs = (after - before)/1000;
+	System.out.println("real time to do task = " + secs);
+	
+
+	System.out.println("__________________________________________________________________________________________-");
+
+	
+
+
+
+
+
+	// for time testing::
+	/*
+
+	int currentPathIndex = -1;
+		double accumulatedDist = 0.0;
+		Trajectory traj = te.getTrajectory();
+		Pose[] poses = traj.getPose();
+		for (int i = 0; i < poses.length-1; i++) {
+			double deltaS = poses[i].distanceTo(poses[i+1]);
+			accumulatedDist += deltaS;
+
+	*/
 
 }
 
