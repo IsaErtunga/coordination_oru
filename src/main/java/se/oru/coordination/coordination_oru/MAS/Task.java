@@ -14,6 +14,10 @@ public class Task {
     String status;
     boolean isSATask;
 
+    double startTime;
+    double endTime;
+    boolean isActive;
+
     // TA
     Mission mission;
     int taskProvider;
@@ -43,6 +47,14 @@ public class Task {
         this.expiryTime = expiryTime;
         this.status = status;
         this.ore = ore;
+    }
+
+    Task(int taskID, boolean isActive, double ore, double startTime, double endTime) {
+        this.taskID = taskID;
+        this.isActive = isActive;
+        this.ore = ore;
+        this.startTime = startTime;
+        this.endTime = endTime;
     }
 
     // Getter & setter.

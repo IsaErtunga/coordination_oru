@@ -42,7 +42,7 @@ public class DrawAgent extends CommunicationAid{
     protected Schedule schedule;
     protected ReedsSheppCarPlanner mp;
 
-    // SCHEDULE: Init ArrayList
+    protected TimeSchedule timeSchedule;
 
     public DrawAgent(int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp){
         this.robotID = robotID; // drawID >10'000
@@ -118,14 +118,15 @@ public class DrawAgent extends CommunicationAid{
 
                 else if (m.type.equals(new String("inform"))) {
                     // TA informs SA when its done with a task.
+                    int taskID = Integer.parseInt(this.parseMessage(m, "taskID")[0]);
                     String informVal = this.parseMessage(m, "informVal")[0]; 
                     Integer ore = Integer.parseInt(this.parseMessage(m, "oreChange")[0]);
                     
                     if (informVal.equals(new String("done"))) {
                         /* SCHEDULE: 
                             * If early just remove from schedule.
-                            * if late, 
                         */ 
+                        this.timeSchedule.remove(taskID);
                         this.takeOre(ore);
                     }
                     else if (informVal.equals(new String("status"))) {
@@ -163,8 +164,9 @@ public class DrawAgent extends CommunicationAid{
     public boolean handleService(Message m){ 
         if (m.type != "cnp-service") return false;
 
-        // SCHEDULE: Need time in the message from TA
-        String[] mParts = this.parseMessage( m, "", true); //parse=[ taskID, agentID, pos, startTime ]
+        // SCHEDULE: Need time in the message from TA, need to extend with ore. 
+        String[] mParts = this.parseMessage(m, "", true); //parse=[ taskID, agentID, pos, startTime ]
+        double ore = 10.0;
 
         // get pose of TA
         double[] coordinates = Arrays.stream(mParts[2].split(" ")).mapToDouble(Double::parseDouble).toArray();
@@ -188,27 +190,69 @@ public class DrawAgent extends CommunicationAid{
             * offer message will include: taskID, offerVal, pos, startTime, endTime
         */
 
+        double startTime = Double.parseDouble(mParts[3]);
+
+        // Calculated time for path TODO change to real calculationt
+        double estimatedPathTime = 5.0;
+
+        double endTime = startTime + estimatedPathTime;
+
+        // If task is not possible
+        if (this.timeSchedule.taskPossible(double startTime, double endTime) == false) {
+            return false; 
+        }
+
+        // SCHEDULE: Create new task & and add it to schedule
+        Task DAtask = new Task(Integer.parseInt(mParts[0]), false, ore, startTime, endTime);
+        this.timeSchedule.add(DAtask);
+
         // offer value calc
-        double dist_eval = this.pos.distanceTo(new Pose(coordinates[0], coordinates[1], coordinates[2]));
-        if (dist_eval <= 0.0) dist_eval = 150.0; //TODO temp fix
-        dist_eval = 100.0 * 1.0 / dist_eval;
-        System.out.println(this.robotID + " dist eval --------->" + dist_eval );
-        double capacity_eval = 100.0 * this.amount / this.capacity; 
+        double evaluatedDistance = calcDistance(this.pos, new Pose(coordinates[0], coordinates[1], coordinates[2]));
+
+        //TODO temp fix
+        if (evaluatedDistance <= 0.0) {
+            evaluatedDistance = 150.0;
+        } 
+
+        evaluatedDistance = 100.0 * 1.0 / evaluatedDistance;
+        System.out.println(this.robotID + " dist eval --------->" + evaluatedDistance );
+        double evaluatedCapacity = 100.0 * this.amount / this.capacity; 
 
         // generate offer..
-        String position = this.pos.getX() + " " + this.pos.getY() + " " + this.pos.getYaw();
-        int offer = (int)(dist_eval + capacity_eval);
-        String body = mParts[0] + this.separator + offer + this.separator + position;
-        Message resp = new Message(this.robotID, m.sender, "offer", body);
-    
+        int offer = (int)(evaluatedDistance + evaluatedCapacity);
+        Message response = createOffer(m, mParts, this.pos, offer);
+        
         //send offer and log event
-        this.sendMessage(resp);
+        this.sendMessage(response);
         this.logTask(Integer.parseInt(mParts[0]),
             "offer" + this.separator + m.sender + this.separator + mParts[2] );
         
         //System.out.println(this.robotID + ", task: " + this.activeTasks.get(Integer.parseInt(mParts[0])));
         return true;
+    }
 
+    /**
+     * Helper function for creating an offer to respond a service. 
+     * @param message
+     * @param messageParts
+     * @param position
+     * @param offer
+     * @return
+     */
+    protected Message createOffer(Message message, String[] messageParts, Pose position, int offer) {
+        String positionStr = position.getX() + " " + position.getY() + " " + position.getYaw();
+        String body = messageParts[0] + this.separator + offer + this.separator + positionStr;
+        return new Message(this.robotID, message.sender, "offer", body);
+    } 
+
+    /**
+     * Helper function to calculate distance between to Pose objects. 
+     * @param start
+     * @param end
+     * @return
+     */
+    protected double calcDistance(Pose start, Pose end) {
+        return start.distanceTo(end);
     }
     
 }

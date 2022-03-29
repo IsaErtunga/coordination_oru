@@ -89,7 +89,7 @@ public class CommunicationAid {
             }
 
             else if (m.type == "cnp-service"){
-                attributes = new String[] {"taskID", "storageID", "pos"}; //TODO add all attributes
+                attributes = new String[] {"taskID", "storageID", "pos", "startTime"}; //TODO add all attributes
             }
 
             int i = 0;

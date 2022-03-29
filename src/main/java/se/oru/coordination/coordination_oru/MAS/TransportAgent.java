@@ -275,6 +275,7 @@ public class TransportAgent extends CommunicationAid{
         //TODO create constructor that removes code from this func for creating a cnp-msg
         // SCHEDULE: add startTime
 
+        String startTime = "15.0";
         // ============================= generate cnp-msg ===================================
         Pose start;
         if (this.schedule.lastToPose != null) {
@@ -284,7 +285,8 @@ public class TransportAgent extends CommunicationAid{
         }
         String startPos = start.getX() + " " + start.getY() + " " + start.getYaw();
 
-        String body = this.robotID + this.separator + startPos;
+        
+        String body = this.robotID + this.separator + startPos + startTime;
         Message m = new Message(this.robotID, receivers, "cnp-service", body);
         int taskID = this.sendMessage(m, true);
         System.out.println(this.robotID +"======================3");
