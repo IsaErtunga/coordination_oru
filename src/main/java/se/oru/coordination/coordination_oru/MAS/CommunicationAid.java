@@ -192,7 +192,7 @@ public class CommunicationAid {
      * HandleOffers is called from a SA, to either accept the offer of a TA, or deny it.
      * @return the message that is the best offer
      */
-    public Message handleOffers(int taskID){
+    public Message handleOffers(int taskID) {
 
         Message bestOffer = new Message();
         int offerVal = 0;

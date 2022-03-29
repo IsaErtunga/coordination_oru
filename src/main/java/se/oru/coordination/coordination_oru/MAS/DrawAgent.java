@@ -42,6 +42,8 @@ public class DrawAgent extends CommunicationAid{
     protected Schedule schedule;
     protected ReedsSheppCarPlanner mp;
 
+    // SCHEDULE: Init ArrayList
+
     public DrawAgent(int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp){
         this.robotID = robotID; // drawID >10'000
         this.capacity = capacity;
@@ -118,14 +120,30 @@ public class DrawAgent extends CommunicationAid{
                     // TA informs SA when its done with a task.
                     String informVal = this.parseMessage(m, "informVal")[0]; 
                     Integer ore = Integer.parseInt(this.parseMessage(m, "oreChange")[0]);
-                    if (informVal.equals(new String("abort"))) {
-                    } 
-                    else if (informVal.equals(new String("done"))) {
+                    
+                    if (informVal.equals(new String("done"))) {
+                        /* SCHEDULE: 
+                            * If early just remove from schedule.
+                            * if late, 
+                        */ 
                         this.takeOre(ore);
                     }
-                    else if (informVal.equals(new String("result"))) {
-                        
+                    else if (informVal.equals(new String("status"))) {
+                        /* SCHEDULE: 
+                            * if TA notice it will not be done in time, we get inform->status msg
+                            * update schedule with new time and check if problem
+                            * if 2 mission have big overlap then send ABORT msg to later mission.
+                            * else all is good.
+                        */ 
                     }
+
+                    else if (informVal.equals(new String("abort"))) {
+                        /* SCHEDULE:
+                            * remove task from schedule
+                        */
+
+                    } 
+
                 }
                 
             }
@@ -134,19 +152,22 @@ public class DrawAgent extends CommunicationAid{
             try { Thread.sleep(1000); }
             catch (InterruptedException e) { e.printStackTrace(); }
         }
-
     }
 
+    /**
+     * DA responds to TA with offer that is calculated in this function. 
+     * SCHEDULE:
+     * - Will receive a time from TA of when it can come and fetch ore. 
+     */
     @Override
     public boolean handleService(Message m){ 
         if (m.type != "cnp-service") return false;
 
-        String[] mParts = this.parseMessage( m, "", true);
+        // SCHEDULE: Need time in the message from TA
+        String[] mParts = this.parseMessage( m, "", true); //parse=[ taskID, agentID, pos, startTime ]
 
         // get pose of TA
-        double[] coordinates = Arrays.stream(mParts[2].split(" "))
-            .mapToDouble(Double::parseDouble)
-            .toArray();
+        double[] coordinates = Arrays.stream(mParts[2].split(" ")).mapToDouble(Double::parseDouble).toArray();
 
         //calc euclidean dist between DA -> TA, and capacity evaluation
         // this.mp.setGoals(goal);
@@ -156,12 +177,24 @@ public class DrawAgent extends CommunicationAid{
         //TODO also include schedule: look if other agent will collect ore here at same time.
         //TODO add poseSteering.length
 
+        // SCHEDULE: Need to lookup schedule too see if task is possible. 
+        /* SCHEDULE: offer calc will include 
+            * calc path from TA to DA
+            * estimate the time TA will be using this tunnel
+            * look in schedule if there is a time window for the task to fit in. 
+            * - IF true: send offer & reserve time (Insert into schedule list)
+            * - else: dont send offer
+
+            * offer message will include: taskID, offerVal, pos, startTime, endTime
+        */
+
+        // offer value calc
         double dist_eval = this.pos.distanceTo(new Pose(coordinates[0], coordinates[1], coordinates[2]));
         if (dist_eval <= 0.0) dist_eval = 150.0; //TODO temp fix
         dist_eval = 100.0 * 1.0 / dist_eval;
         System.out.println(this.robotID + " dist eval --------->" + dist_eval );
         double capacity_eval = 100.0 * this.amount / this.capacity; 
-        
+
         // generate offer..
         String position = this.pos.getX() + " " + this.pos.getY() + " " + this.pos.getYaw();
         int offer = (int)(dist_eval + capacity_eval);
