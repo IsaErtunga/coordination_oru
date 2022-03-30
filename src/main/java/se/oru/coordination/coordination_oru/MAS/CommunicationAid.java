@@ -105,10 +105,30 @@ public class CommunicationAid {
     /** tID generates a new random task id.
      * returns an int between [this.lowerTaskIDBound , this.higherTaskIDBound]
      */
-    public int tID(){ // generate a new task id bound 1000-9999
+    public int tID() { // generate a new task id bound 1000-9999
         return this.rand.nextInt((this.upperTaskIDBound - this.lowerTaskIDBound) + 1) + this.lowerTaskIDBound;
     }
 
+
+    /**
+     * Helper function to get the right receivers.
+     * Called in the initial communication phase. 
+     * @param network 
+     * @param receiverType TRANSPORT, STORAGE, DRAW
+     * @return
+     */
+    public ArrayList<Integer> getReceivers(ArrayList<Integer> network, String receiverType) {
+        if (receiverType.equals("DRAW")) {
+            network.removeIf(i -> i < 10000);    //draw agents has robotID > 10000
+        }
+        if (receiverType.equals("STORAGE")) {
+            network.removeIf(i -> i < 5000 && i >= 10000); //storage agents has robotID > 5000 & < 10000
+        }
+        if (receiverType.equals("TRANSPORT")) {
+            network.removeIf(i -> i > 5000); //storage agents has robotID > 5000 & < 10000
+        }
+        return network;
+    }
     
 
     /** #######################################################################

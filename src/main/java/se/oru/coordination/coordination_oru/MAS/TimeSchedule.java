@@ -47,6 +47,10 @@ import org.metacsp.multi.spatioTemporal.paths.Pose;
     (oreState will be updated internally but agents can check it via schedule)
     * this.oreState arrayList<double time, double oreLvl>
     * checkEndStateOreLvl() -> double oreLvl
+
+    Isa
+    * func som kollar när den kan börja ett nytt mission
+    getNextStartTime() -> double startTime
 */
 
 public class TimeSchedule {

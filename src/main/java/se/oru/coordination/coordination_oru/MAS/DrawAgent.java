@@ -53,6 +53,7 @@ public class DrawAgent extends CommunicationAid{
         this.initalXPos = pos.getX();
 
         this.schedule = new Schedule();
+        this.timeSchedule = new TimeSchedule();
 
         router.enterNetwork(this.robotID, this.inbox, this.outbox);
         this.sendMessage(new Message(this.robotID, "hello-world", ""), true);

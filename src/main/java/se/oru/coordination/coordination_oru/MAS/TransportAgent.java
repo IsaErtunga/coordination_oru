@@ -38,10 +38,9 @@ public class TransportAgent extends CommunicationAid{
     protected final int oreCap = 15;
 
     protected Schedule schedule;
+    protected TimeSchedule timeSchedule;
 
     public ArrayList<Message> missionList = new ArrayList<Message>();
-
-    // SCHEDULE: Initialize ArrayList
 
 
     public TransportAgent(int id){this.robotID = id;}   // for testing
@@ -82,6 +81,7 @@ public class TransportAgent extends CommunicationAid{
         this.tec = tec;
         this.mp = mp;
         this.rShape = shape;
+        this.timeSchedule = new TimeSchedule();
     }
 
 
@@ -191,7 +191,7 @@ public class TransportAgent extends CommunicationAid{
 
     protected void initialState() {
 
-        while (true){
+        while (true) {
 
             // start CNP with DA
             /* SCHEDULE:
@@ -200,7 +200,17 @@ public class TransportAgent extends CommunicationAid{
                 * Send time of when it can start mission to DrawAgent
              */
             // SHEDULE: Message bestOffer = this.offerService(double startTime);
-            Message bestOffer = this.offerService();
+            double oreLevelThreshold = 1;
+            if (this.schedule.checkEndStateOreLvl > oreLevelThreshold) {
+                // We only create an auction if ore level is lower than treshold
+                // Possibly bad to check every iteration
+                try { Thread.sleep(100); }
+                catch (InterruptedException e) { e.printStackTrace(); }
+                continue;
+            }
+
+            // SCHEDULE: Send when it can start. 
+            Message bestOffer = this.offerService(this.getNextStartTime());
             
             if (bestOffer.isNull){ // if we got no offers from auction we sleep and try again
                 try { Thread.sleep(100); }
@@ -240,6 +250,8 @@ public class TransportAgent extends CommunicationAid{
             // ===========================================================================
 
             // SCHEDULE: Add into schedule according to time.
+            this.timeSchedule.add(task);
+
             this.schedule.enqueue(task);
             this.schedule.printSchedule();
 
@@ -259,23 +271,22 @@ public class TransportAgent extends CommunicationAid{
      * 
      * @param robotID id of robot{@link TransportAgent} calling this
      */
-    @Override
-    public Message offerService(){
+ 
+    public Message offerService(double startTime) {
     // SCHEDULE: public Message offerService(double startTime){
 
         System.out.println(this.robotID + " ======================1");
 
-        ArrayList<Integer> receivers = new ArrayList<Integer>(this.robotsInNetwork);
-        receivers.removeIf(i -> i<10000);    //draw agents has robotID > 10000
+        // Get correct receivers
+        ArrayList<Integer> receivers = new ArrayList<Integer>(this.getReceivers(this.robotsInNetwork, "DRAW"));
+        
         System.out.println(this.robotID +"======================2");
 
 
         // broadcast message to all transport agents
         //Pose pos = new Pose(63.0,68.0, 0.0);
         //TODO create constructor that removes code from this func for creating a cnp-msg
-        // SCHEDULE: add startTime
 
-        String startTime = "15.0";
         // ============================= generate cnp-msg ===================================
         Pose start;
         if (this.schedule.lastToPose != null) {
