@@ -13,8 +13,6 @@ public class Task {
     float expiryTime;
     String status;
     boolean isSATask;
-    double startTime;
-    double endTime;
 
     
 
@@ -30,6 +28,7 @@ public class Task {
 
     // SA
     double ore;
+
 
 
     Task(int taskID, Mission mission, float expiryTime, int taskProvider, String status, Pose fromPose, Pose toPose, boolean isSATask) {
@@ -60,6 +59,12 @@ public class Task {
         this.startTime = startTime;
         this.endTime = endTime;
     }
+
+    Task(double start, double end){
+        this.startTime = start;
+        this.endTime = end;
+    }
+
 
     // Getter & setter.
 }
