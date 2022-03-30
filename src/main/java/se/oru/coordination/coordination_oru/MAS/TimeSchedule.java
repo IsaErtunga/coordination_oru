@@ -2,7 +2,6 @@
  * @author Alexander Benteby & Isa Ertunga
  * Schedule imbedded in robot agents for coordinating task execution. 
  */
-
 package se.oru.coordination.coordination_oru.MAS;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -67,8 +66,18 @@ public class TimeSchedule {
 
     }
     public boolean taskPossible(double start, double end){  // return true if possible
-        return false;
+        for (int i=0; i<this.schedule.size(); i++){ // case size >1
+            Task curr = this.schedule.get(i);
+
+            if ( curr.endTime < start ) continue;
+
+            if (end < curr.startTime ) break;
+            else return false;
+
+        }
+        return true;
     } 
+
     public double getNextStartTime(){ //return endTime for last task
         return 0.0;
     } 
@@ -77,28 +86,28 @@ public class TimeSchedule {
     } // return the last state
 
     protected boolean add(Task task) {
-        int index = 0;
 
-        if (this.schedule.size() <= 0){ // case size=0
+        if (this.schedule.size() <= 0){                                 // case size = 0
             this.schedule.add(task);
             return true;
         }
 
-        else if (this.schedule.size() == 1){    // case size=1 
-            if ( this.isTaskOverlapping(this.schedule.get(0), task) ) return false; // not added 
-            
-            if (this.schedule.get(0).startTime < task.startTime) index = 1;
-            else index = 0;
+        for (int i=0; i<this.schedule.size(); i++){                     // case size > 0
+            Task curr = this.schedule.get(i);
 
-            this.schedule.add(index, task);
-            return true;
-        } 
+            if ( curr.endTime <= task.startTime ){   // if curr is left of task
+                if ( i == this.schedule.size()-1){ // task should be added at end of schedule
+                    this.schedule.add(task);
+                    return true;
+                }
+                else continue;
+            }
+            if ( this.isTaskOverlapping(task, curr) ) return false;
 
-        for (int i=0; i<this.schedule.size(); i++){ // case size >1
-
- 
-            this.schedule.get(i);
+            this.schedule.add(i, task);
+            return true;            
         }
+
         return false;
     }
 
@@ -123,6 +132,7 @@ public class TimeSchedule {
         double s2 = t2.startTime;       // a1 < a2 & b1 > b2            = slot2 is completly within slot1
         double e2 = t2.endTime;         // a1 > a2 & b1 < b2            = slot1 is completly within slot2
 
+        /*
         if ( s1 > s2 ){     //should cover all cases
             if (e1 < e2) return true;
             if (e2 > s1) return true;
@@ -131,13 +141,13 @@ public class TimeSchedule {
             if (e1 > e2) return true;
             if (e1 > s2) return true;
         }
-
-        /* Du som är kåt på one liners :))
-        
-        if (e1 > s2 && s1 < e2) return true
-        else return false
         */
 
+        // if: slot1's left is IN slot2 OR slot1's right is IN slot2 OR whole slot2 is in slot1 
+        /*
+        if ( (s1>s2 && s1<e2) || (e1<e2 && e1>s2) || (s1<s2 && e1>e2)) return true;
+        */
+        if (e1 > s2 && s1 < e2) return true;
         return false;
     }
         
@@ -152,26 +162,84 @@ public class TimeSchedule {
         return this.schedule.size();
     }
 
-    protected boolean isLastTaskSA(){
-
-        if (this.schedule.size()<=0){
-            if (this.currentTask != null){
-                return this.currentTask.isSATask;
-            }
-            return false;
-        }
-
-        Task task = this.schedule.get(this.schedule.size() - 1);
-
-        return task.isSATask;
-
-    }
 
     protected void changeTaskOrder() {}
 
+    public void printSchedule(){
+        System.out.println("___________________________________SCHEDULE_________________________________________");
+        for (Task t : this.schedule){
+            System.out.println("time: " + t.startTime + " --> " + t.endTime);
+        }
 
-    
-   
-    
+        System.out.println("____________________________________________________________________________________");
 
+
+    }
+
+
+    public static void main(String args[]){
+
+        TimeSchedule ts = new TimeSchedule();
+
+
+        //overlap test
+        boolean testOverlap = false;
+        boolean testAddFunc = true;
+
+        if (testOverlap){
+            System.out.println("######### testing isTaskOverlapping(Task t, Task t) #########");
+
+            Task over1 = new Task(10.0, 20.0);
+            Task over2 = new Task(5.0, 15.0);
+            
+            System.out.println( ts.isTaskOverlapping(over1, over2) == true ? "success" : "fail");
+
+            over2 = new Task(15.0, 25.0);
+            System.out.println( ts.isTaskOverlapping(over1, over2) == true ? "success" : "fail");
+
+            over2 = new Task(5.0, 25.0);
+            System.out.println( ts.isTaskOverlapping(over1, over2) == true ? "success" : "fail");
+
+            over2 = new Task(12.0, 18.0);
+            System.out.println( ts.isTaskOverlapping(over1, over2) == true ? "success" : "fail");
+
+            over2 = new Task(5.0, 10.0);
+            System.out.println( ts.isTaskOverlapping(over1, over2) == false ? "success" : "fail");
+
+            over2 = new Task(20.0, 25.0);
+            System.out.println( ts.isTaskOverlapping(over1, over2) == false ? "success" : "fail");
+        }
+
+
+        if (testAddFunc){
+            System.out.println("######### testing add(Task t) #########");
+
+            Task t1 = new Task(10.0, 20.0);
+            Task t2 = new Task(30.0, 40.0);
+            Task t3 = new Task(50.0, 60.0);
+            Task t4 = new Task(40.0, 50.0);
+            Task t5 = new Task(100.0, 110.0);
+            Task t6 = new Task(25.0, 35.0);
+
+            System.out.println( ts.add(t1) == true ? "t1 success" : "t1 fail");
+            System.out.println( ts.add(t2) == true ? "t2 success" : "t2 fail");
+            System.out.println( ts.add(t3) == true ? "t3 success" : "t3 fail");
+            System.out.println( ts.add(t4) == true ? "t4 success" : "t4 fail");
+            System.out.println( ts.add(t5) == true ? "t5 success" : "t5 fail");
+            System.out.println( ts.add(t6) == false ? "t6 success" : "t6 fail");
+            System.out.println( ts.add(new Task(25.0, 30.0)) == true ? "t7 success" : "t7 fail");
+            System.out.println( ts.add(new Task(5.0, 10.0)) == true ? "t8 success" : "t8 fail");
+            System.out.println( ts.add(new Task(109.0, 111.0)) == false ? "t9 success" : "t9 fail");
+            ts.printSchedule();
+
+        }
+
+
+
+
+
+
+
+
+    }
 }
