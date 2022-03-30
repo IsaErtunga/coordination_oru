@@ -43,6 +43,7 @@ import org.metacsp.multi.spatioTemporal.paths.Pose;
     * get(int taskID) --> Task
     * update(int taskID, double newEndTime) --> bool
     * taskPossible(double startTime, double endTime) --> bool // check if timeslot is possible
+    * getNextStartTime() --> double startTime
     
     (oreState will be updated internally but agents can check it via schedule)
     * this.oreState arrayList<double time, double oreLvl>
@@ -55,23 +56,45 @@ import org.metacsp.multi.spatioTemporal.paths.Pose;
 
 public class TimeSchedule {
 
-    protected Task currentTask = null;
-    
-    // Data structure for storing tasks. 
+    protected Task currentTask = null;    
     private ArrayList<Task> schedule = new ArrayList<Task>();
+    private HashMap<Double, Integer> state = new HashMap<Double, Integer>();
+
+    public void update(int taskID, double newEndTime){}
+    public boolean taskPossible(double start, double end){return false;} // return true if possible
+    public double getNextStartTime(){return 0.0;} //return endTime for last task
+    public double checkEndStateOreLvl(){return 0.0;} // return the last state
 
     protected boolean add(Task task) {
-        
+        int index = 0;
+
+        if (this.schedule.size() <= 0){ // case size=0
+            this.schedule.add(task);
+            return true;
+        }
+
+        else if (this.schedule.size() == 1){    // case size=1 
+            if ( this.isTaskOverlapping(this.schedule.get(0), task) ) return false; // not added 
+            
+            if (this.schedule.get(0).startTime < task.startTime) index = 1;
+            else index = 0;
+
+            this.schedule.add(index, task);
+            return true;
+        } 
+
+        for (int i=0; i<this.schedule.size(); i++){ // case size >1
+ 
+            this.schedule.get(i);
+        }
         return false;
     }
-        
 
-    protected boolean remove(int taskID) {
-        
-        return false;
+    protected Task remove(int taskID) {
+        return this.schedule.remove(taskID);
     }
 
-    protected Task getTask(int taskID) {
+    protected Task get(int taskID) {
         // I get task you get taskID
         for (Task task : this.schedule) {
             if (task.taskID == taskID) {
@@ -81,6 +104,28 @@ public class TimeSchedule {
         return null;
 
     }
+
+    private boolean isTaskOverlapping(Task t1, Task t2){        // a1 is start of slot1, b1 is end of slot1
+        double s1 = t1.startTime;       // a1 > a2 & b1 > b2 & b2 > a1  = slot2 is semi to the left of slot1
+        double e1 = t1.endTime;         // a1 < a2 & b1 < b2 & b1 > a2  = slot2 is semi to the right of slot1
+        double s2 = t2.startTime;       // a1 < a2 & b1 > b2            = slot2 is completly within slot1
+        double e2 = t2.endTime;         // a1 > a2 & b1 < b2            = slot1 is completly within slot2
+
+        if ( s1 > s2 ){     //should cover all cases
+            if (e1 < e2) return true;
+            if (e2 > s1) return true;
+        }
+        else {
+            if (e1 > e2) return true;
+            if (e1 > s2) return true;
+        }
+
+        return false;
+    }
+        
+    
+
+    
 
     // TODO ABORT TASK
     // TODO REPLACE TASK
@@ -105,27 +150,7 @@ public class TimeSchedule {
     }
 
     protected void changeTaskOrder() {}
-
-    public void printSchedule(){
-        System.out.println("___________________________________SCHEDULE_________________________________________");
-        if (this.currentTask != null){
-            System.out.println("Current task exists::");
-            System.out.println("from: " + this.currentTask.fromPose.toString() + " --> " + this.currentTask.toPose.toString());
-            System.out.println("taskprovider: " + this.currentTask.taskProvider);
-            System.out.println("\n");
-        }
-        else{
-            System.out.println("Current task is null::");
-        }
-        for (Task t : this.schedule){
-            System.out.println("from: " + t.fromPose.toString() + " --> " + t.toPose.toString());
-            System.out.println("taskprovider: " + t.taskProvider);
-            System.out.println("\n");
-        }
-
-        System.out.println("____________________________________________________________________________________");
-
-
-    }
+   
+    
 
 }

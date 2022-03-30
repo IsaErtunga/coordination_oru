@@ -13,6 +13,10 @@ public class Task {
     float expiryTime;
     String status;
     boolean isSATask;
+    double startTime;
+    double endTime;
+
+    
 
     double startTime;
     double endTime;
