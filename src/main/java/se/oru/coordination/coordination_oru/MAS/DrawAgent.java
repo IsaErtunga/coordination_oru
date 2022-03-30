@@ -118,16 +118,17 @@ public class DrawAgent extends CommunicationAid{
 
                 else if (m.type.equals(new String("inform"))) {
                     // TA informs SA when its done with a task.
-                    int taskID = Integer.parseInt(this.parseMessage(m, "taskID")[0]);
-                    String informVal = this.parseMessage(m, "informVal")[0]; 
-                    Integer ore = Integer.parseInt(this.parseMessage(m, "oreChange")[0]);
+                    String[] messageParts = this.parseMessage(m, "", true);
+                    int taskID = Integer.parseInt(messageParts[0]); 
+                    String informVal = messageParts[1];
                     
                     if (informVal.equals(new String("done"))) {
                         /* SCHEDULE: 
                             * If early just remove from schedule.
                         */ 
+                        int oreChange = Integer.parseInt(messageParts[2]); 
                         this.timeSchedule.remove(taskID);
-                        this.takeOre(ore);
+                        this.takeOre(oreChange);
                     }
                     else if (informVal.equals(new String("status"))) {
                         /* SCHEDULE: 
@@ -136,13 +137,17 @@ public class DrawAgent extends CommunicationAid{
                             * if 2 mission have big overlap then send ABORT msg to later mission.
                             * else all is good.
                         */ 
+                        double newEndTime = Double.parseDouble(messageParts[2]);
+                        if (newEndTime > this.timeSchedule.getTask(taskID).endTime) {
+                            this.timeSchedule.update(taskID, newEndTime);
+                        }
+
                     }
 
                     else if (informVal.equals(new String("abort"))) {
                         /* SCHEDULE:
                             * remove task from schedule
                         */
-
                     } 
 
                 }
