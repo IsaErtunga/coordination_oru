@@ -62,34 +62,68 @@ public class TimeSchedule {
 
 
 
-    public String[] update(int taskID, double newEndTime){   //TODO DONT TEST! NOT DONE! WORK IN PROGRESS.
-        if (this.schedule.size() ==1) this.schedule.get(0).endTime = newEndTime;
+    public HashMap<Integer, Double> update(int taskID, double newEndTime){   //TODO DONT TEST! NOT DONE! WORK IN PROGRESS.
+        HashMap<Integer, Double> ret = new HashMap<Integer, Double>();
 
-        else{
-            for ( int i=0; i<this.schedule.size(); i++ ){
-                Task curr = this.schedule.get(i);
-    
-                if ( curr.taskID == taskID ){
-    
-                    if ( i != this.schedule.size()-1 && this.isTaskOverlapping(new Task(curr.startTime, newEndTime), this.schedule.get(i+1)) ){
-                        // we have problem if code get here. the new endTime overlapps other tasks
+        if (this.schedule.size() ==1){
+            this.schedule.get(0).endTime = newEndTime;
+            return ret;
+        } 
 
 
-                        if ( newEndTime - this.schedule.get(i+1).startTime > 5.0 ){ // if diff is > 5s 
+        int i;
+        boolean searchNeeded = false;
+        for ( i=0; i<this.schedule.size(); i++ ){      
+            Task curr = this.schedule.get(i);
+            if ( curr.taskID == taskID ){
+                searchNeeded = ( i != this.schedule.size()-1 && this.isTaskOverlapping(new Task(curr.startTime, newEndTime), this.schedule.get(i+1)));
 
-                        }
-                        curr.endTime = newEndTime;
-                    }
-                    else {  // no problem caused by updating.
-
-                    }
-                    
-                }
+                curr.endTime = newEndTime;
+                break;
             }
         }
 
+        if ( searchNeeded ){
+            for ( int j=i; j<this.schedule.size()-1; j++ ){
+                Task curr = this.schedule.get(j);
+                
+                if (curr.endTime - this.schedule.get(j+1).startTime > 5.0){
+                    System.out.println("big diff");
+                }
+            }
+
+
+        }
         
-        return null;
+
+        
+        return ret;
+    }
+
+    public HashMap<Integer, Double> update2(int taskID, double newEndTime){
+        HashMap<Integer, Double> ret = new HashMap<Integer, Double>();
+        int i;
+
+        // find index of task being update and undate.
+        for ( i=0; i<this.schedule.size()-1; i++ ){
+            Task t = this.schedule.get(i);
+            if ( t.taskID == taskID ){
+                t.endTime = newEndTime;
+                break;
+            }
+        }
+
+        // check if later schedule needs to be updated
+
+        for ( int j=i; j<this.schedule.size()-1; j++ ){
+            Task curr = this.schedule.get(j);
+            
+            if (curr.endTime - this.schedule.get(j+1).startTime > 5.0){
+                System.out.println("big diff");
+            }
+        }
+
+        return ret;
     }
 
 
@@ -187,7 +221,7 @@ public class TimeSchedule {
     public void printSchedule(){
         System.out.println("___________________________________SCHEDULE_________________________________________");
         for (Task t : this.schedule){
-            System.out.println("time: " + t.startTime + " --> " + t.endTime);
+            System.out.println("time: " + t.startTime + " --> " + t.endTime + "\t taskID: "+t.taskID);
         }
 
         System.out.println("____________________________________________________________________________________");
@@ -204,7 +238,8 @@ public class TimeSchedule {
         //overlap test
         boolean testOverlap = false;
         boolean testAddFunc = false;
-        boolean testSmallFuncs = true;
+        boolean testSmallFuncs = false;
+        boolean testUpdate = true;
 
         if (testOverlap){
             System.out.println("######### testing isTaskOverlapping(Task t, Task t) #########");
@@ -267,17 +302,28 @@ public class TimeSchedule {
             System.out.println( ts.taskPossible(20.0, 30.0) == true ? "success" : "fail");
             System.out.println( ts.taskPossible(45.0, 80.0) == false ? "success" : "fail");
 
-
+            
 
 
         }
 
+        if (testUpdate){
+            if (!testAddFunc){
+                ts.add(new Task(10.0, 20.0, 1));
+                ts.add(new Task(30.0, 40.0));
+                ts.add(new Task(40.0, 50.0));
+                ts.add(new Task(50.0, 100.0));
+            }
 
+            System.out.println("######### update(int taskID, double newEndTime) #########");
+            ts.update(1, 25.5);
+            ts.printSchedule();
 
+            ts.update(1, 30.0);
+            ts.printSchedule();
 
-
-
-
-
+            ts.update(1, 36.0);
+            ts.printSchedule();
+        }
     }
 }

@@ -61,8 +61,13 @@ public class Task {
     }
 
     Task(double start, double end){
+        this(start, end, 0);
+    }
+
+    Task(double start, double end, int taskID){
         this.startTime = start;
         this.endTime = end;
+        this.taskID = taskID;
     }
 
 
