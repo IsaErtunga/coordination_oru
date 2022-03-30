@@ -62,28 +62,65 @@ public class TimeSchedule {
 
 
 
-    public void update(int taskID, double newEndTime){
+    public String[] update(int taskID, double newEndTime){   //TODO DONT TEST! NOT DONE! WORK IN PROGRESS.
+        if (this.schedule.size() ==1) this.schedule.get(0).endTime = newEndTime;
 
-    }
-    public boolean taskPossible(double start, double end){  // return true if possible
-        for (int i=0; i<this.schedule.size(); i++){ // case size >1
-            Task curr = this.schedule.get(i);
+        else{
+            for ( int i=0; i<this.schedule.size(); i++ ){
+                Task curr = this.schedule.get(i);
+    
+                if ( curr.taskID == taskID ){
+    
+                    if ( i != this.schedule.size()-1 && this.isTaskOverlapping(new Task(curr.startTime, newEndTime), this.schedule.get(i+1)) ){
+                        // we have problem if code get here. the new endTime overlapps other tasks
 
-            if ( curr.endTime < start ) continue;
 
-            if (end < curr.startTime ) break;
-            else return false;
+                        if ( newEndTime - this.schedule.get(i+1).startTime > 5.0 ){ // if diff is > 5s 
 
+                        }
+                        curr.endTime = newEndTime;
+                    }
+                    else {  // no problem caused by updating.
+
+                    }
+                    
+                }
+            }
         }
+
+        
+        return null;
+    }
+
+
+    /** taskPossible used to check if a slot is available given startTime and endTime.
+     * @param start startTIme of task
+     * @param end   endTime of task
+     * @return  true if slot is available, false if not.
+     */
+    public boolean taskPossible(double start, double end){  // return true if possible
+        Task task = new Task(start, end);
+        for (int i=0; i<this.schedule.size(); i++){
+            if ( this.isTaskOverlapping(this.schedule.get(i), task) ) return false;
+        } 
+            
         return true;
     } 
 
+
+    /** getNextStartTime() will retrive the next time available for scheduling. 
+     * return type is double
+     * @return the endTime of the last Task in schedule. it does NOT care if task is reserved or not.
+     */
     public double getNextStartTime(){ //return endTime for last task
-        return 0.0;
+        return this.schedule.get(this.schedule.size()-1).endTime;
     } 
+
+
     public double checkEndStateOreLvl(){
         return 0.0;
     } // return the last state
+
 
     protected boolean add(Task task) {
 
@@ -111,9 +148,11 @@ public class TimeSchedule {
         return false;
     }
 
+
     protected Task remove(int taskID) {
         return this.schedule.remove(taskID);
     }
+
 
     protected Task get(int taskID) {
         // I get task you get taskID
@@ -126,29 +165,9 @@ public class TimeSchedule {
 
     }
 
-    private boolean isTaskOverlapping(Task t1, Task t2){        // a1 is start of slot1, b1 is end of slot1
-        double s1 = t1.startTime;       // a1 > a2 & b1 > b2 & b2 > a1  = slot2 is semi to the left of slot1
-        double e1 = t1.endTime;         // a1 < a2 & b1 < b2 & b1 > a2  = slot2 is semi to the right of slot1
-        double s2 = t2.startTime;       // a1 < a2 & b1 > b2            = slot2 is completly within slot1
-        double e2 = t2.endTime;         // a1 > a2 & b1 < b2            = slot1 is completly within slot2
 
-        /*
-        if ( s1 > s2 ){     //should cover all cases
-            if (e1 < e2) return true;
-            if (e2 > s1) return true;
-        }
-        else {
-            if (e1 > e2) return true;
-            if (e1 > s2) return true;
-        }
-        */
-
-        // if: slot1's left is IN slot2 OR slot1's right is IN slot2 OR whole slot2 is in slot1 
-        /*
-        if ( (s1>s2 && s1<e2) || (e1<e2 && e1>s2) || (s1<s2 && e1>e2)) return true;
-        */
-        if (e1 > s2 && s1 < e2) return true;
-        return false;
+    private boolean isTaskOverlapping(Task t1, Task t2){ 
+        return (t1.endTime > t2.startTime && t1.startTime < t2.endTime);
     }
         
     
@@ -158,7 +177,7 @@ public class TimeSchedule {
     // TODO ABORT TASK
     // TODO REPLACE TASK
 
-    protected int getSize() {
+    public int getSize() {
         return this.schedule.size();
     }
 
@@ -184,7 +203,8 @@ public class TimeSchedule {
 
         //overlap test
         boolean testOverlap = false;
-        boolean testAddFunc = true;
+        boolean testAddFunc = false;
+        boolean testSmallFuncs = true;
 
         if (testOverlap){
             System.out.println("######### testing isTaskOverlapping(Task t, Task t) #########");
@@ -231,6 +251,24 @@ public class TimeSchedule {
             System.out.println( ts.add(new Task(5.0, 10.0)) == true ? "t8 success" : "t8 fail");
             System.out.println( ts.add(new Task(109.0, 111.0)) == false ? "t9 success" : "t9 fail");
             ts.printSchedule();
+        }
+
+        if (testSmallFuncs){
+            System.out.println("######### testing small funcs #########\n");
+            if (!testAddFunc){
+                ts.add(new Task(10.0, 20.0));
+                ts.add(new Task(30.0, 40.0));
+                ts.add(new Task(40.0, 50.0));
+                ts.add(new Task(50.0, 100.0));
+            }
+
+            System.out.println("######### taskPossible(double start, double end) #########");
+            System.out.println( ts.taskPossible(0.0, 5.0) == true ? "success" : "fail");
+            System.out.println( ts.taskPossible(20.0, 30.0) == true ? "success" : "fail");
+            System.out.println( ts.taskPossible(45.0, 80.0) == false ? "success" : "fail");
+
+
+
 
         }
 
