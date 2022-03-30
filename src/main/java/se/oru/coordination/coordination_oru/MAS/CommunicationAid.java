@@ -81,7 +81,7 @@ public class CommunicationAid {
             String[] attributes = {};
 
             if (m.type == "offer"){
-                attributes = new String[] {"taskID", "offerVal", "pos"};
+                attributes = new String[] {"taskID", "offerVal", "pos", "startTime", "endTime"};
             }
 
             else if (m.type == "inform") {
@@ -244,6 +244,16 @@ public class CommunicationAid {
         }
         //TODO make it able to choose another offer if OG one was not possible
         return bestOffer;
+    }
+
+    /**
+     * Helper function to calculate distance between to Pose objects. 
+     * @param start
+     * @param end
+     * @return
+     */
+    protected double calcDistance(Pose start, Pose end) {
+        return start.distanceTo(end);
     }
     
     public static void main(String[] args){

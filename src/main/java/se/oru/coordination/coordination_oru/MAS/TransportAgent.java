@@ -290,11 +290,9 @@ public class TransportAgent extends CommunicationAid{
         catch (InterruptedException e) { e.printStackTrace(); }
         System.out.println(this.robotID +"======================4");
 
-        /** SCHEDULE:
-            * Check if task fits into our schedule.
-        */ 
+    
         Message bestOffer = this.handleOffers(taskID); //extract best offer
-        
+
         System.out.println(this.robotID +"======================5");
 
         if (!bestOffer.isNull){        
@@ -338,6 +336,40 @@ public class TransportAgent extends CommunicationAid{
         return this.sendMessage(m, true);
     }
 
+    /**
+     * Eventually remove from communicationAid
+     * SCHEDULE: Check if task fits into our schedule.
+     */
+    @Override
+    public Message handleOffers(int taskID) {
+
+        Message bestOffer = new Message();
+        int offerVal = 0;
+        
+        // Sort offers for the best one
+
+        for ( Message m : this.offers ){
+
+            // SCHEDULE: Extract startTime & endTime and see if it fits into schedule
+            double startTime = Double.parseDouble(parseMessage(m, "startTime")[0]);
+            double endTime = Double.parseDouble(parseMessage(m, "endTime")[0]);
+
+            if(!m.isNull && this.timeSchedule.taskPossible(startTime, endTime)) {
+                String[] mParts = this.parseMessage( m, "", true); // sort out offer not part of current auction(taskID)
+                if (Integer.parseInt(mParts[0]) == taskID){
+                    int val = Integer.parseInt(mParts[1]);
+                    if (val > offerVal) {
+                        offerVal = val;
+                        bestOffer = new Message(m);
+                    }
+                    //this.offers.remove(m);
+                }
+            }
+        }
+        //TODO make it able to choose another offer if OG one was not possible
+        return bestOffer;
+    }
+
     /** handleService is called from within a TA, when a TA did a {@link offerService}
      * 
      * @param m the message with the service
@@ -345,11 +377,11 @@ public class TransportAgent extends CommunicationAid{
      * @return true if we send offer = we expect resp.
      */
     @Override
-    public boolean handleService(Message m){ 
-
+    public boolean handleService(Message m) { 
         if (m.type != "cnp-service") return false;
 
         String[] mParts = this.parseMessage( m, "", true);
+        double[] coordinates = Arrays.stream(mParts[2].split(" ")).mapToDouble(Double::parseDouble).toArray();
 
         // SCHEDULE: Need to lookup schedule too see if task is possible. 
         /* SCHEDULE: offer calc will include 
@@ -362,10 +394,22 @@ public class TransportAgent extends CommunicationAid{
             * offer message will include: taskID, offerVal, pos, startTime, endTime
         */
 
+        double startTime = Double.parseDouble(mParts[3]);
 
-        double[] coordinates = Arrays.stream(mParts[2].split(" ")).mapToDouble(Double::parseDouble).toArray();
+        // Calculated time for path TODO change to real calculation
+        double estimatedPathTime = 5.0;
 
-        
+        double endTime = startTime + estimatedPathTime;
+
+        // If task is not possible
+        if (this.timeSchedule.taskPossible(startTime, endTime) == false) {
+            return false; 
+        }
+
+        // SCHEDULE: Create new task & and add it to schedule
+        double ore = 10.0;
+        Task DAtask = new Task(Integer.parseInt(mParts[0]), false, ore, startTime, endTime);
+        this.timeSchedule.add(DAtask);
 
         //calc euclidean dist between DA -> TA, and capacity evaluation
         // this.mp.setGoals(goal);
@@ -375,15 +419,14 @@ public class TransportAgent extends CommunicationAid{
         //TODO also include schedule: look if other agent will collect ore here at same time.
         //TODO add poseSteering.length
 
-        double dist_eval = this.tec.getRobotReport(this.robotID).getPose().distanceTo(new Pose(coordinates[0], coordinates[1], coordinates[2]));
-        if (dist_eval <= 0.0) dist_eval = 150.0; //TODO temp fix
-        int offer = (int)(100.0 * 1.0 / dist_eval);
-
-        String body = mParts[0] + this.separator + offer;
-        Message resp = new Message(this.robotID, m.sender, "offer", body);
+        double evaluatedDistance = this.calcDistance(this.tec.getRobotReport(this.robotID).getPose(), 
+                                                     new Pose(coordinates[0], coordinates[1], coordinates[2]));
+        
+        // Create offer
+        Message response = createOffer(m, mParts, evaluatedDistance);
     
         // räkna ut ett bud och skicka det.
-        this.sendMessage(resp);
+        this.sendMessage(response);
         this.logTask(Integer.parseInt(mParts[0]),
             "offer" + this.separator + m.sender + this.separator + mParts[2] ); //TODO make better
         
@@ -391,6 +434,20 @@ public class TransportAgent extends CommunicationAid{
         
         return true;
     }
+
+    /**
+     * Helper function for handleService to create an offer message.
+     * @param message
+     * @param messageParts
+     * @param evaluatedDistance
+     * @return
+     */
+    protected Message createOffer(Message message, String[] messageParts, double evaluatedDistance) {
+        if (evaluatedDistance <= 0.0) evaluatedDistance = 150.0; //TODO temp fix
+        int offer = (int)(100.0 * 1.0 / evaluatedDistance);
+        String body = messageParts[0] + this.separator + offer;
+        return new Message(this.robotID, message.sender, "offer", body);
+    } 
 
 
     /**

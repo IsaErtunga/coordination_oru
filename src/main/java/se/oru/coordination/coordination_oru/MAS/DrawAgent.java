@@ -213,7 +213,7 @@ public class DrawAgent extends CommunicationAid{
         this.timeSchedule.add(DAtask);
 
         // offer value calc
-        double evaluatedDistance = calcDistance(this.pos, new Pose(coordinates[0], coordinates[1], coordinates[2]));
+        double evaluatedDistance = this.calcDistance(this.pos, new Pose(coordinates[0], coordinates[1], coordinates[2]));
 
         //TODO temp fix
         if (evaluatedDistance <= 0.0) {
@@ -246,19 +246,9 @@ public class DrawAgent extends CommunicationAid{
      * @return
      */
     protected Message createOffer(Message message, String[] messageParts, Pose position, int offer) {
-        String positionStr = position.getX() + " " + position.getY() + " " + position.getYaw();
+        String positionStr = this.stringifyPose(position);
         String body = messageParts[0] + this.separator + offer + this.separator + positionStr;
         return new Message(this.robotID, message.sender, "offer", body);
     } 
-
-    /**
-     * Helper function to calculate distance between to Pose objects. 
-     * @param start
-     * @param end
-     * @return
-     */
-    protected double calcDistance(Pose start, Pose end) {
-        return start.distanceTo(end);
-    }
     
 }
