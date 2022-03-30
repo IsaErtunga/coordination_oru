@@ -175,8 +175,9 @@ public class DrawAgent extends CommunicationAid{
         double ore = 10.0;
 
         // get pose of TA
+        
         double[] coordinates = Arrays.stream(mParts[2].split(" ")).mapToDouble(Double::parseDouble).toArray();
-
+        System.out.println(Arrays.toString(coordinates));
         //calc euclidean dist between DA -> TA, and capacity evaluation
         // this.mp.setGoals(goal);
         //     if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + goal);
@@ -226,7 +227,7 @@ public class DrawAgent extends CommunicationAid{
 
         // generate offer..
         int offer = (int)(evaluatedDistance + evaluatedCapacity);
-        Message response = createOffer(m, mParts, this.pos, offer);
+        Message response = createOffer(m, mParts, this.pos, offer, startTime, endTime);
         
         //send offer and log event
         this.sendMessage(response);
@@ -245,9 +246,10 @@ public class DrawAgent extends CommunicationAid{
      * @param offer
      * @return
      */
-    protected Message createOffer(Message message, String[] messageParts, Pose position, int offer) {
+    protected Message createOffer(Message message, String[] messageParts, Pose position, int offer, double startTime, double endTime) {
         String positionStr = this.stringifyPose(position);
-        String body = messageParts[0] + this.separator + offer + this.separator + positionStr;
+        String body = messageParts[0] + this.separator + offer + this.separator + 
+                      positionStr + this.separator + startTime + this.separator + endTime;
         return new Message(this.robotID, message.sender, "offer", body);
     } 
     

@@ -56,6 +56,7 @@ public class TransportAgent extends CommunicationAid{
         this.mp = mp;
         this.startPose = startPos;
 
+        this.timeSchedule = new TimeSchedule();
         this.schedule = new Schedule();
 
         // enter network and broadcast our id to others.
@@ -81,7 +82,6 @@ public class TransportAgent extends CommunicationAid{
         this.tec = tec;
         this.mp = mp;
         this.rShape = shape;
-        this.timeSchedule = new TimeSchedule();
     }
 
 
@@ -330,7 +330,7 @@ public class TransportAgent extends CommunicationAid{
         }
         String startPos = this.stringifyPose(start);
 
-        String body = this.robotID + this.separator + startPos + startTime;
+        String body = this.robotID + this.separator + startPos + this.separator + startTime;
         Message m = new Message(this.robotID, receivers, "cnp-service", body);
 
         return this.sendMessage(m, true);
@@ -423,7 +423,7 @@ public class TransportAgent extends CommunicationAid{
                                                      new Pose(coordinates[0], coordinates[1], coordinates[2]));
         
         // Create offer
-        Message response = createOffer(m, mParts, evaluatedDistance);
+        Message response = createOffer(m, mParts, evaluatedDistance, this.tec.getRobotReport(this.robotID).getPose(), startTime, endTime);
     
         // räkna ut ett bud och skicka det.
         this.sendMessage(response);
@@ -442,10 +442,11 @@ public class TransportAgent extends CommunicationAid{
      * @param evaluatedDistance
      * @return
      */
-    protected Message createOffer(Message message, String[] messageParts, double evaluatedDistance) {
+    protected Message createOffer(Message message, String[] messageParts, double evaluatedDistance, Pose position, double startTime, double endTime) {
         if (evaluatedDistance <= 0.0) evaluatedDistance = 150.0; //TODO temp fix
         int offer = (int)(100.0 * 1.0 / evaluatedDistance);
-        String body = messageParts[0] + this.separator + offer;
+        String body = messageParts[0] + this.separator + offer + this.separator +
+                      this.stringifyPose(position) + this.separator + startTime + this.separator + endTime;
         return new Message(this.robotID, message.sender, "offer", body);
     } 
 

@@ -36,6 +36,7 @@ public class StorageAgent extends CommunicationAid{
     protected double amount;    // the current amount it has stored in TONS
 
     protected Schedule schedule;
+    protected TimeSchedule timeSchedule;
 
     public boolean beingUsed = false;
 
@@ -58,6 +59,7 @@ public class StorageAgent extends CommunicationAid{
         this.startPose = startPos;
 
         schedule = new Schedule();
+        this.timeSchedule = new TimeSchedule();
 
         router.enterNetwork(this);
 
@@ -219,8 +221,11 @@ public class StorageAgent extends CommunicationAid{
         System.out.println(this.robotID +"======================2");
 
         String startPos = this.startPose.getX() + " " + this.startPose.getY() + " " + this.startPose.getYaw();
-        
-        String body = this.robotID + this.separator + startPos;
+
+        String startTime = Double.toString(this.timeSchedule.getNextStartTime());
+  
+        // taskID & agentID & pos & startTime 
+        String body = this.robotID + this.separator + startPos + this.separator + startTime;
         Message m = new Message(this.robotID, receivers, "cnp-service", body);
         int taskID = this.sendMessage(m, true);
         System.out.println(this.robotID +"======================3");
