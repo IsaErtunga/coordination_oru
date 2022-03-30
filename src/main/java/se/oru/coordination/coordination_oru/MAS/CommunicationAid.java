@@ -12,10 +12,10 @@ import java.util.Map;
 import java.util.Random;
 
 import se.oru.coordination.coordination_oru.MAS.Message;
+import org.metacsp.multi.spatioTemporal.paths.Pose;
 
 
 public class CommunicationAid {
-
     protected int lowerTaskIDBound = 1000;
     protected int upperTaskIDBound = 9999;
     protected String separator = ",";
@@ -128,6 +128,16 @@ public class CommunicationAid {
             network.removeIf(i -> i > 5000); //storage agents has robotID > 5000 & < 10000
         }
         return network;
+    }
+
+
+    /**
+     * Helper function that gets a pose and prepares it for message.
+     * @param pose
+     * @return
+     */
+    public String stringifyPose(Pose pose) {
+        return pose.getX() + " " + pose.getY() + " " + pose.getYaw();
     }
     
 

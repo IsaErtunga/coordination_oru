@@ -139,7 +139,7 @@ public class DrawAgent extends CommunicationAid{
                             * else all is good.
                         */ 
                         double newEndTime = Double.parseDouble(messageParts[2]);
-                        if (newEndTime > this.timeSchedule.getTask(taskID).endTime) {
+                        if (newEndTime > this.timeSchedule.get(taskID).endTime) {
                             this.timeSchedule.update(taskID, newEndTime);
                         }
 
@@ -204,7 +204,7 @@ public class DrawAgent extends CommunicationAid{
         double endTime = startTime + estimatedPathTime;
 
         // If task is not possible
-        if (this.timeSchedule.taskPossible(double startTime, double endTime) == false) {
+        if (this.timeSchedule.taskPossible(startTime, endTime) == false) {
             return false; 
         }
 

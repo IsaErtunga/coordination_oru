@@ -132,6 +132,12 @@ public class TimeSchedule {
             if (e1 > s2) return true;
         }
 
+        /* Du som är kåt på one liners :))
+        
+        if (e1 > s2 && s1 < e2) return true
+        else return false
+        */
+
         return false;
     }
         

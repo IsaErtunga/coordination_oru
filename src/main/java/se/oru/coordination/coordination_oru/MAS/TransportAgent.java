@@ -201,7 +201,7 @@ public class TransportAgent extends CommunicationAid{
              */
             // SHEDULE: Message bestOffer = this.offerService(double startTime);
             double oreLevelThreshold = 1;
-            if (this.schedule.checkEndStateOreLvl > oreLevelThreshold) {
+            if (this.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold) {
                 // We only create an auction if ore level is lower than treshold
                 // Possibly bad to check every iteration
                 try { Thread.sleep(100); }
@@ -210,7 +210,7 @@ public class TransportAgent extends CommunicationAid{
             }
 
             // SCHEDULE: Send when it can start. 
-            Message bestOffer = this.offerService(this.getNextStartTime());
+            Message bestOffer = this.offerService(this.timeSchedule.getNextStartTime());
             
             if (bestOffer.isNull){ // if we got no offers from auction we sleep and try again
                 try { Thread.sleep(100); }
@@ -273,8 +273,6 @@ public class TransportAgent extends CommunicationAid{
      */
  
     public Message offerService(double startTime) {
-    // SCHEDULE: public Message offerService(double startTime){
-
         System.out.println(this.robotID + " ======================1");
 
         // Get correct receivers
@@ -282,28 +280,10 @@ public class TransportAgent extends CommunicationAid{
         
         System.out.println(this.robotID +"======================2");
 
-
-        // broadcast message to all transport agents
-        //Pose pos = new Pose(63.0,68.0, 0.0);
-        //TODO create constructor that removes code from this func for creating a cnp-msg
-
-        // ============================= generate cnp-msg ===================================
-        Pose start;
-        if (this.schedule.lastToPose != null) {
-            start = this.schedule.lastToPose;
-        } else {
-            start = this.tec.getRobotReport(this.robotID).getPose();
-        }
-        String startPos = start.getX() + " " + start.getY() + " " + start.getYaw();
-
-        
-        String body = this.robotID + this.separator + startPos + startTime;
-        Message m = new Message(this.robotID, receivers, "cnp-service", body);
-        int taskID = this.sendMessage(m, true);
+        // Create and send CNP message
+        int taskID = createCNPMessage(startTime, receivers);
         System.out.println(this.robotID +"======================3");
-        // ===========================================================================
-
-
+    
         //sleep 6 sec before looking at offers
         //TODO create while loop to wait either S seconds or until all agents have responded
         try { Thread.sleep(2500); }
@@ -314,6 +294,7 @@ public class TransportAgent extends CommunicationAid{
             * Check if task fits into our schedule.
         */ 
         Message bestOffer = this.handleOffers(taskID); //extract best offer
+        
         System.out.println(this.robotID +"======================5");
 
         if (!bestOffer.isNull){        
@@ -331,6 +312,30 @@ public class TransportAgent extends CommunicationAid{
             }
         }
         return bestOffer;
+    }
+
+    /**
+     * Helper function for structuring and sending a CNP message. 
+     * TODO needs to be changed in various ways. And maybe moved to communicationAid.
+     * @param startTime
+     * @param receivers
+     * @return
+     */
+    public int createCNPMessage(double startTime, ArrayList<Integer> receivers) {
+        // broadcast message to all transport agents
+        //Pose pos = new Pose(63.0,68.0, 0.0);
+        Pose start;
+        if (this.schedule.lastToPose != null) {
+            start = this.schedule.lastToPose;
+        } else {
+            start = this.tec.getRobotReport(this.robotID).getPose();
+        }
+        String startPos = this.stringifyPose(start);
+
+        String body = this.robotID + this.separator + startPos + startTime;
+        Message m = new Message(this.robotID, receivers, "cnp-service", body);
+
+        return this.sendMessage(m, true);
     }
 
     /** handleService is called from within a TA, when a TA did a {@link offerService}
@@ -474,7 +479,7 @@ public class TransportAgent extends CommunicationAid{
      * @param taskID
      * @param m
      */
-    public void taskHandler(int taskID, Message m){
+    public void taskHandler(int taskID, Message m) {
         
         String[] taskInfo = this.activeTasks.get(taskID).split(this.separator);
         
