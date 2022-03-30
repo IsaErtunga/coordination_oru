@@ -60,10 +60,21 @@ public class TimeSchedule {
     private ArrayList<Task> schedule = new ArrayList<Task>();
     private HashMap<Double, Integer> state = new HashMap<Double, Integer>();
 
-    public void update(int taskID, double newEndTime){}
-    public boolean taskPossible(double start, double end){return false;} // return true if possible
-    public double getNextStartTime(){return 0.0;} //return endTime for last task
-    public double checkEndStateOreLvl(){return 0.0;} // return the last state
+
+
+
+    public void update(int taskID, double newEndTime){
+
+    }
+    public boolean taskPossible(double start, double end){  // return true if possible
+        return false;
+    } 
+    public double getNextStartTime(){ //return endTime for last task
+        return 0.0;
+    } 
+    public double checkEndStateOreLvl(){
+        return 0.0;
+    } // return the last state
 
     protected boolean add(Task task) {
         int index = 0;
@@ -84,6 +95,7 @@ public class TimeSchedule {
         } 
 
         for (int i=0; i<this.schedule.size(); i++){ // case size >1
+
  
             this.schedule.get(i);
         }
@@ -150,6 +162,9 @@ public class TimeSchedule {
     }
 
     protected void changeTaskOrder() {}
+
+
+    
    
     
 
