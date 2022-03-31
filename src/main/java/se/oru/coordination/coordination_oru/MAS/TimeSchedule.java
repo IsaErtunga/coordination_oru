@@ -61,71 +61,78 @@ public class TimeSchedule {
     private HashMap<Double, Integer> state = new HashMap<Double, Integer>();
 
 
+    public Pose getNextPos(){
+        return null;
+    }
 
+    public boolean setTaskActive(int taskID){
 
-    public HashMap<Integer, Double> update(int taskID, double newEndTime){   //TODO DONT TEST! NOT DONE! WORK IN PROGRESS.
-        HashMap<Integer, Double> ret = new HashMap<Integer, Double>();  // add [taskID, newEndTime] if task updated with diff> 5s
+        return true;
+    }
 
-        if (this.schedule.size() ==1){ 
-            Task t = this.schedule.get(0);
-            t.startTime = newEndTime -(t.endTime - t.startTime);
-            t.endTime = newEndTime;
-            return ret;
-        } 
-
-        for ( int i=0; i<this.schedule.size(); i++ ){      
-            Task curr = this.schedule.get(i);
-
-            if ( curr.taskID == taskID ){   // found the task being updated
-                curr.startTime = newEndTime -(curr.endTime - curr.startTime);
-                curr.endTime = newEndTime;
-
-                if ( i != this.schedule.size()-1 && this.isTaskOverlapping(new Task(curr.startTime, newEndTime), this.schedule.get(i+1))){ 
-                // if new update generates overlap in tasks after
-
-                    double diff = this.schedule.get(i+1).startTime - curr.endTime;
-                    if ( diff > this.time_sensitivity ){
-                        ret.put(curr.taskID, curr.endTime);
-                    }
-
-                    for ( int j=i+1; j<this.schedule.size(); j++ ){ // for every task that may be affected by overlap
-                        curr = this.schedule.get(j);
-                                        
-                        if (this.schedule.get(j-1).endTime - curr.startTime > this.time_sensitivity){ // if schedule 
-                            diff = this.schedule.get(j-1).endTime - curr.startTime;
-                            curr.startTime += diff;
-                            curr.endTime += diff;
-                            ret.put(curr.taskID, curr.endTime);
-                        }
-                    }
-                }
-                break;
-            }
-        }
-         
+    private ArrayList<Task> getActiveTasks(){
+        ArrayList<Task> ret = new ArrayList<Task>(this.schedule);
+        ret.removeIf(i -> i.isActive == false); 
         return ret;
     }
 
-    public HashMap<Integer, Double> update2(int taskID, double newEndTime){
-        HashMap<Integer, Double> ret = new HashMap<Integer, Double>();
-        int i;
+    /** update() will change the endTime of a task and look if there are conflicts in the schedule after. 
+     *  It will alter the schedule fix the delay and return all tasks that have been changed too much.
+     *  inform-msgs should be sent to the taskProvider of all tasks returned, informing of the update.
+     * @param taskID id of the task to be updated
+     * @param newEndTime the new time of task updated
+     * @return a list of tasks that NEED to be informed of schedule changes.
+     */
+    public ArrayList<Task> update(int taskID, double newEndTime){   //TODO DONT TEST! NOT DONE! WORK IN PROGRESS.
+        ArrayList<Task> ret = new ArrayList<Task>();  // add {Task t} if task updated with diff> 5s
 
-        // find index of task being update and undate.
-        for ( i=0; i<this.schedule.size()-1; i++ ){
-            Task t = this.schedule.get(i);
-            if ( t.taskID == taskID ){
-                t.endTime = newEndTime;
-                break;
-            }
-        }
-
-        // check if later schedule needs to be updated
-
-        for ( int j=i; j<this.schedule.size()-1; j++ ){
-            Task curr = this.schedule.get(j);
+        synchronized(this.schedule){
+            ArrayList<Task> tasks = this.getActiveTasks();
             
-            if (curr.endTime - this.schedule.get(j+1).startTime > 5.0){
-                System.out.println("big diff");
+            if (tasks.size() ==1){
+                Task t = tasks.get(0);
+                if ( newEndTime - t.endTime > this.time_sensitivity ){
+                    ret.add(t);
+                } 
+                t.startTime = newEndTime -(t.endTime - t.startTime);
+                t.endTime = newEndTime;
+                
+                return ret;
+            } 
+
+            for ( int i=0; i<tasks.size(); i++ ){      
+                Task curr = tasks.get(i);
+
+                //System.out.println(" curr <"+curr.startTime+" ,"+curr.endTime+" >");
+                //System.out.println(" curr.taskID == taskID -->" + (curr.taskID == taskID));
+
+                if ( curr.taskID == taskID ){   // found the task being updated
+                    curr.startTime = newEndTime -(curr.endTime - curr.startTime);
+                    curr.endTime = newEndTime;
+
+                    // System.out.println(" i != tasks.size()-1 -->" + (i != tasks.size()-1));
+                    // System.out.println(" curr.endTime - tasks.get(i+1).startTime > this.time_sensitivity -->" + (curr.endTime - tasks.get(i+1).startTime > this.time_sensitivity));
+
+                    if ( i != tasks.size()-1 && curr.endTime - tasks.get(i+1).startTime > this.time_sensitivity){
+                        ret.add(curr);
+
+                        for ( int j=i+1; j<tasks.size(); j++ ){ // for every task that may be affected by overlap
+                            curr = tasks.get(j);
+
+                            // System.out.println("\t curr <"+curr.startTime+" ,"+curr.endTime+" >");
+                            // System.out.println("\t tasks.get(j-1).endTime - curr.startTime > this.time_sensitivity -->" + (tasks.get(j-1).endTime - curr.startTime > this.time_sensitivity));
+
+                            if (tasks.get(j-1).endTime - curr.startTime > this.time_sensitivity){ // if schedule 
+                                double diff = tasks.get(j-1).endTime - curr.startTime;
+                                curr.startTime += diff;
+                                curr.endTime += diff;
+                                ret.add(curr);
+                            }
+                        }
+                    }
+
+                    break;
+                }
             }
         }
 
@@ -330,14 +337,19 @@ public class TimeSchedule {
             }
 
             System.out.println("######### update(int taskID, double newEndTime) #########");
-            ts.update(1, 25.5);
-            ts.printSchedule();
+            // ts.update(1, 25.5);
+            // ts.printSchedule();
 
-            ts.update(1, 31.0);
-            ts.printSchedule();
+            // ts.update(1, 31.0);
+            // ts.printSchedule();
 
-            HashMap<Integer, Double> ret = ts.update(1, 36.0);
-            System.out.println(ret);
+            ts.printSchedule();
+            ArrayList<Task> ret = ts.update(1, 36.0);
+            System.out.println("res "+ret.size());
+            for(Task t : ret){
+                System.out.println("start-->"+t.startTime+"\t end-->"+t.endTime+"\t task-->"+t.taskID);
+            }
+            
             ts.printSchedule();
         }
     }

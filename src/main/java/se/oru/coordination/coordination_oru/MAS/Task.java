@@ -68,6 +68,7 @@ public class Task {
         this.startTime = start;
         this.endTime = end;
         this.taskID = taskID;
+        this.isActive = true;
     }
 
 
