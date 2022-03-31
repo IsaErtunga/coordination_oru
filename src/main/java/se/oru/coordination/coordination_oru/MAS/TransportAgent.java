@@ -192,7 +192,7 @@ public class TransportAgent extends CommunicationAid{
 
             // SCHEDULE: Receive offer message from DrawAgent. 
             // body -> int taskID & int offerVal & pos & startTime & endTime
-            String[] parts = this.parseMessage(bestOffer, "", true);
+            String[] msgParts = this.parseMessage(bestOffer, "", true);
 
 
             // create task ========================================================
@@ -208,7 +208,7 @@ public class TransportAgent extends CommunicationAid{
                 start = this.tec.getRobotReport(this.robotID).getPose();
             }
 
-            double[] coordinates = Arrays.stream(parts[2].split(" "))
+            double[] coordinates = Arrays.stream(msgParts[2].split(" "))
             .mapToDouble(Double::parseDouble)
             .toArray();
             Pose goal = new Pose(coordinates[0], coordinates[1], coordinates[2]);
@@ -218,7 +218,7 @@ public class TransportAgent extends CommunicationAid{
             PoseSteering[] path = this.mp.getPath();
     
             // TODO Function that creates task based on offer message. 
-            Task task = new Task(Integer.parseInt(parts[0]),
+            Task task = new Task(Integer.parseInt(msgParts[0]),
             new Mission(this.robotID, path), 0, bestOffer.sender, "NOT STARTED", start, goal, false);
             // ===========================================================================
 

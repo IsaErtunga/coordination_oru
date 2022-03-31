@@ -140,6 +140,68 @@ public class CommunicationAid {
     public String stringifyPose(Pose pose) {
         return pose.getX() + " " + pose.getY() + " " + pose.getYaw();
     }
+
+    /**
+     * Helper function to calculate endTime based on startTime and the path it took. 
+     * @param startTime
+     * @param path
+     * @return
+     */
+    public double calculateEndTime(double startTime, PoseSteering[] path) {
+          // Estimate path time
+          double accumulatedDist = 0.0;
+	    
+          for (int i=0; i< path.length-1; i++) {
+              Pose p1 = path[i].getPose();
+              Pose p2 = path[i+1].getPose();
+  
+              double deltaS = p1.distanceTo(p2);
+              accumulatedDist += deltaS;
+          }
+  
+          double vel = 0.068;
+          double estimatedPathTime = vel * accumulatedDist;
+          double endTime = startTime + estimatedPathTime;
+          return endTime;
+    }
+
+    /**
+     * NOT FINISHED. 
+     * Helper function that creates a task based on args below. 
+     * 
+     * @param message
+     * @param schedule
+     * @param mp
+     * @param tec
+     * @param msgParts
+     * @return Task
+     */
+    public Task createTask(Message message, Schedule schedule, ReedsSheppCarPlanner mp, 
+                           TrajectoryEnvelopeCoordinatorSimulation tec, String[] msgParts) {
+        
+        Pose start;
+        if (schedule.lastToPose != null) {
+            mp.setStart(schedule.lastToPose);
+            start = schedule.lastToPose;
+        } else {
+            mp.setStart(tec.getRobotReport(robotID).getPose());
+            start = tec.getRobotReport(robotID).getPose();
+        }
+
+        double[] coordinates = Arrays.stream(msgParts[2].split(" "))
+        .mapToDouble(Double::parseDouble)
+        .toArray();
+        Pose goal = new Pose(coordinates[0], coordinates[1], coordinates[2]);
+        
+        this.mp.setGoals(goal);
+        if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + goal);
+        PoseSteering[] path = this.mp.getPath();
+
+        // TODO Function that creates task based on offer message. 
+        Task task = new Task(Integer.parseInt(msgParts[0]), message.sender, new Mission(this.robotID, path), 
+                             false, 0.0, "NOT STARTED", start, goal);
+        return task;
+    }
     
 
     /** #######################################################################
