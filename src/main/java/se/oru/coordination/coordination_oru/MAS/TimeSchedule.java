@@ -153,7 +153,6 @@ public class TimeSchedule {
         return this.schedule.remove(taskID);
     }
 
-
     protected Task get(int taskID) {
         // I get task you get taskID
         for (Task task : this.schedule) {

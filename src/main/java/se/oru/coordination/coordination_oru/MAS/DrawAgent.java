@@ -128,7 +128,7 @@ public class DrawAgent extends CommunicationAid{
                             * If early just remove from schedule.
                         */ 
                         int oreChange = Integer.parseInt(messageParts[2]); 
-                        this.timeSchedule.remove(taskID);
+                        this.timeSchedule.remove(this.timeSchedule.get(taskID));
                         this.takeOre(oreChange);
                     }
                     else if (informVal.equals(new String("status"))) {
