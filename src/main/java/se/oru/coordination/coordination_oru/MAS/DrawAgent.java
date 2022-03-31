@@ -200,7 +200,8 @@ public class DrawAgent extends CommunicationAid{
         }
 
         // SCHEDULE: Create new task & and add it to schedule
-        Task DAtask = new Task(Integer.parseInt(mParts[0]), false, ore, startTime, endTime);
+        Mission mission = new Mission(this.robotID, path);
+        Task DAtask = new Task(Integer.parseInt(mParts[0]), m.sender, mission, false, ore, startTime, endTime, TApos, this.pos);
         this.timeSchedule.add(DAtask);
 
         // offer value calc

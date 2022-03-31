@@ -13,6 +13,10 @@ import java.util.Random;
 
 import se.oru.coordination.coordination_oru.MAS.Message;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
+import org.metacsp.multi.spatioTemporal.paths.PoseSteering;
+import se.oru.coordination.coordination_oru.motionplanning.ompl.ReedsSheppCarPlanner;
+import se.oru.coordination.coordination_oru.simulation2D.TrajectoryEnvelopeCoordinatorSimulation;
+import se.oru.coordination.coordination_oru.Mission;
 
 
 public class CommunicationAid {
@@ -165,44 +169,6 @@ public class CommunicationAid {
           return endTime;
     }
 
-    /**
-     * NOT FINISHED. 
-     * Helper function that creates a task based on args below. 
-     * 
-     * @param message
-     * @param schedule
-     * @param mp
-     * @param tec
-     * @param msgParts
-     * @return Task
-     */
-    public Task createTask(Message message, Schedule schedule, ReedsSheppCarPlanner mp, 
-                           TrajectoryEnvelopeCoordinatorSimulation tec, String[] msgParts) {
-        
-        Pose start;
-        if (schedule.lastToPose != null) {
-            mp.setStart(schedule.lastToPose);
-            start = schedule.lastToPose;
-        } else {
-            mp.setStart(tec.getRobotReport(robotID).getPose());
-            start = tec.getRobotReport(robotID).getPose();
-        }
-
-        double[] coordinates = Arrays.stream(msgParts[2].split(" "))
-        .mapToDouble(Double::parseDouble)
-        .toArray();
-        Pose goal = new Pose(coordinates[0], coordinates[1], coordinates[2]);
-        
-        this.mp.setGoals(goal);
-        if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + goal);
-        PoseSteering[] path = this.mp.getPath();
-
-        // TODO Function that creates task based on offer message. 
-        Task task = new Task(Integer.parseInt(msgParts[0]), message.sender, new Mission(this.robotID, path), 
-                             false, 0.0, "NOT STARTED", start, goal);
-        return task;
-    }
-    
 
     /** #######################################################################
      *  ######################## Contract Net Protocol ########################

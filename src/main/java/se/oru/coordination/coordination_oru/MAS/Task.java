@@ -63,9 +63,8 @@ public class Task {
      * @param endTime
      * @param fromPose
      * @param toPose
-     * @param isSATask
      */
-    Task(int taskID, int taskProvider, Mission mission, boolean isActive, double ore, double startTime, double endTime, Pose fromPose, Pose toPose, boolean isSATask) {
+    Task(int taskID, int taskProvider, Mission mission, boolean isActive, double ore, double startTime, double endTime, Pose fromPose, Pose toPose) {
         this.taskID = taskID;
         this.taskProvider = taskProvider;
         this.mission = mission;

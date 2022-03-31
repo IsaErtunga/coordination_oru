@@ -393,7 +393,8 @@ public class TransportAgent extends CommunicationAid{
 
         // SCHEDULE: Create new task & and add it to schedule
         double ore = 10.0;
-        Task TAtask = new Task(Integer.parseInt(mParts[0]), false, ore, startTime, endTime);
+        Mission mission = new Mission(this.robotID, path);
+        Task TAtask = new Task(Integer.parseInt(mParts[0]), m.sender, mission, false, ore, startTime, endTime, start, SApos);
         this.timeSchedule.add(TAtask);
 
         //TODO also include schedule: look if other agent will collect ore here at same time.
