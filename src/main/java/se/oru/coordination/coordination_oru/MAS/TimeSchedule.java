@@ -55,6 +55,7 @@ import org.metacsp.multi.spatioTemporal.paths.Pose;
 
 public class TimeSchedule {
 
+    private static double time_sensitivity = 5.0;
     protected Task currentTask = null;    
     private ArrayList<Task> schedule = new ArrayList<Task>();
     private HashMap<Double, Integer> state = new HashMap<Double, Integer>();
@@ -63,40 +64,45 @@ public class TimeSchedule {
 
 
     public HashMap<Integer, Double> update(int taskID, double newEndTime){   //TODO DONT TEST! NOT DONE! WORK IN PROGRESS.
-        HashMap<Integer, Double> ret = new HashMap<Integer, Double>();
+        HashMap<Integer, Double> ret = new HashMap<Integer, Double>();  // add [taskID, newEndTime] if task updated with diff> 5s
 
-        if (this.schedule.size() ==1){
-            this.schedule.get(0).endTime = newEndTime;
+        if (this.schedule.size() ==1){ 
+            Task t = this.schedule.get(0);
+            t.startTime = newEndTime -(t.endTime - t.startTime);
+            t.endTime = newEndTime;
             return ret;
         } 
 
-
-        int i;
-        boolean searchNeeded = false;
-        for ( i=0; i<this.schedule.size(); i++ ){      
+        for ( int i=0; i<this.schedule.size(); i++ ){      
             Task curr = this.schedule.get(i);
-            if ( curr.taskID == taskID ){
-                searchNeeded = ( i != this.schedule.size()-1 && this.isTaskOverlapping(new Task(curr.startTime, newEndTime), this.schedule.get(i+1)));
 
+            if ( curr.taskID == taskID ){   // found the task being updated
+                curr.startTime = newEndTime -(curr.endTime - curr.startTime);
                 curr.endTime = newEndTime;
+
+                if ( i != this.schedule.size()-1 && this.isTaskOverlapping(new Task(curr.startTime, newEndTime), this.schedule.get(i+1))){ 
+                // if new update generates overlap in tasks after
+
+                    double diff = this.schedule.get(i+1).startTime - curr.endTime;
+                    if ( diff > this.time_sensitivity ){
+                        ret.put(curr.taskID, curr.endTime);
+                    }
+
+                    for ( int j=i+1; j<this.schedule.size(); j++ ){ // for every task that may be affected by overlap
+                        curr = this.schedule.get(j);
+                                        
+                        if (this.schedule.get(j-1).endTime - curr.startTime > this.time_sensitivity){ // if schedule 
+                            diff = this.schedule.get(j-1).endTime - curr.startTime;
+                            curr.startTime += diff;
+                            curr.endTime += diff;
+                            ret.put(curr.taskID, curr.endTime);
+                        }
+                    }
+                }
                 break;
             }
         }
-
-        if ( searchNeeded ){
-            for ( int j=i; j<this.schedule.size()-1; j++ ){
-                Task curr = this.schedule.get(j);
-                
-                if (curr.endTime - this.schedule.get(j+1).startTime > 5.0){
-                    System.out.println("big diff");
-                }
-            }
-
-
-        }
-        
-
-        
+         
         return ret;
     }
 
@@ -184,7 +190,16 @@ public class TimeSchedule {
 
 
     protected Task remove(int taskID) {
-        return this.schedule.remove(taskID);
+        Task ret = null;
+        for ( int i=0; i < this.schedule.size(); i++){
+            if ( this.schedule.get(i).taskID == taskID ){
+                ret = this.schedule.get(i);
+                this.schedule.remove(ret);
+                break;
+            }
+        }
+
+        return ret;
     }
 
 
@@ -310,19 +325,20 @@ public class TimeSchedule {
         if (testUpdate){
             if (!testAddFunc){
                 ts.add(new Task(10.0, 20.0, 1));
-                ts.add(new Task(30.0, 40.0));
-                ts.add(new Task(40.0, 50.0));
-                ts.add(new Task(50.0, 100.0));
+                ts.add(new Task(30.0, 40.0, 2));
+                ts.add(new Task(40.0, 50.0, 3));
+                ts.add(new Task(52.0, 100.0, 4));
             }
 
             System.out.println("######### update(int taskID, double newEndTime) #########");
             ts.update(1, 25.5);
             ts.printSchedule();
 
-            ts.update(1, 30.0);
+            ts.update(1, 31.0);
             ts.printSchedule();
 
-            ts.update(1, 36.0);
+            HashMap<Integer, Double> ret = ts.update(1, 36.0);
+            System.out.println(ret);
             ts.printSchedule();
         }
     }
