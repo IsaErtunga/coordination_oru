@@ -1,21 +1,5 @@
 package se.oru.coordination.coordination_oru.MAS;
 
-/*
-import java.util.Calendar;
-import java.util.Comparator;
-import java.util.HashMap;
-
-import org.sat4j.ExitCode;
-
-
-import se.oru.coordination.coordination_oru.CriticalSection;
-import se.oru.coordination.coordination_oru.RobotAtCriticalSection;
-import se.oru.coordination.coordination_oru.RobotReport;
-import se.oru.coordination.coordination_oru.simulation2D.TrajectoryEnvelopeCoordinatorSimulation;
-import se.oru.coordination.coordination_oru.util.BrowserVisualization;
-import se.oru.coordination.coordination_oru.util.JTSDrawingPanelVisualization;
-import se.oru.coordination.coordination_oru.util.Missions;
-*/
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -70,18 +54,6 @@ public class TransportAgent extends CommunicationAid{
         this.rShape = new Coordinate[] {new Coordinate(-xl,yl),new Coordinate(xl,yl),
                                         new Coordinate(xl,-yl),new Coordinate(-xl,-yl)};
 
-    }
-
-    public TransportAgent( //old constructor 
-        int r_id,
-        TrajectoryEnvelopeCoordinatorSimulation tec,
-        ReedsSheppCarPlanner mp,
-        Coordinate[] shape ){
-        
-        this.robotID = r_id;
-        this.tec = tec;
-        this.mp = mp;
-        this.rShape = shape;
     }
 
 
@@ -200,7 +172,7 @@ public class TransportAgent extends CommunicationAid{
                 * Send time of when it can start mission to DrawAgent
              */
             // SHEDULE: Message bestOffer = this.offerService(double startTime);
-            double oreLevelThreshold = 1;
+            double oreLevelThreshold = 0;
             if (this.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold) {
                 // We only create an auction if ore level is lower than treshold
                 // Possibly bad to check every iteration
@@ -245,6 +217,7 @@ public class TransportAgent extends CommunicationAid{
             if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + goal);
             PoseSteering[] path = this.mp.getPath();
     
+            // TODO Function that creates task based on offer message. 
             Task task = new Task(Integer.parseInt(parts[0]),
             new Mission(this.robotID, path), 0, bestOffer.sender, "NOT STARTED", start, goal, false);
             // ===========================================================================
@@ -276,7 +249,7 @@ public class TransportAgent extends CommunicationAid{
         System.out.println(this.robotID + " ======================1");
 
         // Get correct receivers
-        ArrayList<Integer> receivers = new ArrayList<Integer>(this.getReceivers(this.robotsInNetwork, "DRAW"));
+        ArrayList<Integer> receivers = this.getReceivers(this.robotsInNetwork, "DRAW");
         
         System.out.println(this.robotID +"======================2");
 
@@ -330,6 +303,7 @@ public class TransportAgent extends CommunicationAid{
         }
         String startPos = this.stringifyPose(start);
 
+        // taskID & agentID & pos & startTime 
         String body = this.robotID + this.separator + startPos + this.separator + startTime;
         Message m = new Message(this.robotID, receivers, "cnp-service", body);
 
@@ -382,6 +356,8 @@ public class TransportAgent extends CommunicationAid{
 
         String[] mParts = this.parseMessage( m, "", true);
         double[] coordinates = Arrays.stream(mParts[2].split(" ")).mapToDouble(Double::parseDouble).toArray();
+        Pose SApos = new Pose(coordinates[0], coordinates[1], coordinates[2]);
+
 
         // SCHEDULE: Need to lookup schedule too see if task is possible. 
         /* SCHEDULE: offer calc will include 
@@ -394,11 +370,37 @@ public class TransportAgent extends CommunicationAid{
             * offer message will include: taskID, offerVal, pos, startTime, endTime
         */
 
+        //calc euclidean dist between DA -> TA, and capacity evaluation
+        this.mp.setGoals(SApos);
+        Pose start;
+
+        if (this.schedule.lastToPose != null) {
+            this.mp.setStart(this.schedule.lastToPose);
+            start = this.schedule.lastToPose;
+        } else {
+            this.mp.setStart(this.tec.getRobotReport(this.robotID).getPose());
+            start = this.tec.getRobotReport(this.robotID).getPose();
+        }
+
+        if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + SApos);
+        PoseSteering[] path = this.mp.getPath();
+
         double startTime = Double.parseDouble(mParts[3]);
 
         // Calculated time for path TODO change to real calculation
-        double estimatedPathTime = 5.0;
+        // Estimate path time
+        double accumulatedDist = 0.0;
 
+        for (int i=0; i< path.length-1; i++) {
+            Pose p1 = path[i].getPose();
+            Pose p2 = path[i+1].getPose();
+
+            double deltaS = p1.distanceTo(p2);
+            accumulatedDist += deltaS;
+        }
+
+        double vel = 0.068;
+        double estimatedPathTime = vel * accumulatedDist;
         double endTime = startTime + estimatedPathTime;
 
         // If task is not possible
@@ -408,17 +410,13 @@ public class TransportAgent extends CommunicationAid{
 
         // SCHEDULE: Create new task & and add it to schedule
         double ore = 10.0;
-        Task DAtask = new Task(Integer.parseInt(mParts[0]), false, ore, startTime, endTime);
-        this.timeSchedule.add(DAtask);
-
-        //calc euclidean dist between DA -> TA, and capacity evaluation
-        // this.mp.setGoals(goal);
-        //     if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + goal);
-        // PoseSteering[] path = this.mp.getPath();
+        Task TAtask = new Task(Integer.parseInt(mParts[0]), false, ore, startTime, endTime);
+        this.timeSchedule.add(TAtask);
 
         //TODO also include schedule: look if other agent will collect ore here at same time.
         //TODO add poseSteering.length
 
+        // TODO: Change to time. 
         double evaluatedDistance = this.calcDistance(this.tec.getRobotReport(this.robotID).getPose(), 
                                                      new Pose(coordinates[0], coordinates[1], coordinates[2]));
         
@@ -549,8 +547,6 @@ public class TransportAgent extends CommunicationAid{
 
             // SCHEDULE: Got the task, change in schedule from reserved to active. 
             // then there is no need for further code here since mission is already in schedule
-
-
 
             System.out.println(this.robotID + ", in taskhandler: " + taskInfo);
             System.out.println(Arrays.toString(taskInfo));

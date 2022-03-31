@@ -1,28 +1,12 @@
+/**
+ * 
+ */
 package se.oru.coordination.coordination_oru.MAS;
-/*
-import java.util.Calendar;
-import java.util.Comparator;
-import java.util.HashMap;
 
-import org.sat4j.ExitCode;
-
-import com.vividsolutions.jts.geom.Coordinate;
-import org.metacsp.multi.spatioTemporal.paths.PoseSteering;
-
-import se.oru.coordination.coordination_oru.CriticalSection;
-import se.oru.coordination.coordination_oru.RobotAtCriticalSection;
-import se.oru.coordination.coordination_oru.RobotReport;
-import se.oru.coordination.coordination_oru.simulation2D.TrajectoryEnvelopeCoordinatorSimulation;
-import se.oru.coordination.coordination_oru.util.BrowserVisualization;
-import se.oru.coordination.coordination_oru.util.JTSDrawingPanelVisualization;
-
-import se.oru.coordination.coordination_oru.simulation2D.TrajectoryEnvelopeCoordinatorSimulation;
-import se.oru.coordination.coordination_oru.ConstantAccelerationForwardModel;
-import se.oru.coordination.coordination_oru.MAS.Router;
-*/
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import org.metacsp.multi.spatioTemporal.paths.PoseSteering;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 import se.oru.coordination.coordination_oru.MAS.Router;
 import se.oru.coordination.coordination_oru.MAS.Schedule;
@@ -107,6 +91,7 @@ public class DrawAgent extends CommunicationAid{
 
                 else if (m.type == "accept"){
                     this.taskHandler(Integer.parseInt(m.body), m);
+                    // SCHEDULE: Change isActive.
                 }
 
                 else if (m.type == "decline"){
@@ -128,7 +113,7 @@ public class DrawAgent extends CommunicationAid{
                             * If early just remove from schedule.
                         */ 
                         int oreChange = Integer.parseInt(messageParts[2]); 
-                        this.timeSchedule.remove(this.timeSchedule.get(taskID));
+                        this.timeSchedule.remove(taskID);
                         this.takeOre(oreChange);
                     }
                     else if (informVal.equals(new String("status"))) {
@@ -177,11 +162,12 @@ public class DrawAgent extends CommunicationAid{
         // get pose of TA
         
         double[] coordinates = Arrays.stream(mParts[2].split(" ")).mapToDouble(Double::parseDouble).toArray();
+        Pose TApos = new Pose(coordinates[0], coordinates[1], coordinates[2]);
+
         System.out.println(Arrays.toString(coordinates));
         //calc euclidean dist between DA -> TA, and capacity evaluation
-        // this.mp.setGoals(goal);
-        //     if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + goal);
-        // PoseSteering[] path = this.mp.getPath();
+        
+
 
         //TODO also include schedule: look if other agent will collect ore here at same time.
         //TODO add poseSteering.length
@@ -199,9 +185,27 @@ public class DrawAgent extends CommunicationAid{
 
         double startTime = Double.parseDouble(mParts[3]);
 
-        // Calculated time for path TODO change to real calculationt
-        double estimatedPathTime = 5.0;
 
+        // Calculate path
+        this.mp.setGoals(this.pos);
+        this.mp.setStart(TApos);
+            if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + TApos);
+        PoseSteering[] path = this.mp.getPath();
+
+
+        // Estimate path time
+        double accumulatedDist = 0.0;
+	    
+        for (int i=0; i< path.length-1; i++) {
+            Pose p1 = path[i].getPose();
+            Pose p2 = path[i+1].getPose();
+
+            double deltaS = p1.distanceTo(p2);
+            accumulatedDist += deltaS;
+	    }
+
+        double vel = 0.068;
+        double estimatedPathTime = vel * accumulatedDist;
         double endTime = startTime + estimatedPathTime;
 
         // If task is not possible

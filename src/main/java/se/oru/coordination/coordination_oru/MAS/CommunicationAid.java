@@ -118,16 +118,17 @@ public class CommunicationAid {
      * @return
      */
     public ArrayList<Integer> getReceivers(ArrayList<Integer> network, String receiverType) {
+        ArrayList<Integer> networkCopy = new ArrayList<Integer>(network);
         if (receiverType.equals("DRAW")) {
-            network.removeIf(i -> i < 10000);    //draw agents has robotID > 10000
+            networkCopy.removeIf(i -> i < 10000);    //draw agents has robotID > 10000
         }
         if (receiverType.equals("STORAGE")) {
-            network.removeIf(i -> i < 5000 && i >= 10000); //storage agents has robotID > 5000 & < 10000
+            networkCopy.removeIf(i -> i < 5000 && i >= 10000); //storage agents has robotID > 5000 & < 10000
         }
         if (receiverType.equals("TRANSPORT")) {
-            network.removeIf(i -> i > 5000); //storage agents has robotID > 5000 & < 10000
+            networkCopy.removeIf(i -> i > 5000); //storage agents has robotID > 5000 & < 10000
         }
-        return network;
+        return networkCopy;
     }
 
 
