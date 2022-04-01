@@ -180,6 +180,7 @@ public class TransportAgent extends CommunicationAid{
             }
 
             // SCHEDULE: Send when it can start. 
+            
             Message bestOffer = this.offerService(this.timeSchedule.getNextStartTime());
             
             if (bestOffer.isNull){ // if we got no offers from auction we sleep and try again
