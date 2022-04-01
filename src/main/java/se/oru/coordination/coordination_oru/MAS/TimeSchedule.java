@@ -146,12 +146,16 @@ public class TimeSchedule {
      * @return  true if slot is available, false if not.
      */
     public boolean taskPossible(double start, double end){  // return true if possible
-        Task task = new Task(start, end);
-        for (int i=0; i<this.schedule.size(); i++){
-            if ( this.isTaskOverlapping(this.schedule.get(i), task) ) return false;
-        } 
-            
-        return true;
+        synchronized(this.schedule){
+            ArrayList<Task> tasks = this.getActiveTasks();
+
+            Task task = new Task(start, end);
+            for (int i=0; i<tasks.size(); i++){
+                if ( this.isTaskOverlapping(tasks.get(i), task) ) return false;
+            } 
+                
+            return true;
+        }
     } 
 
 
@@ -160,7 +164,12 @@ public class TimeSchedule {
      * @return the endTime of the last Task in schedule. it does NOT care if task is reserved or not.
      */
     public double getNextStartTime(){ //return endTime for last task
-        return this.schedule.get(this.schedule.size()-1).endTime;
+        synchronized(this.schedule){
+            ArrayList<Task> tasks = this.getActiveTasks();
+
+            if( tasks.size() > 0 ) return tasks.get(tasks.size()-1).endTime;
+            else return -1.0;
+        }
     } 
 
 
@@ -170,74 +179,83 @@ public class TimeSchedule {
 
 
     protected boolean add(Task task) {
-
-        if (this.schedule.size() <= 0){                                 // case size = 0
-            this.schedule.add(task);
-            return true;
-        }
-
-        for (int i=0; i<this.schedule.size(); i++){                     // case size > 0
-            Task curr = this.schedule.get(i);
-
-            if ( curr.endTime <= task.startTime ){   // if curr is left of task
-                if ( i == this.schedule.size()-1){ // task should be added at end of schedule
-                    this.schedule.add(task);
-                    return true;
+        synchronized(this.schedule){
+            //task.isActive;
+            if (!task.isActive){
+                for (int i=0; i<this.schedule.size(); i++){                     // case size > 0
+                    Task curr = this.schedule.get(i);
+                    if ( curr.startTime >= task.startTime ){
+                        this.schedule.add(i, task);
+                    }
                 }
-                else continue;
             }
-            if ( this.isTaskOverlapping(task, curr) ) return false;
 
-            this.schedule.add(i, task);
-            return true;            
+            if (this.schedule.size() <= 0){                                 // case size = 0
+                this.schedule.add(task);
+                return true;
+            }
+
+            for (int i=0; i<this.schedule.size(); i++){                     // case size > 0
+                Task curr = this.schedule.get(i);
+
+                if ( curr.endTime <= task.startTime ){   // if curr is left of task
+                    if ( i == this.schedule.size()-1){ // task should be added at end of schedule
+                        this.schedule.add(task);
+                        return true;
+                    }
+                    else continue;
+                }
+                if ( this.isTaskOverlapping(task, curr) ) return false;
+
+                this.schedule.add(i, task);
+                return true;            
+            }
+
+            return false;
         }
-
-        return false;
     }
 
 
-    protected Task remove(int taskID) {
-        Task ret = null;
-        for ( int i=0; i < this.schedule.size(); i++){
-            if ( this.schedule.get(i).taskID == taskID ){
-                ret = this.schedule.get(i);
-                this.schedule.remove(ret);
-                break;
-            }
-        }
+    public Task remove(int taskID) {
+        synchronized(this.schedule){
 
-        return ret;
+            Task ret = null;
+            for ( int i=0; i < this.schedule.size(); i++){
+                if ( this.schedule.get(i).taskID == taskID ){
+                    ret = this.schedule.get(i);
+                    this.schedule.remove(ret);
+                    break;
+                }
+            }
+
+            return ret;
+        }
     }
 
-    protected Task get(int taskID) {
-        // I get task you get taskID
-        for (Task task : this.schedule) {
-            if (task.taskID == taskID) {
-                return task;
-            }
-        }
-        return null;
+    public Task get(int taskID) {
+        synchronized(this.schedule){
 
+            for (Task task : this.schedule) {
+                if (task.taskID == taskID) {
+                    return task;
+                }
+            }
+            return null;
+        }
     }
 
 
     private boolean isTaskOverlapping(Task t1, Task t2){ 
         return (t1.endTime > t2.startTime && t1.startTime < t2.endTime);
     }
-        
-    
 
-    
-
-    // TODO ABORT TASK
-    // TODO REPLACE TASK
 
     public int getSize() {
-        return this.schedule.size();
+        synchronized(this.schedule){
+            return this.schedule.size();
+        }
     }
 
-
-    protected void changeTaskOrder() {}
 
     public void printSchedule(){
         System.out.println("___________________________________SCHEDULE_________________________________________");
@@ -247,11 +265,16 @@ public class TimeSchedule {
 
         System.out.println("____________________________________________________________________________________");
 
-
     }
 
 
     public static void main(String args[]){
+
+        ArrayList<Task> t1 = new ArrayList<Task>();
+
+
+
+        /*
 
         TimeSchedule ts = new TimeSchedule();
 
@@ -352,5 +375,6 @@ public class TimeSchedule {
             
             ts.printSchedule();
         }
+        */
     }
 }
