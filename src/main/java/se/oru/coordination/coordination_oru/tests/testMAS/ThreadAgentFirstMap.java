@@ -137,9 +137,9 @@ public class ThreadAgentFirstMap {
 			public void run() {
                 this.setPriority(Thread.MAX_PRIORITY);
 
-				TransportAgent r = new TransportAgent(robotID, tec, rsp, poses[robotID-1], router);
-				r.addRobotToSimulation();
-				r.communicateState(1);
+				//ransportAgent r = new TransportAgent(robotID, tec, rsp, poses[robotID-1], router);
+				// r.addRobotToSimulation();
+				//r.communicateState(1);
 			}
                 
 		};

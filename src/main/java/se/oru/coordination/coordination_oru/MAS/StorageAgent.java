@@ -35,7 +35,6 @@ public class StorageAgent extends CommunicationAid{
     protected double capacity;  // capacity of storage = max ore it can store in TONS
     protected double amount;    // the current amount it has stored in TONS
 
-    protected Schedule schedule;
     protected TimeSchedule timeSchedule;
 
     public boolean beingUsed = false;
@@ -57,8 +56,6 @@ public class StorageAgent extends CommunicationAid{
         this.capacity = capacity;
         this.amount = 0;
         this.startPose = startPos;
-
-        schedule = new Schedule();
         this.timeSchedule = new TimeSchedule();
 
         router.enterNetwork(this);
@@ -79,7 +76,7 @@ public class StorageAgent extends CommunicationAid{
                 if (!bestOffer.isNull){
                     String taskID = this.parseMessage(bestOffer, "taskID")[0];
                     Task task = new Task(Integer.parseInt(taskID), 0, "status", 15);
-                    this.schedule.enqueue(task);
+                    // this.schedule.enqueue(task);
                     
                     System.out.println("CURRENT ORE LEVEL: ------------> "+ this.amount);
                 }

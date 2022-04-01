@@ -85,7 +85,7 @@ public class CommunicationAid {
             String[] attributes = {};
 
             if (m.type == "offer"){
-                attributes = new String[] {"taskID", "offerVal", "pos", "startTime", "endTime"};
+                attributes = new String[] {"taskID", "offerVal", "startPos", "endPos", "startTime", "endTime"};
             }
 
             else if (m.type == "inform") {
@@ -93,7 +93,7 @@ public class CommunicationAid {
             }
 
             else if (m.type == "cnp-service"){
-                attributes = new String[] {"taskID", "storageID", "pos", "startTime"}; //TODO add all attributes
+                attributes = new String[] {"taskID", "storageID", "startPos", "startTime"}; //TODO add all attributes
             }
 
             int i = 0;

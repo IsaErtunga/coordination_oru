@@ -9,7 +9,6 @@ import java.util.Arrays;
 import org.metacsp.multi.spatioTemporal.paths.PoseSteering;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 import se.oru.coordination.coordination_oru.MAS.Router;
-import se.oru.coordination.coordination_oru.MAS.Schedule;
 import se.oru.coordination.coordination_oru.motionplanning.ompl.ReedsSheppCarPlanner;
 
 import se.oru.coordination.coordination_oru.util.Missions;
@@ -23,7 +22,6 @@ public class DrawAgent extends CommunicationAid{
     protected Pose pos;
     protected double amount;
     protected double capacity; 
-    protected Schedule schedule;
     protected ReedsSheppCarPlanner mp;
 
     protected TimeSchedule timeSchedule;
@@ -36,7 +34,6 @@ public class DrawAgent extends CommunicationAid{
         this.pos = pos;
         this.initalXPos = pos.getX();
 
-        this.schedule = new Schedule();
         this.timeSchedule = new TimeSchedule();
 
         router.enterNetwork(this.robotID, this.inbox, this.outbox);
@@ -83,11 +80,14 @@ public class DrawAgent extends CommunicationAid{
             }
 
             for (Message m : inbox_copy){
-                if (m.type == "hello-world"){
-                    this.robotsInNetwork.add(m.sender);
-                    this.sendMessage(
-                        new Message( m.receiver.get(0), m.sender, "accept", m.body));
-                } 
+                if (m.type == "hello-world"){ 
+                    if ( !this.robotsInNetwork.contains(m.sender) ) this.robotsInNetwork.add(m.sender);
+                    this.sendMessage( new Message( m.receiver.get(0), m.sender, "echo", ""));
+                }
+
+                if (m.type == "echo"){ 
+                    if ( !this.robotsInNetwork.contains(m.sender) ) this.robotsInNetwork.add(m.sender);
+                }
 
                 else if (m.type == "accept"){
                     this.taskHandler(Integer.parseInt(m.body), m);
@@ -218,7 +218,7 @@ public class DrawAgent extends CommunicationAid{
 
         // generate offer..
         int offer = (int)(evaluatedDistance + evaluatedCapacity);
-        Message response = createOffer(m, mParts, this.pos, offer, startTime, endTime);
+        Message response = createOffer(m, mParts, TApos, this.pos, offer, startTime, endTime);
         
         //send offer and log event
         this.sendMessage(response);
@@ -237,10 +237,11 @@ public class DrawAgent extends CommunicationAid{
      * @param offer
      * @return
      */
-    protected Message createOffer(Message message, String[] messageParts, Pose position, int offer, double startTime, double endTime) {
-        String positionStr = this.stringifyPose(position);
-        String body = messageParts[0] + this.separator + offer + this.separator + 
-                      positionStr + this.separator + startTime + this.separator + endTime;
+    protected Message createOffer(Message message, String[] messageParts, Pose startPose, Pose endPos, int offer, double startTime, double endTime) {
+        String startPoseStr = this.stringifyPose(startPose);
+        String endPoseStr = this.stringifyPose(endPos);
+        String body = messageParts[0] + this.separator + offer + this.separator + startPoseStr + this.separator + 
+                      endPoseStr + this.separator + startTime + this.separator + endTime;
         return new Message(this.robotID, message.sender, "offer", body);
     } 
     

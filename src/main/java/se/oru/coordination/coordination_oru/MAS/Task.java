@@ -22,26 +22,12 @@ public class Task {
 
     // TA
     Mission mission;
-    int taskProvider;
+    int partner;
     Pose fromPose;
     Pose toPose;
 
     // SA
     double ore;
-
-
-
-    Task(int taskID, Mission mission, float expiryTime, int taskProvider, String status, Pose fromPose, Pose toPose, boolean isSATask) {
-        // Constructor for TA
-        this.isSATask = isSATask;
-        this.taskID = taskID;
-        this.mission = mission;
-        this.expiryTime = expiryTime;
-        this.taskProvider = taskProvider;
-        this.status = status;
-        this.fromPose = fromPose;
-        this.toPose = toPose;
-    }
 
 
     Task(int taskID, float expiryTime, String status, double ore) {
@@ -55,7 +41,7 @@ public class Task {
     /**
      * Constructor in use.
      * @param taskID
-     * @param taskProvider
+     * @param partner
      * @param mission
      * @param isActive
      * @param ore
@@ -64,9 +50,9 @@ public class Task {
      * @param fromPose
      * @param toPose
      */
-    Task(int taskID, int taskProvider, Mission mission, boolean isActive, double ore, double startTime, double endTime, Pose fromPose, Pose toPose) {
+    Task(int taskID, int partner, Mission mission, boolean isActive, double ore, double startTime, double endTime, Pose fromPose, Pose toPose) {
         this.taskID = taskID;
-        this.taskProvider = taskProvider;
+        this.partner = partner;
         this.mission = mission;
         this.isActive = isActive;
         this.ore = ore;

@@ -21,7 +21,6 @@ public class TransportAgent extends CommunicationAid{
     protected Pose startPose;
     protected final int oreCap = 15;
 
-    protected Schedule schedule;
     protected TimeSchedule timeSchedule;
 
     public ArrayList<Message> missionList = new ArrayList<Message>();
@@ -41,7 +40,6 @@ public class TransportAgent extends CommunicationAid{
         this.startPose = startPos;
 
         this.timeSchedule = new TimeSchedule();
-        this.schedule = new Schedule();
 
         // enter network and broadcast our id to others.
         router.enterNetwork(this);
@@ -57,6 +55,9 @@ public class TransportAgent extends CommunicationAid{
     }
 
 
+    /**
+     * 
+     */
     public void start(){
         TransportAgent This = this;
 
@@ -85,6 +86,9 @@ public class TransportAgent extends CommunicationAid{
 
     }
 
+    /**
+     * 
+     */
     public void addRobotToSimulation(){
         // add robot to simulation prep...
         double MAX_ACCEL = 10.0;
@@ -106,17 +110,12 @@ public class TransportAgent extends CommunicationAid{
 
     }
 
-    public void communicateState(int i){
-        this.planState();
-    }
 
-    public void planState(){
-        Task task = this.schedule.dequeue();
-        this.tec.addMissions(task.mission);
-    }
-
-    
-
+    /**
+     * 
+     * @param task
+     * @return
+     */
     protected Boolean isMissionDone (Task task) {
         // Distance from robots actual position to task goal pose
         return this.tec.getRobotReport(this.robotID).getPose().distanceTo(task.mission.getToPose()) < 0.5;
@@ -129,7 +128,7 @@ public class TransportAgent extends CommunicationAid{
     protected void executeTasks () {
         while (true) {
             // Execute task while its schedule is not empty
-            if (this.schedule.getSize() > 0) {
+            if (this.timeSchedule.getSize() > 0) {
                 /* SCHEDULE: Only execute task if: 
                     * It is time to perform task. (if not wait, TODO do not just wait or something..)
                     * The task is marked as active.
@@ -139,7 +138,10 @@ public class TransportAgent extends CommunicationAid{
                     *   - inform receiving-end of the delay
                     * TODO: Calculate if we go over endTime.
                 */
-                Task task = this.schedule.dequeue();
+                Task task = this.timeSchedule.pop();
+                if (task == null) {
+                    continue;
+                }
                 this.tec.addMissions(task.mission);
                 
                 while (isMissionDone(task) == false) {
@@ -149,7 +151,7 @@ public class TransportAgent extends CommunicationAid{
 
                 // if robot managed to complete task 
                 String oreChange = task.isSATask ? Integer.toString(this.oreCap) : Integer.toString(-this.oreCap);
-                Message doneMessage = new Message(this.robotID, task.taskProvider, "inform", task.taskID + "," + "done" + "," + oreChange);
+                Message doneMessage = new Message(this.robotID, task.partner, "inform", task.taskID + "," + "done" + "," + oreChange);
                 this.sendMessage(doneMessage, false);
                 this.logTask(task.taskID, "done");
 
@@ -198,42 +200,40 @@ public class TransportAgent extends CommunicationAid{
 
             // queue mission to DA
             // TODO move to function
-            Pose start;
-            if (this.schedule.lastToPose != null) {
-                this.mp.setStart(this.schedule.lastToPose);
-                start = this.schedule.lastToPose;
-            } else {
-                this.mp.setStart(this.tec.getRobotReport(this.robotID).getPose());
-                start = this.tec.getRobotReport(this.robotID).getPose();
-            }
-
-            double[] coordinates = Arrays.stream(msgParts[2].split(" "))
+  
+        
+            double[] startCoordinates = Arrays.stream(msgParts[2].split(" "))
             .mapToDouble(Double::parseDouble)
             .toArray();
-            Pose goal = new Pose(coordinates[0], coordinates[1], coordinates[2]);
+            double[] endCoordinates = Arrays.stream(msgParts[3].split(" "))
+            .mapToDouble(Double::parseDouble)
+            .toArray();
+
+            Pose start = new Pose(startCoordinates[0], startCoordinates[1], startCoordinates[2]);
+            Pose goal = new Pose(endCoordinates[0], endCoordinates[1], endCoordinates[2]);
             
+            this.mp.setStart(start);
             this.mp.setGoals(goal);
+            
             if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + goal);
             PoseSteering[] path = this.mp.getPath();
     
             // TODO Function that creates task based on offer message. 
-            Task task = new Task(Integer.parseInt(msgParts[0]),
-            new Mission(this.robotID, path), 0, bestOffer.sender, "NOT STARTED", start, goal, false);
+            Task task = new Task(Integer.parseInt(msgParts[0]), bestOffer.sender,
+                                 new Mission(this.robotID, path), true, this.oreCap, 
+                                Double.parseDouble(msgParts[4]), Double.parseDouble(msgParts[5]), start, goal);
             // ===========================================================================
 
             // SCHEDULE: Add into schedule according to time.
             this.timeSchedule.add(task);
 
-            this.schedule.enqueue(task);
-            this.schedule.printSchedule();
-
-
             // wait for SA mission to be added
-            while (!this.schedule.isLastTaskSA()){
+            // while (!this.schedule.isLastTaskSA()){
 
-                try { Thread.sleep(300); }
-                catch (InterruptedException e) { e.printStackTrace(); }
-            }
+            //     try { Thread.sleep(300); }
+            //     catch (InterruptedException e) { e.printStackTrace(); }
+            // }
+            break;
 
         }
 
@@ -245,7 +245,7 @@ public class TransportAgent extends CommunicationAid{
      */
  
     public Message offerService(double startTime) {
-        System.out.println(this.robotID + " ======================1");
+        System.out.println(this.robotID + "=======================1");
 
         // Get correct receivers
         ArrayList<Integer> receivers = this.getReceivers(this.robotsInNetwork, "DRAW");
@@ -294,12 +294,11 @@ public class TransportAgent extends CommunicationAid{
     public int createCNPMessage(double startTime, ArrayList<Integer> receivers) {
         // broadcast message to all transport agents
         //Pose pos = new Pose(63.0,68.0, 0.0);
+        
+
+        // SCHEDULE: TODO change to lastToPose. 
         Pose start;
-        if (this.schedule.lastToPose != null) {
-            start = this.schedule.lastToPose;
-        } else {
-            start = this.tec.getRobotReport(this.robotID).getPose();
-        }
+        start = this.tec.getRobotReport(this.robotID).getPose();
         String startPos = this.stringifyPose(start);
 
         // taskID & agentID & pos & startTime 
@@ -370,15 +369,7 @@ public class TransportAgent extends CommunicationAid{
 
         //calc euclidean dist between DA -> TA, and capacity evaluation
         this.mp.setGoals(SApos);
-        Pose start;
-
-        if (this.schedule.lastToPose != null) {
-            this.mp.setStart(this.schedule.lastToPose);
-            start = this.schedule.lastToPose;
-        } else {
-            this.mp.setStart(this.tec.getRobotReport(this.robotID).getPose());
-            start = this.tec.getRobotReport(this.robotID).getPose();
-        }
+        Pose start = this.timeSchedule.getLastToPose();
 
         if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + SApos);
         PoseSteering[] path = this.mp.getPath();
@@ -455,7 +446,7 @@ public class TransportAgent extends CommunicationAid{
                 //TODO fix new msg type 'echo' to respond to 'hello-world'.
                 // this will help us remove this.activeTasks
                 String[] messageParts = this.parseMessage(m, "", true);
-                int taskID = Integer.parseInt(messageParts[0]);
+                
 
                 if (m.type == "hello-world"){ 
                     if ( !this.robotsInNetwork.contains(m.sender) ) this.robotsInNetwork.add(m.sender);
@@ -467,13 +458,15 @@ public class TransportAgent extends CommunicationAid{
                 }
 
                 else if (m.type == "accept"){
-                    this.taskHandler(Integer.parseInt(m.body), m);
                     // SCHEDULE: Change task to actuve
+                    int taskID = Integer.parseInt(messageParts[0]);
+                    this.timeSchedule.setTaskActive(taskID);
                 }
 
                 else if (m.type == "decline"){
                     //remove task from activeTasks
                     //SCHEDULE: remove reserved task from schedule
+                    int taskID = Integer.parseInt(messageParts[0]);
                     this.timeSchedule.remove(taskID);
                 }
 
@@ -487,6 +480,7 @@ public class TransportAgent extends CommunicationAid{
 
                 else if (m.type.equals(new String("inform"))) {
                     // TA informs SA when its done with a task.
+                    int taskID = Integer.parseInt(messageParts[0]);
                     String informVal = this.parseMessage(m, "informVal")[0]; 
                     
                     if (informVal.equals(new String("done"))) {
@@ -523,74 +517,6 @@ public class TransportAgent extends CommunicationAid{
             // System.out.println(this.robotID + " -- " + this.robotsInNetwork);
             try { Thread.sleep(1000); }
             catch (InterruptedException e) { e.printStackTrace(); }
-        }
-    }
-
-    /**
-     * activeTasks is a datastructure storing tasks with their id for a robot. 
-     * This function checks if the taskID of a certain message is contained in the active tasks.
-     * If: 
-     * Task-type is "hello-world", the robot should add the accepting robot to its network. 
-     * @param taskID
-     * @param m
-     */
-    public void taskHandler(int taskID, Message m) {
-        
-        String[] taskInfo = this.activeTasks.get(taskID).split(this.separator);
-        
-        if (taskInfo[0] == "hello-world" && !this.robotsInNetwork.contains(m.sender)){
-            this.robotsInNetwork.add(m.sender);
-        }
-        
-        else if(taskInfo[0].equals("offer")){   // we sent an offer to a SA and got accept reply
-
-            // SCHEDULE: Got the task, change in schedule from reserved to active. 
-            // then there is no need for further code here since mission is already in schedule
-
-            System.out.println(this.robotID + ", in taskhandler: " + taskInfo);
-            System.out.println(Arrays.toString(taskInfo));
-            //TODO do mission
-            //String[] mParts = this.parseMessage( m, "", true);
-
-            double[] coordinates = Arrays.stream(taskInfo[2].split(" "))
-            .mapToDouble(Double::parseDouble)
-            .toArray();
-
-            Pose start;
-            Pose goal = new Pose(coordinates[0], coordinates[1], coordinates[2]);
-
-            //this.planState(pos); //TODO change in future
-
-            // Setting up the mission
-            
-            
-            if (this.schedule.lastToPose != null) {
-                System.out.println("USES LAST TO POSE <------------------------------------------");
-                start = this.schedule.lastToPose;
-                this.mp.setStart(start);
-            } else {
-                if (this.schedule.currentTask == null){
-                    start = this.tec.getRobotReport(this.robotID).getPose();
-                    this.mp.setStart(start);
-                }
-                else {
-                    start = this.schedule.currentTask.toPose;
-                    this.mp.setStart(start);
-                }
-            }
-            
-            this.mp.setGoals(goal);
-            if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + goal);
-            PoseSteering[] path = this.mp.getPath();
-    
-            // Create task and add it to schedule
-            Task task = new Task(taskID, new Mission(this.robotID, path), 0, m.sender, "NOT STARTED", start, goal, true);
-            this.schedule.enqueue(task);
-            this.schedule.printSchedule();
-
-            System.out.println("SCHEDULE SIZE =====" + this.schedule.getSize());
-
-            //this.planState();
         }
     }
 }

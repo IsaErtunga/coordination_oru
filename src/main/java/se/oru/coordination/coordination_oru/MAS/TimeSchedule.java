@@ -227,9 +227,32 @@ public class TimeSchedule {
                     break;
                 }
             }
-
             return ret;
         }
+    }
+
+    /**
+     * 
+     * @return
+     */
+    public Task pop() {
+        synchronized(this.schedule) {
+            ArrayList<Task> tasks = this.getActiveTasks();
+            Task ret = null;
+            if (tasks.size() > 0) {
+                ret = tasks.get(0);
+                this.schedule.remove(ret);
+            }
+            return ret;
+        }
+    }
+    
+    /**
+     * Returns the of where the agent completed its last task. 
+     * @return
+     */
+    public Pose getLastToPose() {
+        return new Pose(50.0,190.0, 3*Math.PI/2);
     }
 
     public Task get(int taskID) {
