@@ -80,6 +80,7 @@ public class DrawAgent extends CommunicationAid{
             }
 
             for (Message m : inbox_copy){
+                
                 if (m.type == "hello-world"){ 
                     if ( !this.robotsInNetwork.contains(m.sender) ) this.robotsInNetwork.add(m.sender);
                     this.sendMessage( new Message( m.receiver.get(0), m.sender, "echo", ""));
@@ -90,8 +91,11 @@ public class DrawAgent extends CommunicationAid{
                 }
 
                 else if (m.type == "accept"){
+                 
+                    int taskID = Integer.parseInt(this.parseMessage(m, "taskID")[0]);
                     this.taskHandler(Integer.parseInt(m.body), m);
                     // SCHEDULE: Change isActive.
+                    this.timeSchedule.setTaskActive(taskID);
                 }
 
                 else if (m.type == "decline"){
@@ -151,7 +155,6 @@ public class DrawAgent extends CommunicationAid{
      * SCHEDULE:
      * - Will receive a time from TA of when it can come and fetch ore. 
      */
-    @Override
     public boolean handleService(Message m){ 
         if (m.type != "cnp-service") return false;
 
@@ -203,6 +206,7 @@ public class DrawAgent extends CommunicationAid{
         Mission mission = new Mission(this.robotID, path);
         Task DAtask = new Task(Integer.parseInt(mParts[0]), m.sender, mission, false, ore, startTime, endTime, TApos, this.pos);
         this.timeSchedule.add(DAtask);
+        this.timeSchedule.printSchedule();
 
         // offer value calc
         double evaluatedDistance = this.calcDistance(this.pos, new Pose(coordinates[0], coordinates[1], coordinates[2]));

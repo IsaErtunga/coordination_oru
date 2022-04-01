@@ -84,6 +84,10 @@ public class CommunicationAid {
         else {
             String[] attributes = {};
 
+            if (m.type == "accept"){
+                attributes = new String[] {"taskID"};
+            }
+
             if (m.type == "offer"){
                 attributes = new String[] {"taskID", "offerVal", "startPos", "endPos", "startTime", "endTime"};
             }
@@ -135,6 +139,15 @@ public class CommunicationAid {
         return networkCopy;
     }
 
+    /**
+     * Call when need to sleep
+     * @param ms
+     */
+    public void sleep(int ms) {
+        try { Thread.sleep(ms); }
+        catch (InterruptedException e) { e.printStackTrace(); }
+    }
+
 
     /**
      * Helper function that gets a pose and prepares it for message.
@@ -169,111 +182,6 @@ public class CommunicationAid {
           return endTime;
     }
 
-
-    /** #######################################################################
-     *  ######################## Contract Net Protocol ########################
-        ####################################################################### */ 
-    
-    /** offerService is called when a robot want to plan in a new task to execute.
-     * 
-     * @param robotID id of robot{@link TransportAgent} calling this
-     */
-    public Message offerService(){
-
-        System.out.println(this.robotID +"======================1");
-
-        ArrayList<Integer> receivers = new ArrayList<Integer>(this.robotsInNetwork);
-        receivers.removeIf(i -> i>5000);    //storage agents has robotID > 5000
-        System.out.println(this.robotID +"======================2");
-
-        // broadcast message to all transport agents
-        //Pose pos = new Pose(63.0,68.0, 0.0);
-        String[] saLocations = new String[]{"63.0 68.0 0.0", "63.0 142.0 0.0", "50.0 20.0 0.0", "50.0 190.0 0.0", "50.0 170.0 0.0", "50.0 130.0 0.0", "50.0 90.0 0.0"};
-        String body = this.robotID + this.separator + saLocations[this.rand.nextInt(saLocations.length)];
-        Message m = new Message(this.robotID, receivers, "cnp-service", body);
-        int taskID = this.sendMessage(m, true);
-        System.out.println(this.robotID +"======================3");
-
-        //sleep 6 sec before looking at offers
-        try { Thread.sleep(2500); }
-        catch (InterruptedException e) { e.printStackTrace(); }
-        System.out.println(this.robotID +"======================4");
-
-        Message bestOffer = this.handleOffers(taskID); //extract best offer
-        System.out.println(this.robotID +"======================5");
-
-        if (!bestOffer.isNull){        
-            // Send response: Mission to best offer sender, and deny all the other ones.
-            Message acceptMessage = new Message(robotID, bestOffer.sender, "accept", Integer.toString(taskID) );
-            this.sendMessage(acceptMessage);
-
-            receivers.removeIf(i -> i==bestOffer.sender);    //storage agents has robotID > 5000
-    
-            // Send decline message to all the others. 
-            Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));
-            this.sendMessage(declineMessage);
-
-            //TODO add amout A to be received at time T in schedule
-
-            return bestOffer;
-        }
-        return null;
-    }
-
-    
-    /** handleService is called from within a TA, when a TA did a {@link offerService}
-     * 
-     * @param m the message with the service
-     * @param robotID the robotID of this object
-     * @return true if we send offer = we expect resp.
-     */
-    public boolean handleService(Message m){ 
-
-        if (m.type != "cnp-service") return false;
-
-        String[] mParts = this.parseMessage( m, "", true);
-        int offer = this.tID();         //TODO current is for test
-        String body = mParts[0] + this.separator + offer;
-
-        Message resp = new Message(this.robotID, m.sender, "offer", body);
-    
-        // räkna ut ett bud och skicka det.
-        this.sendMessage(resp);
-        this.logTask(Integer.parseInt(mParts[0]),
-            "offer" + this.separator + m.sender + this.separator + mParts[2] ); //TODO make better
-        
-        System.out.println(this.robotID + ", task: " + this.activeTasks.get(Integer.parseInt(mParts[0])));
-        
-        return true;
-    }
-
-    /**
-     * HandleOffers is called from a SA, to either accept the offer of a TA, or deny it.
-     * @return the message that is the best offer
-     */
-    public Message handleOffers(int taskID) {
-
-        Message bestOffer = new Message();
-        int offerVal = 0;
-        
-        // Sort offers for the best one
-
-        for ( Message m : this.offers ){
-            if(!m.isNull){
-                String[] mParts = this.parseMessage( m, "", true); // sort out offer not part of current auction(taskID)
-                if (Integer.parseInt(mParts[0]) == taskID){
-                    int val = Integer.parseInt(mParts[1]);
-                    if (val > offerVal){
-                        offerVal = val;
-                        bestOffer = new Message(m);
-                    }
-                    //this.offers.remove(m);
-                }
-            }
-        }
-        //TODO make it able to choose another offer if OG one was not possible
-        return bestOffer;
-    }
 
     /**
      * Helper function to calculate distance between to Pose objects. 

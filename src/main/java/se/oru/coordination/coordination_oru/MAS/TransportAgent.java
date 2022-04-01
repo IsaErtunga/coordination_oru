@@ -312,7 +312,6 @@ public class TransportAgent extends CommunicationAid{
      * Eventually remove from communicationAid
      * SCHEDULE: Check if task fits into our schedule.
      */
-    @Override
     public Message handleOffers(int taskID) {
 
         Message bestOffer = new Message();
@@ -347,7 +346,6 @@ public class TransportAgent extends CommunicationAid{
      * @param robotID the robotID of this object
      * @return true if we send offer = we expect resp.
      */
-    @Override
     public boolean handleService(Message m) { 
         if (m.type != "cnp-service") return false;
 

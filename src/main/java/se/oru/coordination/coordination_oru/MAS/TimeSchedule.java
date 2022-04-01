@@ -166,7 +166,6 @@ public class TimeSchedule {
     public double getNextStartTime(){ //return endTime for last task
         synchronized(this.schedule){
             ArrayList<Task> tasks = this.getActiveTasks();
-
             if( tasks.size() > 0 ) return tasks.get(tasks.size()-1).endTime;
             else return -1.0;
         }

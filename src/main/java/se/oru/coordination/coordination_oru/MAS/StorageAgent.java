@@ -1,21 +1,4 @@
 package se.oru.coordination.coordination_oru.MAS;
-
-/*
-import java.util.Calendar;
-import java.util.Comparator;
-import java.util.HashMap;
-
-import org.sat4j.ExitCode;
-
-
-import se.oru.coordination.coordination_oru.CriticalSection;
-import se.oru.coordination.coordination_oru.RobotAtCriticalSection;
-import se.oru.coordination.coordination_oru.RobotReport;
-import se.oru.coordination.coordination_oru.simulation2D.TrajectoryEnvelopeCoordinatorSimulation;
-import se.oru.coordination.coordination_oru.util.BrowserVisualization;
-import se.oru.coordination.coordination_oru.util.JTSDrawingPanelVisualization;
-import se.oru.coordination.coordination_oru.util.Missions;
-*/
 import java.util.ArrayList;
 
 import com.vividsolutions.jts.geom.Coordinate;
@@ -43,15 +26,16 @@ public class StorageAgent extends CommunicationAid{
 
     public StorageAgent(int id){this.robotID = id;}     // for testing
 
+
     /**
-     * 
+     * Constructor for Storage Agent
      * @param r_id
      * @param router
      * @param capacity
      * @param startPos
      */
     public StorageAgent(int r_id, Router router, double capacity, Pose startPos ){
-        System.out.println("====storage contrsuctor=====");
+        System.out.println("===== Storage Constructor =====");
         this.robotID = r_id;
         this.capacity = capacity;
         this.amount = 0;
@@ -208,28 +192,22 @@ public class StorageAgent extends CommunicationAid{
      * 
      * @param robotID id of robot{@link TransportAgent} calling this
      */
-    @Override
     public Message offerService(){
 
         System.out.println(this.robotID +"======================1");
 
-        ArrayList<Integer> receivers = new ArrayList<Integer>(this.robotsInNetwork);
-        receivers.removeIf(i -> i>5000);    //storage agents has robotID > 5000
+        ArrayList<Integer> receivers = this.getReceivers(this.robotsInNetwork, "TRANSPORT");
+        
         System.out.println(this.robotID +"======================2");
 
-        String startPos = this.startPose.getX() + " " + this.startPose.getY() + " " + this.startPose.getYaw();
-
-        String startTime = Double.toString(this.timeSchedule.getNextStartTime());
-  
-        // taskID & agentID & pos & startTime 
-        String body = this.robotID + this.separator + startPos + this.separator + startTime;
-        Message m = new Message(this.robotID, receivers, "cnp-service", body);
-        int taskID = this.sendMessage(m, true);
+        String startPos = this.stringifyPose(this.startPose);
+ 
+        int taskID = this.createCNPMessage(this.timeSchedule.getNextStartTime(), startPos, receivers);
         System.out.println(this.robotID +"======================3");
 
-        //sleep 6 sec before looking at offers
-        try { Thread.sleep(2500); }
-        catch (InterruptedException e) { e.printStackTrace(); }
+        //sleep  before looking at offers
+        this.sleep(2500);
+
         System.out.println(this.robotID +"======================4");
 
         Message bestOffer = this.handleOffers(taskID); //extract best offer
@@ -249,6 +227,49 @@ public class StorageAgent extends CommunicationAid{
             //TODO add amout A to be received at time T in schedule
 
         }
+        return bestOffer;
+    }
+
+    /**
+     * Helper function for structuring and sending a CNP message. 
+     * TODO needs to be changed in various ways. And maybe moved to communicationAid.
+     * @param startTime
+     * @param receivers
+     * @return taskID
+     */
+    public int createCNPMessage(double startTime, String startPos, ArrayList<Integer> receivers) {
+        // taskID & agentID & pos & startTime 
+        String startTimeStr = Double.toString(startTime);
+        String body = this.robotID + this.separator + startPos + this.separator + startTime;
+        Message m = new Message(this.robotID, receivers, "cnp-service", body);
+        return this.sendMessage(m, true);
+    }
+
+       /**
+     * HandleOffers is called from a SA, to either accept the offer of a TA, or deny it.
+     * @return the message that is the best offer
+     */
+    public Message handleOffers(int taskID) {
+
+        Message bestOffer = new Message();
+        int offerVal = 0;
+        
+        // Sort offers for the best one
+
+        for ( Message m : this.offers ){
+            if(!m.isNull){
+                String[] mParts = this.parseMessage( m, "", true); // sort out offer not part of current auction(taskID)
+                if (Integer.parseInt(mParts[0]) == taskID){
+                    int val = Integer.parseInt(mParts[1]);
+                    if (val > offerVal){
+                        offerVal = val;
+                        bestOffer = new Message(m);
+                    }
+                    //this.offers.remove(m);
+                }
+            }
+        }
+        //TODO make it able to choose another offer if OG one was not possible
         return bestOffer;
     }
 
