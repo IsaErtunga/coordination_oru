@@ -183,8 +183,6 @@ public class DrawAgent extends CommunicationAid{
             * offer message will include: taskID, offerVal, pos, startTime, endTime
         */
 
-        double startTime = Double.parseDouble(mParts[3]);
-
 
         // Calculate path
         this.mp.setGoals(this.pos);
@@ -193,20 +191,8 @@ public class DrawAgent extends CommunicationAid{
         PoseSteering[] path = this.mp.getPath();
 
 
-        // Estimate path time
-        double accumulatedDist = 0.0;
-	    
-        for (int i=0; i< path.length-1; i++) {
-            Pose p1 = path[i].getPose();
-            Pose p2 = path[i+1].getPose();
-
-            double deltaS = p1.distanceTo(p2);
-            accumulatedDist += deltaS;
-	    }
-
-        double vel = 0.068;
-        double estimatedPathTime = vel * accumulatedDist;
-        double endTime = startTime + estimatedPathTime;
+        double startTime = Double.parseDouble(mParts[3]);
+        double endTime = this.calculateEndTime(startTime, path);
 
         // If task is not possible
         if (this.timeSchedule.taskPossible(startTime, endTime) == false) {
@@ -214,7 +200,8 @@ public class DrawAgent extends CommunicationAid{
         }
 
         // SCHEDULE: Create new task & and add it to schedule
-        Task DAtask = new Task(Integer.parseInt(mParts[0]), false, ore, startTime, endTime);
+        Mission mission = new Mission(this.robotID, path);
+        Task DAtask = new Task(Integer.parseInt(mParts[0]), m.sender, mission, false, ore, startTime, endTime, TApos, this.pos);
         this.timeSchedule.add(DAtask);
 
         // offer value calc

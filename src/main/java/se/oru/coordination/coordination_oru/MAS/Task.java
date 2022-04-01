@@ -52,12 +52,28 @@ public class Task {
         this.ore = ore;
     }
 
-    Task(int taskID, boolean isActive, double ore, double startTime, double endTime) {
+    /**
+     * Constructor in use.
+     * @param taskID
+     * @param taskProvider
+     * @param mission
+     * @param isActive
+     * @param ore
+     * @param startTime
+     * @param endTime
+     * @param fromPose
+     * @param toPose
+     */
+    Task(int taskID, int taskProvider, Mission mission, boolean isActive, double ore, double startTime, double endTime, Pose fromPose, Pose toPose) {
         this.taskID = taskID;
+        this.taskProvider = taskProvider;
+        this.mission = mission;
         this.isActive = isActive;
         this.ore = ore;
         this.startTime = startTime;
         this.endTime = endTime;
+        this.fromPose = fromPose;
+        this.toPose = toPose;
     }
 
     Task(double start, double end){

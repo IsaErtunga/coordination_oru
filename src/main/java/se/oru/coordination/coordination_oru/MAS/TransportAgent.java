@@ -160,9 +160,7 @@ public class TransportAgent extends CommunicationAid{
         }
     }
 
-
     protected void initialState() {
-
         while (true) {
 
             // start CNP with DA
@@ -192,7 +190,7 @@ public class TransportAgent extends CommunicationAid{
 
             // SCHEDULE: Receive offer message from DrawAgent. 
             // body -> int taskID & int offerVal & pos & startTime & endTime
-            String[] parts = this.parseMessage(bestOffer, "", true);
+            String[] msgParts = this.parseMessage(bestOffer, "", true);
 
 
             // create task ========================================================
@@ -208,7 +206,7 @@ public class TransportAgent extends CommunicationAid{
                 start = this.tec.getRobotReport(this.robotID).getPose();
             }
 
-            double[] coordinates = Arrays.stream(parts[2].split(" "))
+            double[] coordinates = Arrays.stream(msgParts[2].split(" "))
             .mapToDouble(Double::parseDouble)
             .toArray();
             Pose goal = new Pose(coordinates[0], coordinates[1], coordinates[2]);
@@ -218,7 +216,7 @@ public class TransportAgent extends CommunicationAid{
             PoseSteering[] path = this.mp.getPath();
     
             // TODO Function that creates task based on offer message. 
-            Task task = new Task(Integer.parseInt(parts[0]),
+            Task task = new Task(Integer.parseInt(msgParts[0]),
             new Mission(this.robotID, path), 0, bestOffer.sender, "NOT STARTED", start, goal, false);
             // ===========================================================================
 
@@ -345,7 +343,6 @@ public class TransportAgent extends CommunicationAid{
     }
 
     /** handleService is called from within a TA, when a TA did a {@link offerService}
-     * 
      * @param m the message with the service
      * @param robotID the robotID of this object
      * @return true if we send offer = we expect resp.
@@ -385,23 +382,9 @@ public class TransportAgent extends CommunicationAid{
         if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + SApos);
         PoseSteering[] path = this.mp.getPath();
 
+        // Extract startTime, and calculate endTime.
         double startTime = Double.parseDouble(mParts[3]);
-
-        // Calculated time for path TODO change to real calculation
-        // Estimate path time
-        double accumulatedDist = 0.0;
-
-        for (int i=0; i< path.length-1; i++) {
-            Pose p1 = path[i].getPose();
-            Pose p2 = path[i+1].getPose();
-
-            double deltaS = p1.distanceTo(p2);
-            accumulatedDist += deltaS;
-        }
-
-        double vel = 0.068;
-        double estimatedPathTime = vel * accumulatedDist;
-        double endTime = startTime + estimatedPathTime;
+        double endTime = this.calculateEndTime(startTime, path);
 
         // If task is not possible
         if (this.timeSchedule.taskPossible(startTime, endTime) == false) {
@@ -410,15 +393,15 @@ public class TransportAgent extends CommunicationAid{
 
         // SCHEDULE: Create new task & and add it to schedule
         double ore = 10.0;
-        Task TAtask = new Task(Integer.parseInt(mParts[0]), false, ore, startTime, endTime);
+        Mission mission = new Mission(this.robotID, path);
+        Task TAtask = new Task(Integer.parseInt(mParts[0]), m.sender, mission, false, ore, startTime, endTime, start, SApos);
         this.timeSchedule.add(TAtask);
 
         //TODO also include schedule: look if other agent will collect ore here at same time.
         //TODO add poseSteering.length
 
         // TODO: Change to time. 
-        double evaluatedDistance = this.calcDistance(this.tec.getRobotReport(this.robotID).getPose(), 
-                                                     new Pose(coordinates[0], coordinates[1], coordinates[2]));
+        double evaluatedDistance = this.calcDistance(this.tec.getRobotReport(this.robotID).getPose(), SApos);
         
         // Create offer
         Message response = createOffer(m, mParts, evaluatedDistance, this.tec.getRobotReport(this.robotID).getPose(), startTime, endTime);
@@ -470,6 +453,9 @@ public class TransportAgent extends CommunicationAid{
             for (Message m : inbox_copy){
                 //TODO fix new msg type 'echo' to respond to 'hello-world'.
                 // this will help us remove this.activeTasks
+                String[] messageParts = this.parseMessage(m, "", true);
+                int taskID = Integer.parseInt(messageParts[0]);
+
                 if (m.type == "hello-world"){ 
                     this.robotsInNetwork.add(m.sender);
                     this.sendMessage(
@@ -478,11 +464,13 @@ public class TransportAgent extends CommunicationAid{
 
                 else if (m.type == "accept"){
                     this.taskHandler(Integer.parseInt(m.body), m);
+                    // SCHEDULE: Change task to actuve
                 }
 
                 else if (m.type == "decline"){
                     //remove task from activeTasks
                     //SCHEDULE: remove reserved task from schedule
+                    this.timeSchedule.remove(taskID);
                 }
 
                 else if (m.type == "cnp-service"){
@@ -500,6 +488,8 @@ public class TransportAgent extends CommunicationAid{
                     if (informVal.equals(new String("done"))) {
                         // current solution does not receive 'done'-msg
                         //TODO add code if implementing it that way
+                        this.timeSchedule.remove(taskID);
+
                     }
                     else if (informVal.equals(new String("status"))) {
                         /* SCHEDULE: 
@@ -508,12 +498,17 @@ public class TransportAgent extends CommunicationAid{
                             * if 2 mission have big overlap then send ABORT msg to later mission.
                             * else all is good.
                         */ 
+                        double newEndTime = Double.parseDouble(messageParts[2]);
+                        if (newEndTime > this.timeSchedule.get(taskID).endTime) {
+                            this.timeSchedule.update(taskID, newEndTime);
+                        }
                     }
 
                     else if (informVal.equals(new String("abort"))) {
                         /* SCHEDULE:
                             * remove task from schedule
                         */
+                        this.timeSchedule.remove(taskID);
 
                     } 
 
