@@ -458,10 +458,13 @@ public class TransportAgent extends CommunicationAid{
                 int taskID = Integer.parseInt(messageParts[0]);
 
                 if (m.type == "hello-world"){ 
-                    this.robotsInNetwork.add(m.sender);
-                    this.sendMessage(
-                        new Message( m.receiver.get(0), m.sender, "accept", m.body));
-                } 
+                    if ( !this.robotsInNetwork.contains(m.sender) ) this.robotsInNetwork.add(m.sender);
+                    this.sendMessage( new Message( m.receiver.get(0), m.sender, "echo", ""));
+                }
+
+                if (m.type == "echo"){ 
+                    if ( !this.robotsInNetwork.contains(m.sender) ) this.robotsInNetwork.add(m.sender);
+                }
 
                 else if (m.type == "accept"){
                     this.taskHandler(Integer.parseInt(m.body), m);
