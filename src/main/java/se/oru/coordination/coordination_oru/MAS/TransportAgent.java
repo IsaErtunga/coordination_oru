@@ -164,7 +164,6 @@ public class TransportAgent extends CommunicationAid{
 
     protected void initialState() {
         while (true) {
-
             // start CNP with DA
             /* SCHEDULE:
                 * if endState of the last task has no ore, plan mission with DA 
@@ -176,18 +175,15 @@ public class TransportAgent extends CommunicationAid{
             if (this.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold) {
                 // We only create an auction if ore level is lower than treshold
                 // Possibly bad to check every iteration
-                try { Thread.sleep(100); }
-                catch (InterruptedException e) { e.printStackTrace(); }
+                this.sleep(100);
                 continue;
             }
 
             // SCHEDULE: Send when it can start. 
-            
             Message bestOffer = this.offerService(this.timeSchedule.getNextStartTime());
             
             if (bestOffer.isNull){ // if we got no offers from auction we sleep and try again
-                try { Thread.sleep(100); }
-                catch (InterruptedException e) { e.printStackTrace(); }
+                this.sleep(100);
                 continue;
             }
 
@@ -203,11 +199,9 @@ public class TransportAgent extends CommunicationAid{
   
         
             double[] startCoordinates = Arrays.stream(msgParts[2].split(" "))
-            .mapToDouble(Double::parseDouble)
-            .toArray();
+                                        .mapToDouble(Double::parseDouble).toArray();
             double[] endCoordinates = Arrays.stream(msgParts[3].split(" "))
-            .mapToDouble(Double::parseDouble)
-            .toArray();
+                                        .mapToDouble(Double::parseDouble).toArray();
 
             Pose start = new Pose(startCoordinates[0], startCoordinates[1], startCoordinates[2]);
             Pose goal = new Pose(endCoordinates[0], endCoordinates[1], endCoordinates[2]);
@@ -233,7 +227,7 @@ public class TransportAgent extends CommunicationAid{
             //     try { Thread.sleep(300); }
             //     catch (InterruptedException e) { e.printStackTrace(); }
             // }
-            break;
+            this.sleep(2000);
 
         }
 
@@ -258,8 +252,7 @@ public class TransportAgent extends CommunicationAid{
     
         //sleep 6 sec before looking at offers
         //TODO create while loop to wait either S seconds or until all agents have responded
-        try { Thread.sleep(2500); }
-        catch (InterruptedException e) { e.printStackTrace(); }
+        this.sleep(2500);
         System.out.println(this.robotID +"======================4");
 
     
@@ -295,7 +288,6 @@ public class TransportAgent extends CommunicationAid{
         // broadcast message to all transport agents
         //Pose pos = new Pose(63.0,68.0, 0.0);
         
-
         // SCHEDULE: TODO change to lastToPose. 
         Pose start;
         start = this.tec.getRobotReport(this.robotID).getPose();

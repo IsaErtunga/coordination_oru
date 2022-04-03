@@ -180,10 +180,7 @@ public class StorageAgent extends CommunicationAid{
                 }
                 
             }
-
-            //System.out.println(this.robotID + " -- " + this.robotsInNetwork);
-            try { Thread.sleep(1000); }
-            catch (InterruptedException e) { e.printStackTrace(); }
+            this.sleep(1000);
         }
 
     }
