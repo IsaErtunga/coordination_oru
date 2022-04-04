@@ -174,12 +174,18 @@ public class TimeSchedule {
 
     public double checkEndStateOreLvl(){    // return the last state
         double endTime = 0.0;
+        double ore = 0.0;
 
         for (Double key : this.oreState.keySet()) {
-            if ( endTime < key ) endTime = key;
+            if ( endTime < key ){
+                endTime = key;
+                ore = this.oreState.get(key);
+            } 
+
+            
         }
         
-        return endTime;
+        return ore;
     } 
 
 
@@ -311,6 +317,7 @@ public class TimeSchedule {
             System.out.println("time: " + t.startTime + " --> " + t.endTime + "\t taskID: "+t.taskID + "\tisActive: "+ t.isActive);
             System.out.println("----------------------------------------------------------------------------------");
         }
+        System.out.println("ORESTATE: " + this.oreState);
 
         System.out.println("____________________________________________________________________________________");
 

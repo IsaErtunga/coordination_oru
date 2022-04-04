@@ -55,21 +55,12 @@ public class CommunicationAid {
             if (m.body == "") m.body = Integer.toString(taskID);
             else  m.body = taskID + this.separator + m.body;
 
-            this.logTask(taskID, m.type);
         }
         synchronized(this.outbox){ this.outbox.add(m); }
         return taskID;
     }
     
-    /** logTask will add a task to this.activeTasks to keep context for conversations
-     * to remember what we sent and what responses we expect.
-     * 
-     * @param taskID the task id to be added to this.activeTasks
-     * @param info  information about the taskID to give context
-     */
-    public void logTask(int taskID, String info){
-        synchronized(this.activeTasks){ this.activeTasks.put(taskID, info); }
-    }
+
 
     public String[] parseMessage(Message m, String get){
         return this.parseMessage(m, get, false);

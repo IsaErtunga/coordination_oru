@@ -180,8 +180,6 @@ public class DrawAgent extends CommunicationAid{
         System.out.println(Arrays.toString(coordinates));
         //calc euclidean dist between DA -> TA, and capacity evaluation
         
-
-
         //TODO also include schedule: look if other agent will collect ore here at same time.
         //TODO add poseSteering.length
 
@@ -236,9 +234,7 @@ public class DrawAgent extends CommunicationAid{
         
         //send offer and log event
         this.sendMessage(response);
-        this.logTask(Integer.parseInt(mParts[0]),
-            "offer" + this.separator + m.sender + this.separator + mParts[2] );
-        
+
         //System.out.println(this.robotID + ", task: " + this.activeTasks.get(Integer.parseInt(mParts[0])));
         return true;
     }

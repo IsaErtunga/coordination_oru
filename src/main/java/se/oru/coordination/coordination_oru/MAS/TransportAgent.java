@@ -157,15 +157,16 @@ public class TransportAgent extends CommunicationAid{
                 this.tec.addMissions(task.mission);
                 
                 while (isMissionDone(task) == false) {
-                    try { Thread.sleep(500); }
-                    catch (InterruptedException e) { e.printStackTrace(); }
+                    // not done yet
+                    this.sleep(500);
                 }
+                //done
 
                 // if robot managed to complete task 
-                String oreChange = task.isSATask ? Integer.toString(this.oreCap) : Integer.toString(-this.oreCap);
-                Message doneMessage = new Message(this.robotID, task.partner, "inform", task.taskID + "," + "done" + "," + oreChange);
+                String oreChange = task.partner<10000 ? Integer.toString(this.oreCap) : Integer.toString(-this.oreCap);
+
+                Message doneMessage = new Message(this.robotID, task.partner, "inform", task.taskID + "," + "done" + "," + Double.toString(task.ore));
                 this.sendMessage(doneMessage, false);
-                this.logTask(task.taskID, "done");
 
                 // if robot didn't manage to complete task
             }
@@ -183,13 +184,15 @@ public class TransportAgent extends CommunicationAid{
                 * Send time of when it can start mission to DrawAgent
              */
             // SHEDULE: Message bestOffer = this.offerService(double startTime);
-            // double oreLevelThreshold = 0;
-            // if (this.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold) {
-            //     // We only create an auction if ore level is lower than treshold
-            //     // Possibly bad to check every iteration
-            //     this.sleep(100);
-            //     continue;
-            // }
+            double oreLevelThreshold = 0;
+            if (this.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold) {
+                System.out.println("this.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold ----> " + (this.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold));
+                this.timeSchedule.printSchedule();
+                // We only create an auction if ore level is lower than treshold
+                // Possibly bad to check every iteration
+                this.sleep(100);
+                continue;
+            }
 
             // SCHEDULE: Send when it can start. 
             double nextTime = this.timeSchedule.getNextStartTime();
@@ -210,8 +213,8 @@ public class TransportAgent extends CommunicationAid{
 
             // queue mission to DA
             // TODO move to function
-  
         
+            
             double[] startCoordinates = Arrays.stream(msgParts[2].split(" "))
                                         .mapToDouble(Double::parseDouble).toArray();
             double[] endCoordinates = Arrays.stream(msgParts[3].split(" "))
@@ -406,8 +409,6 @@ public class TransportAgent extends CommunicationAid{
     
         // räkna ut ett bud och skicka det.
         this.sendMessage(response);
-        this.logTask(Integer.parseInt(mParts[0]),
-            "offer" + this.separator + m.sender + this.separator + mParts[2] ); //TODO make better
         
         System.out.println(this.robotID + ", task: " + this.activeTasks.get(Integer.parseInt(mParts[0])));
         

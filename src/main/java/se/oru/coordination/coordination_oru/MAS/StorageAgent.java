@@ -73,7 +73,6 @@ public class StorageAgent extends CommunicationAid{
                     System.out.println("CURRENT ORE LEVEL: ------------> "+ this.amount);
                 }
                 
-                
                 try { Thread.sleep(8000); }
                 catch (InterruptedException e) { e.printStackTrace(); }
                 // TODO Pop when it receives inform = DONE
