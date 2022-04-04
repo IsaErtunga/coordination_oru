@@ -29,7 +29,17 @@ public class TimeSchedule {
     private static double time_sensitivity = 5.0;
     protected Task currentTask = null;    
     private ArrayList<Task> schedule = new ArrayList<Task>();
-    private HashMap<Double, Integer> state = new HashMap<Double, Integer>();
+    private HashMap<Double, Double> oreState = new HashMap<Double, Double>();
+
+    /*  [00:00 , 0.0]
+        [00:15 , 15.0]
+        [00:35 , 0.0]
+        [00:15 , 15.0]
+        [00:35 , 0.0]
+
+
+
+    */
 
 
     public Pose getNextPos(){
@@ -46,6 +56,7 @@ public class TimeSchedule {
                     return false;
                 } 
                 t.isActive = true;
+                this.addOreState(t);
                 break;
             }
         }
@@ -154,9 +165,15 @@ public class TimeSchedule {
     } 
 
 
-    public double checkEndStateOreLvl(){
-        return 0.0;
-    } // return the last state
+    public double checkEndStateOreLvl(){    // return the last state
+        double endTime = 0.0;
+
+        for (Double key : this.oreState.keySet()) {
+            if ( endTime < key ) endTime = key;
+        }
+        
+        return endTime;
+    } 
 
 
     protected boolean add(Task task) {
@@ -173,8 +190,9 @@ public class TimeSchedule {
                 return true;
             }
 
-            ArrayList<Task> tasks = this.getActiveTasks();
+            this.addOreState(task);
 
+            ArrayList<Task> tasks = this.getActiveTasks();
 
             if (tasks.size() <= 0){                                 // case size = 0
                 this.schedule.add(task);
@@ -199,6 +217,11 @@ public class TimeSchedule {
 
             return false;
         }
+    }
+
+
+    private void addOreState(Task t){
+        this.oreState.put(t.endTime, t.ore);
     }
 
 
@@ -273,7 +296,7 @@ public class TimeSchedule {
     public void printSchedule(){
         System.out.println("___________________________________SCHEDULE_________________________________________");
         for (Task t : this.schedule){
-            System.out.println("time: " + t.startTime + " --> " + t.endTime + "\t taskID: "+t.taskID);
+            System.out.println("time: " + t.startTime + " --> " + t.endTime + "\t taskID: "+t.taskID + "\tisActive: "+ t.isActive);
         }
 
         System.out.println("____________________________________________________________________________________");
