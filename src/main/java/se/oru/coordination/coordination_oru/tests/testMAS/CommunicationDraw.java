@@ -119,7 +119,7 @@ public class CommunicationDraw {
 	//tec.placeRobot(1, TA1pos);
 	//tec.placeRobot(2, cell1);
 
-    
+    final double startTime = System.currentTimeMillis();
 
 	Pose DA1pos = new Pose(36.0, 35.0, Math.PI);
 	Pose DA2pos = new Pose(36.0, 115.0, Math.PI);
@@ -159,7 +159,7 @@ public class CommunicationDraw {
 				rsp.setTurningRadius(4.0); 				//default is 1.0
 				rsp.setMap(yamlFile);
 
-				TransportAgent r = new TransportAgent(numTransport[i], tec, rsp, transportPoses[i], router);
+				TransportAgent r = new TransportAgent(numTransport[i], tec, rsp, transportPoses[i], router, startTime);
 				r.start();
 
 			}
@@ -185,7 +185,7 @@ public class CommunicationDraw {
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);
 
-				DrawAgent DA = new DrawAgent(numDraw[i], router, 45.0, drawPoses[i], mp);
+				DrawAgent DA = new DrawAgent(numDraw[i], router, 45.0, drawPoses[i], mp, startTime);
 				DA.listener();
 				
 			}
@@ -206,7 +206,7 @@ public class CommunicationDraw {
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);
 
-				StorageAgent SA = new StorageAgent(numStorages[i], router, 100.0, storagePoses[i]);
+				StorageAgent SA = new StorageAgent(numStorages[i], router, 100.0, storagePoses[i], startTime);
 				SA.start();
 			
 			}

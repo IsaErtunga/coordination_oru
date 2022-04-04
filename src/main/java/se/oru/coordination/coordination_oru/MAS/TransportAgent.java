@@ -17,11 +17,13 @@ import se.oru.coordination.coordination_oru.ConstantAccelerationForwardModel;
 public class TransportAgent extends CommunicationAid{
     protected TrajectoryEnvelopeCoordinatorSimulation tec;
     protected ReedsSheppCarPlanner mp;
+
     protected Coordinate[] rShape;
     protected Pose startPose;
     protected final int oreCap = 15;
 
     protected TimeSchedule timeSchedule;
+    protected double startTime;
 
     public ArrayList<Message> missionList = new ArrayList<Message>();
 
@@ -29,7 +31,10 @@ public class TransportAgent extends CommunicationAid{
     public TransportAgent(int id){this.robotID = id;}   // for testing
 
     public TransportAgent(  int r_id, TrajectoryEnvelopeCoordinatorSimulation tec,
-                        ReedsSheppCarPlanner mp, Pose startPos, Router router ){
+                        ReedsSheppCarPlanner mp, Pose startPos, Router router){}
+
+    public TransportAgent(  int r_id, TrajectoryEnvelopeCoordinatorSimulation tec,
+                        ReedsSheppCarPlanner mp, Pose startPos, Router router, double startTime){
             
                             System.out.println("#######################");
                             System.out.println(r_id +" -- constructor");
@@ -38,6 +43,7 @@ public class TransportAgent extends CommunicationAid{
         this.tec = tec;
         this.mp = mp;
         this.startPose = startPos;
+        this.startTime = startTime;
 
         this.timeSchedule = new TimeSchedule(startPos);
 
@@ -52,6 +58,12 @@ public class TransportAgent extends CommunicationAid{
         this.rShape = new Coordinate[] {new Coordinate(-xl,yl),new Coordinate(xl,yl),
                                         new Coordinate(xl,-yl),new Coordinate(-xl,-yl)};
 
+    }
+
+
+    protected double getTime(){
+        System.out.println(this.robotID+"\ttime---> "+(System.currentTimeMillis() - this.startTime));
+        return System.currentTimeMillis() - this.startTime;
     }
 
 
@@ -180,7 +192,9 @@ public class TransportAgent extends CommunicationAid{
             // }
 
             // SCHEDULE: Send when it can start. 
-            Message bestOffer = this.offerService(this.timeSchedule.getNextStartTime());
+            double nextTime = this.timeSchedule.getNextStartTime();
+            nextTime = nextTime == -1.0 ? this.getTime() : nextTime;
+            Message bestOffer = this.offerService(nextTime);
             
             if (bestOffer.isNull){ // if we got no offers from auction we sleep and try again
                 this.sleep(100);

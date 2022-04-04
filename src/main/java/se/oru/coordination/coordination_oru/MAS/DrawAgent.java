@@ -25,8 +25,11 @@ public class DrawAgent extends CommunicationAid{
     protected ReedsSheppCarPlanner mp;
 
     protected TimeSchedule timeSchedule;
+    protected double startTime;
 
-    public DrawAgent(int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp){
+    public DrawAgent(int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp){}
+
+    public DrawAgent(int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp, double startTime){
         this.robotID = robotID; // drawID >10'000
         this.capacity = capacity;
         this.amount = capacity; // 100% full in beginning
@@ -35,11 +38,18 @@ public class DrawAgent extends CommunicationAid{
         this.initalXPos = pos.getX();
 
         this.timeSchedule = new TimeSchedule();
+        this.startTime = startTime;
 
         router.enterNetwork(this.robotID, this.inbox, this.outbox);
         this.sendMessage(new Message(this.robotID, "hello-world", ""), true);
 
     }
+
+
+    protected double getTime(){
+        return System.currentTimeMillis() - this.startTime;
+    }
+
 
     public void takeOre(double oreChange){
         // alter ore amount

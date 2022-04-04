@@ -19,6 +19,7 @@ public class StorageAgent extends CommunicationAid{
     protected double amount;    // the current amount it has stored in TONS
 
     protected TimeSchedule timeSchedule;
+    protected double startTime;
 
     public boolean beingUsed = false;
 
@@ -26,6 +27,7 @@ public class StorageAgent extends CommunicationAid{
 
     public StorageAgent(int id){this.robotID = id;}     // for testing
 
+    public StorageAgent(int r_id, Router router, double capacity, Pose startPos){}
 
     /**
      * Constructor for Storage Agent
@@ -34,19 +36,25 @@ public class StorageAgent extends CommunicationAid{
      * @param capacity
      * @param startPos
      */
-    public StorageAgent(int r_id, Router router, double capacity, Pose startPos ){
+    public StorageAgent(int r_id, Router router, double capacity, Pose startPos, double startTime){
         System.out.println("===== Storage Constructor =====");
         this.robotID = r_id;
         this.capacity = capacity;
         this.amount = 0;
         this.startPose = startPos;
         this.timeSchedule = new TimeSchedule();
+        this.startTime = startTime;
 
         router.enterNetwork(this);
 
         String type = "hello-world";
         this.sendMessage(new Message(this.robotID, type, ""), true);
 
+    }
+
+
+    protected double getTime(){
+        return System.currentTimeMillis() - this.startTime;
     }
 
 
