@@ -206,7 +206,7 @@ public class DrawAgent extends CommunicationAid{
         Mission mission = new Mission(this.robotID, path);
         Task DAtask = new Task(Integer.parseInt(mParts[0]), m.sender, mission, false, ore, startTime, endTime, TApos, this.pos);
         this.timeSchedule.add(DAtask);
-        this.timeSchedule.printSchedule();
+        // this.timeSchedule.printSchedule();
 
         // offer value calc
         double evaluatedDistance = this.calcDistance(this.pos, new Pose(coordinates[0], coordinates[1], coordinates[2]));

@@ -39,7 +39,7 @@ public class TransportAgent extends CommunicationAid{
         this.mp = mp;
         this.startPose = startPos;
 
-        this.timeSchedule = new TimeSchedule();
+        this.timeSchedule = new TimeSchedule(startPos);
 
         // enter network and broadcast our id to others.
         router.enterNetwork(this);
@@ -171,13 +171,13 @@ public class TransportAgent extends CommunicationAid{
                 * Send time of when it can start mission to DrawAgent
              */
             // SHEDULE: Message bestOffer = this.offerService(double startTime);
-            double oreLevelThreshold = 0;
-            if (this.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold) {
-                // We only create an auction if ore level is lower than treshold
-                // Possibly bad to check every iteration
-                this.sleep(100);
-                continue;
-            }
+            // double oreLevelThreshold = 0;
+            // if (this.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold) {
+            //     // We only create an auction if ore level is lower than treshold
+            //     // Possibly bad to check every iteration
+            //     this.sleep(100);
+            //     continue;
+            // }
 
             // SCHEDULE: Send when it can start. 
             Message bestOffer = this.offerService(this.timeSchedule.getNextStartTime());
@@ -220,6 +220,7 @@ public class TransportAgent extends CommunicationAid{
 
             // SCHEDULE: Add into schedule according to time.
             this.timeSchedule.add(task);
+            this.timeSchedule.printSchedule();
 
             // wait for SA mission to be added
             // while (!this.schedule.isLastTaskSA()){
@@ -289,8 +290,8 @@ public class TransportAgent extends CommunicationAid{
         //Pose pos = new Pose(63.0,68.0, 0.0);
         
         // SCHEDULE: TODO change to lastToPose. 
-        Pose start;
-        start = this.tec.getRobotReport(this.robotID).getPose();
+        Pose start = this.timeSchedule.getLastToPose();
+        // start = this.tec.getRobotReport(this.robotID).getPose();
         String startPos = this.stringifyPose(start);
 
         // taskID & agentID & pos & startTime 

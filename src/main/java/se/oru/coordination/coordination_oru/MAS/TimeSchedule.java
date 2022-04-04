@@ -28,6 +28,7 @@ public class TimeSchedule {
 
     private static double time_sensitivity = 5.0;
     protected Task currentTask = null;    
+    protected Pose lastSetPose;
     private ArrayList<Task> schedule = new ArrayList<Task>();
     private HashMap<Double, Double> oreState = new HashMap<Double, Double>();
 
@@ -40,6 +41,12 @@ public class TimeSchedule {
 
 
     */
+
+    public TimeSchedule() {}
+
+    public TimeSchedule(Pose lastSetPose) {
+        this.lastSetPose = lastSetPose;
+    }
 
 
     public Pose getNextPos(){
@@ -196,6 +203,7 @@ public class TimeSchedule {
 
             if (tasks.size() <= 0){                                 // case size = 0
                 this.schedule.add(task);
+                this.lastSetPose = task.toPose;
                 return true;
             }
 
@@ -205,6 +213,7 @@ public class TimeSchedule {
                 if ( curr.endTime <= task.startTime ){   // if curr is left of task
                     if ( i == tasks.size()-1){ // task should be added at end of schedule
                         this.schedule.add(task);
+                        this.lastSetPose = task.toPose;
                         return true;
                     }
                     else continue;
@@ -212,6 +221,8 @@ public class TimeSchedule {
                 if ( this.isTaskOverlapping(task, curr) ) return false;
 
                 this.schedule.add(this.schedule.indexOf(curr), task);
+                tasks = this.getActiveTasks();
+                this.lastSetPose = tasks.get(tasks.size()-1).toPose;
                 return true;            
             }
 
@@ -259,16 +270,16 @@ public class TimeSchedule {
     
     /**
      * Returns the of where the agent completed its last task. 
+     * Create a lastSetPose in constructor, use it whenever we have no tasks. 
      * @return
      */
     public Pose getLastToPose() {
-        synchronized(this.schedule){
-            ArrayList<Task> tasks = this.getActiveTasks();
 
-            if ( tasks.size() <= 0) return null;
-
-            return tasks.get(tasks.size()-1).toPose;
-        }
+        /**
+         * if tasks.size >= 0 --> return null
+         * else return sista lement toPose
+         */
+        return this.lastSetPose;
     }
 
     public Task get(int taskID) {
@@ -296,7 +307,9 @@ public class TimeSchedule {
     public void printSchedule(){
         System.out.println("___________________________________SCHEDULE_________________________________________");
         for (Task t : this.schedule){
+            System.out.println("----------------------------------------------------------------------------------");
             System.out.println("time: " + t.startTime + " --> " + t.endTime + "\t taskID: "+t.taskID + "\tisActive: "+ t.isActive);
+            System.out.println("----------------------------------------------------------------------------------");
         }
 
         System.out.println("____________________________________________________________________________________");
