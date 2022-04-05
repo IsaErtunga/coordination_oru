@@ -168,7 +168,7 @@ public class CommunicationDraw {
 
 												/*		TRANSPORT AGENT	*/
 	final int[] numTransport = {1, 2};
-	final int[] iter = {0,1};
+	final int[] iter = {0};
 	Pose[] transportPoses = { TA1pos, TA2pos };    
 	
 	for (final int i : iter) {
@@ -200,7 +200,7 @@ public class CommunicationDraw {
 													/*		STORAGE AGENT	*/
 	final int[] numStorages = {5001, 5002};
 	Pose[] storagePoses = { SA1pos, SA2pos };
-	final int[] iter2 = {0};
+	final int[] iter2 = {};
 
 	for (final int i : iter2) {
 

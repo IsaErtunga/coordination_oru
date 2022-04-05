@@ -418,7 +418,7 @@ public class TransportAgent extends CommunicationAid{
         // TODO: Change to time. 
         
         // Create offer
-        Message response = createOffer(m, mParts, distEval, this.tec.getRobotReport(this.robotID).getPose(), startTime, endTime);
+        Message response = createOffer(m, mParts, distEval, start, SApos, startTime, endTime, ore);
     
         // räkna ut ett bud och skicka det.
         this.sendMessage(response);
@@ -435,11 +435,13 @@ public class TransportAgent extends CommunicationAid{
      * @param evaluatedDistance
      * @return
      */
-    protected Message createOffer(Message message, String[] messageParts, double evaluatedDistance, Pose position, double startTime, double endTime) {
+    protected Message createOffer(Message message, String[] messageParts, double evaluatedDistance, 
+                                  Pose startPos, Pose endPos, double startTime, double endTime, double ore) {
+        
         if (evaluatedDistance <= 0.0) evaluatedDistance = 150.0; //TODO temp fix
         int offer = (int)(100.0 * 1.0 / evaluatedDistance);
-        String body = messageParts[0] + this.separator + offer + this.separator +
-                      this.stringifyPose(position) + this.separator + startTime + this.separator + endTime;
+        String body = messageParts[0] + this.separator + offer + this.separator + this.stringifyPose(startPos) + this.separator + this.stringifyPose(endPos)
+                                    + this.separator + startTime + this.separator + endTime + this.separator + Double.toString(ore);
         return new Message(this.robotID, message.sender, "offer", body);
     } 
 

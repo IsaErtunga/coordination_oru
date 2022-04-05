@@ -19,7 +19,7 @@ public class StorageAgent extends CommunicationAid{
     protected double amount;    // the current amount it has stored in TONS
 
     protected TimeSchedule timeSchedule;
-    protected double startTime;
+    protected long startTime;
     protected double oreStateThreshold = 15.0;
 
     public boolean beingUsed = false;
@@ -68,7 +68,7 @@ public class StorageAgent extends CommunicationAid{
                 this.timeSchedule.checkEndStateOreLvl() < capacity) {
                 // SCHEDULE
                 Message bestOffer = this.offerService();
-                this.createTaskFromMessage(bestOffer, ore);
+                this.createTaskFromMessage(bestOffer);
             this.sleep(1000);
             }   
         }      
