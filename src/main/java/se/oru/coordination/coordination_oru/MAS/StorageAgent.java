@@ -20,13 +20,12 @@ public class StorageAgent extends CommunicationAid{
 
     protected TimeSchedule timeSchedule;
     protected double startTime;
+    protected double oreStateThreshold = 15.0;
 
     public boolean beingUsed = false;
 
-
-
-    public StorageAgent(int id){this.robotID = id;}     // for testing
-
+    // for testing
+    public StorageAgent(int id){this.robotID = id;}     
     public StorageAgent(int r_id, Router router, double capacity, Pose startPos){}
 
     /**
@@ -59,30 +58,18 @@ public class StorageAgent extends CommunicationAid{
 
 
     /**
-     * Creates task depending on ore amount. 
+     * 
      */
     public void status () {
         while(true) {
-            if (this.amount < 0.9 * capacity) {
+            if (this.timeSchedule.checkEndStateOreLvl() < this.oreStateThreshold && 
+                this.timeSchedule.checkEndStateOreLvl() < capacity) {
+                // SCHEDULE
                 Message bestOffer = this.offerService();
-                if (!bestOffer.isNull){
-                    String taskID = this.parseMessage(bestOffer, "taskID")[0];
-                    Task task = new Task(Integer.parseInt(taskID), 0, "status", 15);
-                    // this.schedule.enqueue(task);
-                    
-                    System.out.println("CURRENT ORE LEVEL: ------------> "+ this.amount);
-                }
-                
-                try { Thread.sleep(8000); }
-                catch (InterruptedException e) { e.printStackTrace(); }
-                // TODO Pop when it receives inform = DONE
-                // if (task.status.equals(new String("DONE"))) {
-                //     System.out.println("DONEDODOASDODODODDONE NODODODASDN");
-                //     break;
-                // }
-            }
-            // Ore level is too high 
-        }
+                this.createTaskFromMessage(bestOffer, ore);
+            this.sleep(1000);
+            }   
+        }      
     }
 
     public void start(){
@@ -94,8 +81,7 @@ public class StorageAgent extends CommunicationAid{
         };
         listener.start();
 
-        try { Thread.sleep(5000); }
-        catch (InterruptedException e) { e.printStackTrace(); }
+        this.sleep(5000);
 
         this.status();
 
@@ -147,11 +133,14 @@ public class StorageAgent extends CommunicationAid{
             }
 
             for (Message m : inbox_copy){
-                if (m.type == "hello-world"){
-                    this.robotsInNetwork.add(m.sender);
-                    this.sendMessage(
-                        new Message( m.receiver.get(0), m.sender, "accept", m.body));
-                } 
+                if (m.type == "hello-world"){ 
+                    if ( !this.robotsInNetwork.contains(m.sender) ) this.robotsInNetwork.add(m.sender);
+                    this.sendMessage( new Message( m.receiver.get(0), m.sender, "echo", ""));
+                }
+
+                if (m.type == "echo"){ 
+                    if ( !this.robotsInNetwork.contains(m.sender) ) this.robotsInNetwork.add(m.sender);
+                }
 
                 else if (m.type == "offer"){
                     this.offers.add(m);
@@ -260,8 +249,12 @@ public class StorageAgent extends CommunicationAid{
         
         // Sort offers for the best one
 
-        for ( Message m : this.offers ){
-            if(!m.isNull){
+        for (Message m : this.offers) {
+            // SCHEDULE: Extract startTime & endTime and see if it fits into schedule
+            double startTime = Double.parseDouble(parseMessage(m, "startTime")[0]);
+            double endTime = Double.parseDouble(parseMessage(m, "endTime")[0]);
+  
+            if(!m.isNull && this.timeSchedule.taskPossible(startTime, endTime)) {
                 String[] mParts = this.parseMessage( m, "", true); // sort out offer not part of current auction(taskID)
                 if (Integer.parseInt(mParts[0]) == taskID){
                     int val = Integer.parseInt(mParts[1]);

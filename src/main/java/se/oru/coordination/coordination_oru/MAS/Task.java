@@ -72,7 +72,5 @@ public class Task {
         this.taskID = taskID;
         this.isActive = true;
     }
-
-
     // Getter & setter.
 }

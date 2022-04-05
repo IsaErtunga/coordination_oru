@@ -172,6 +172,10 @@ public class TimeSchedule {
     } 
 
 
+    /**
+     * Returns the amount of ore after the endTime of the last task. 
+     * @return
+     */
     public double checkEndStateOreLvl(){    // return the last state
         double endTime = 0.0;
         double ore = 0.0;
@@ -181,12 +185,16 @@ public class TimeSchedule {
                 endTime = key;
                 ore = this.oreState.get(key);
             } 
-
-            
         }
-        
         return ore;
     } 
+
+    /**
+     * @return size of oreState
+     */
+    public int getOreStateSize () {
+        return this.oreState.size();
+    }
 
 
     protected boolean add(Task task) {

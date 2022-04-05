@@ -377,8 +377,10 @@ public class TransportAgent extends CommunicationAid{
 
         //calc euclidean dist between DA -> TA, and capacity evaluation
         //TODO setStart(Pose)?
-        this.mp.setGoals(SApos);
+        
         Pose start = this.timeSchedule.getLastToPose();
+        this.mp.setStart(start);
+        this.mp.setGoals(SApos);
 
         if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + SApos);
         PoseSteering[] path = this.mp.getPath();

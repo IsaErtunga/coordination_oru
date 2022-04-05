@@ -183,6 +183,17 @@ public class CommunicationAid {
     protected double calcDistance(Pose start, Pose end) {
         return start.distanceTo(end);
     }
+
+    /**
+     * 
+     * @param message
+     * @return Task
+     */
+    protected Task createTaskFromMessage(Message message, double ore) {
+        String[] msgParts = parseMessage(message, "", true);
+        // replace intexes
+        return new Task(msgParts[0], message.sender, null, false, ore, msgParts[4], msgParts[5], msgParts[2], msgParts[3]);
+    }
     
     public static void main(String[] args){
         /*

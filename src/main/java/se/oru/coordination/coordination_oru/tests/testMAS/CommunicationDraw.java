@@ -197,7 +197,7 @@ public class CommunicationDraw {
 													/*		STORAGE AGENT	*/
 	final int[] numStorages = {5001, 5002};
 	Pose[] storagePoses = { SA1pos, SA2pos };
-	final int[] iter2 = {};
+	final int[] iter2 = {0};
 
 	for (final int i : iter2) {
 
