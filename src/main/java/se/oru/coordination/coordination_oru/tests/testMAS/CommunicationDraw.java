@@ -119,7 +119,7 @@ public class CommunicationDraw {
 	//tec.placeRobot(1, TA1pos);
 	//tec.placeRobot(2, cell1);
 
-    final double startTime = System.currentTimeMillis();
+    final long startTime = System.currentTimeMillis();
 
 	Pose DA1pos = new Pose(36.0, 35.0, Math.PI);
 	Pose DA2pos = new Pose(36.0, 115.0, Math.PI);
@@ -139,9 +139,36 @@ public class CommunicationDraw {
 	};
 	t3.start();
 
+
+													/*		DRAW AGENT	*/
+	final int[] numDraw = {10001, 10002, 10003};
+	Pose[] drawPoses = { DA1pos, DA2pos, DA3pos };
+	final int[] iter3 = {1};
+
+	ReedsSheppCarPlanner mp = new ReedsSheppCarPlanner();
+	mp.setFootprint(footprint1, footprint2, footprint3, footprint4);
+	mp.setTurningRadius(4.0); 				//default is 1.0
+	mp.setMap(yamlFile);
+
+	for (final int i : iter3) {
+
+		Thread drawAgentThread = new Thread() {
+			@Override
+			public void run() {
+				this.setPriority(Thread.MAX_PRIORITY);
+
+				DrawAgent DA = new DrawAgent(numDraw[i], router, 45.0, drawPoses[i], mp, startTime);
+				DA.listener();
+				
+			}
+		};
+		drawAgentThread.start();
+
+	}
+
 												/*		TRANSPORT AGENT	*/
 	final int[] numTransport = {1, 2};
-	final int[] iter = {0};
+	final int[] iter = {0,1};
 	Pose[] transportPoses = { TA1pos, TA2pos };    
 	
 	for (final int i : iter) {
@@ -166,33 +193,9 @@ public class CommunicationDraw {
                 
 		};
         t.start();
+		try { Thread.sleep(3000); }
+		catch (InterruptedException e) { e.printStackTrace(); }
     }
-
-													/*		DRAW AGENT	*/
-	final int[] numDraw = {10001, 10002, 10003};
-	Pose[] drawPoses = { DA1pos, DA2pos, DA3pos };
-	final int[] iter3 = {0,1};
-
-	ReedsSheppCarPlanner mp = new ReedsSheppCarPlanner();
-	mp.setFootprint(footprint1, footprint2, footprint3, footprint4);
-	mp.setTurningRadius(4.0); 				//default is 1.0
-	mp.setMap(yamlFile);
-
-	for (final int i : iter3) {
-
-		Thread drawAgentThread = new Thread() {
-			@Override
-			public void run() {
-				this.setPriority(Thread.MAX_PRIORITY);
-
-				DrawAgent DA = new DrawAgent(numDraw[i], router, 45.0, drawPoses[i], mp, startTime);
-				DA.listener();
-				
-			}
-		};
-		drawAgentThread.start();
-
-	}
 
 													/*		STORAGE AGENT	*/
 	final int[] numStorages = {5001, 5002};

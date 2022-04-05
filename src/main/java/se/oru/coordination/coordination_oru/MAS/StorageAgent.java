@@ -35,7 +35,7 @@ public class StorageAgent extends CommunicationAid{
      * @param capacity
      * @param startPos
      */
-    public StorageAgent(int r_id, Router router, double capacity, Pose startPos, double startTime){
+    public StorageAgent(int r_id, Router router, double capacity, Pose startPos, long startTime){
         System.out.println("===== Storage Constructor =====");
         this.robotID = r_id;
         this.capacity = capacity;
@@ -53,7 +53,9 @@ public class StorageAgent extends CommunicationAid{
 
 
     protected double getTime(){
-        return System.currentTimeMillis() - this.startTime;
+        System.out.println(this.robotID+"\ttime---> "+(System.currentTimeMillis() - this.startTime));
+        long diff = System.currentTimeMillis() - this.startTime;
+        return (double)(diff)/1000.0;
     }
 
 

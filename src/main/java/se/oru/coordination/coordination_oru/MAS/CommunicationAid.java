@@ -75,7 +75,7 @@ public class CommunicationAid {
         else {
             String[] attributes = {};
 
-            if (m.type == "accept"){
+            if (m.type == "accept" || m.type == "echo"){
                 attributes = new String[] {"taskID"};
             }
 

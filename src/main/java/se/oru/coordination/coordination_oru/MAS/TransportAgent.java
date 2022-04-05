@@ -23,7 +23,7 @@ public class TransportAgent extends CommunicationAid{
     protected final int oreCap = 15;
 
     protected TimeSchedule timeSchedule;
-    protected double startTime;
+    protected long startTime;
 
     public ArrayList<Message> missionList = new ArrayList<Message>();
 
@@ -34,7 +34,7 @@ public class TransportAgent extends CommunicationAid{
                         ReedsSheppCarPlanner mp, Pose startPos, Router router){}
 
     public TransportAgent(  int r_id, TrajectoryEnvelopeCoordinatorSimulation tec,
-                        ReedsSheppCarPlanner mp, Pose startPos, Router router, double startTime){
+                        ReedsSheppCarPlanner mp, Pose startPos, Router router, long startTime){
             
                             System.out.println("#######################");
                             System.out.println(r_id +" -- constructor");
@@ -62,8 +62,14 @@ public class TransportAgent extends CommunicationAid{
 
 
     protected double getTime(){
-        System.out.println(this.robotID+"\ttime---> "+(System.currentTimeMillis() - this.startTime));
-        return System.currentTimeMillis() - this.startTime;
+        //System.out.println(this.robotID+"\ttime---> "+(System.currentTimeMillis() - this.startTime));
+        long diff = System.currentTimeMillis() - this.startTime;
+        return (double)(diff)/1000.0;
+    }
+
+    protected double getNextTime(){
+        double nextTime = this.timeSchedule.getNextStartTime();
+        return nextTime == -1.0 ? this.getTime() : nextTime;
     }
 
 
@@ -186,18 +192,15 @@ public class TransportAgent extends CommunicationAid{
             // SHEDULE: Message bestOffer = this.offerService(double startTime);
             double oreLevelThreshold = 0;
             if (this.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold) {
-                System.out.println("this.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold ----> " + (this.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold));
-                this.timeSchedule.printSchedule();
+                System.out.println(this.robotID + "\tthis.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold ----> " + (this.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold));
                 // We only create an auction if ore level is lower than treshold
                 // Possibly bad to check every iteration
-                this.sleep(100);
+                this.sleep(1000);
                 continue;
             }
 
             // SCHEDULE: Send when it can start. 
-            double nextTime = this.timeSchedule.getNextStartTime();
-            nextTime = nextTime == -1.0 ? this.getTime() : nextTime;
-            Message bestOffer = this.offerService(nextTime);
+            Message bestOffer = this.offerService(this.getNextTime());
             
             if (bestOffer.isNull){ // if we got no offers from auction we sleep and try again
                 this.sleep(100);
@@ -257,12 +260,16 @@ public class TransportAgent extends CommunicationAid{
      */
  
     public Message offerService(double startTime) {
-        System.out.println(this.robotID + "=======================1");
+        //System.out.println(this.robotID + "=======================1");
 
         // Get correct receivers
         ArrayList<Integer> receivers = this.getReceivers(this.robotsInNetwork, "DRAW");
+
+        if (receivers.size() <= 0) return new Message();
         
         System.out.println(this.robotID +"======================2");
+
+        this.offers.clear();
 
         // Create and send CNP message
         int taskID = createCNPMessage(startTime, receivers);
@@ -270,7 +277,14 @@ public class TransportAgent extends CommunicationAid{
     
         //sleep 6 sec before looking at offers
         //TODO create while loop to wait either S seconds or until all agents have responded
-        this.sleep(2500);
+        double before = this.getTime();    // wait for offers..
+        while ( this.offers.size() < receivers.size() || this.getTime() - before <= 2.0){
+            this.sleep(50);
+        }
+        if ( this.offers.size() < receivers.size() ){
+            System.out.println(this.robotID+"\tall offers received within "+ (this.getTime() - before) +" seconds");
+        }
+        
         System.out.println(this.robotID +"======================4");
 
     
@@ -388,6 +402,7 @@ public class TransportAgent extends CommunicationAid{
         // Extract startTime, and calculate endTime.
         double startTime = Double.parseDouble(mParts[3]);
         double endTime = this.calculateEndTime(startTime, path);
+        double distEval = endTime - startTime;
 
         // If task is not possible
         if (this.timeSchedule.taskPossible(startTime, endTime) == false) {
@@ -400,14 +415,10 @@ public class TransportAgent extends CommunicationAid{
         Task TAtask = new Task(Integer.parseInt(mParts[0]), m.sender, mission, false, ore, startTime, endTime, start, SApos);
         this.timeSchedule.add(TAtask);
 
-        //TODO also include schedule: look if other agent will collect ore here at same time.
-        //TODO add poseSteering.length
-
         // TODO: Change to time. 
-        double evaluatedDistance = this.calcDistance(this.tec.getRobotReport(this.robotID).getPose(), SApos);
         
         // Create offer
-        Message response = createOffer(m, mParts, evaluatedDistance, this.tec.getRobotReport(this.robotID).getPose(), startTime, endTime);
+        Message response = createOffer(m, mParts, distEval, this.tec.getRobotReport(this.robotID).getPose(), startTime, endTime);
     
         // räkna ut ett bud och skicka det.
         this.sendMessage(response);
@@ -524,7 +535,7 @@ public class TransportAgent extends CommunicationAid{
             }
         
             // System.out.println(this.robotID + " -- " + this.robotsInNetwork);
-            try { Thread.sleep(1000); }
+            try { Thread.sleep(100); }
             catch (InterruptedException e) { e.printStackTrace(); }
         }
     }

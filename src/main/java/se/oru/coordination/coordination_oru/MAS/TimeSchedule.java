@@ -26,7 +26,7 @@ import org.metacsp.multi.spatioTemporal.paths.Pose;
 
 public class TimeSchedule {
 
-    private static double time_sensitivity = 5.0;
+    private static double time_sensitivity = 10.0;
     protected Task currentTask = null;    
     protected Pose lastSetPose;
     private ArrayList<Task> schedule = new ArrayList<Task>();
@@ -246,7 +246,10 @@ public class TimeSchedule {
 
 
     private void addOreState(Task t){
-        this.oreState.put(t.endTime, t.ore);
+        if ( this.oreState.size() > 0 ){
+            this.oreState.put(t.endTime, this.checkEndStateOreLvl() + t.ore); // prev state + oreChange
+        }
+        this.oreState.put(t.endTime, t.ore);    // no prev state = just add
     }
 
 

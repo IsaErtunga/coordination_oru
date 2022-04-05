@@ -25,11 +25,11 @@ public class DrawAgent extends CommunicationAid{
     protected ReedsSheppCarPlanner mp;
 
     protected TimeSchedule timeSchedule;
-    protected double startTime;
+    protected long startTime;
 
     public DrawAgent(int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp){}
 
-    public DrawAgent(int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp, double startTime){
+    public DrawAgent(int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp, long startTime){
         this.robotID = robotID; // drawID >10'000
         this.capacity = capacity;
         this.amount = capacity; // 100% full in beginning
@@ -47,9 +47,10 @@ public class DrawAgent extends CommunicationAid{
 
 
     protected double getTime(){
-        return System.currentTimeMillis() - this.startTime;
+        System.out.println(this.robotID+"\ttime---> "+(System.currentTimeMillis() - this.startTime));
+        long diff = System.currentTimeMillis() - this.startTime;
+        return (double)(diff)/1000.0;
     }
-
 
     public void takeOre(double oreChange){
         // alter ore amount
@@ -90,6 +91,7 @@ public class DrawAgent extends CommunicationAid{
             }
 
             for (Message m : inbox_copy){
+                int taskID = Integer.parseInt(this.parseMessage(m, "taskID")[0]);
                 
                 if (m.type == "hello-world"){ 
                     if ( !this.robotsInNetwork.contains(m.sender) ) this.robotsInNetwork.add(m.sender);
@@ -101,9 +103,6 @@ public class DrawAgent extends CommunicationAid{
                 }
 
                 else if (m.type == "accept"){
-                 
-                    int taskID = Integer.parseInt(this.parseMessage(m, "taskID")[0]);
-                    this.taskHandler(Integer.parseInt(m.body), m);
                     // SCHEDULE: Change isActive.
                     this.timeSchedule.setTaskActive(taskID);
                 }
@@ -119,7 +118,6 @@ public class DrawAgent extends CommunicationAid{
                 else if (m.type.equals(new String("inform"))) {
                     // TA informs SA when its done with a task.
                     String[] messageParts = this.parseMessage(m, "", true);
-                    int taskID = Integer.parseInt(messageParts[0]); 
                     String informVal = messageParts[1];
                     
                     if (informVal.equals(new String("done"))) {
@@ -130,6 +128,7 @@ public class DrawAgent extends CommunicationAid{
                         this.timeSchedule.remove(taskID);
                         this.takeOre(oreChange);
                     }
+
                     else if (informVal.equals(new String("status"))) {
                         /* SCHEDULE: 
                             * if TA notice it will not be done in time, we get inform->status msg
@@ -141,7 +140,6 @@ public class DrawAgent extends CommunicationAid{
                         if (newEndTime > this.timeSchedule.get(taskID).endTime) {
                             this.timeSchedule.update(taskID, newEndTime);
                         }
-
                     }
 
                     else if (informVal.equals(new String("abort"))) {

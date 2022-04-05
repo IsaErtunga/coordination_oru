@@ -11,7 +11,7 @@ import java.util.Map;
 
 public class Router {
 
-    protected int periodMili = 400;
+    protected int periodMili = 100;
 
     public HashMap<Integer, ArrayList<Message>> inboxes = new HashMap<Integer, ArrayList<Message>>();
     public HashMap<Integer, ArrayList<Message>> outboxes = new HashMap<Integer, ArrayList<Message>>();
@@ -38,7 +38,7 @@ public class Router {
         ArrayList<Message> outputMessages = new ArrayList<Message>();
 
         while(true){
-            this.print();
+            //this.print();
 
             synchronized(this.outboxes){
                 
