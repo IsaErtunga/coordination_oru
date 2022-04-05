@@ -67,7 +67,7 @@ public class StorageAgent extends CommunicationAid{
                 this.timeSchedule.checkEndStateOreLvl() < capacity) {
                 // SCHEDULE
                 Message bestOffer = this.offerService();
-                this.createTaskFromMessage(bestOffer, 3.0);
+                this.createTaskFromMessage(bestOffer);
             this.sleep(1000);
             }   
         }      

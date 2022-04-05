@@ -81,7 +81,7 @@ public class CommunicationAid {
             }
 
             if (m.type == "offer"){
-                attributes = new String[] {"taskID", "offerVal", "startPos", "endPos", "startTime", "endTime"};
+                attributes = new String[] {"taskID", "offerVal", "startPos", "endPos", "startTime", "endTime", "ore"};
             }
 
             else if (m.type == "inform") {
@@ -200,8 +200,16 @@ public class CommunicationAid {
      * @param message
      * @return Task
      */
-    protected Task createTaskFromMessage(Message message, double ore) {
+    protected Task createTaskFromMessage(Message message) {
         String[] msgParts = parseMessage(message, "", true);
+        
+        double[] startCoordinates = Arrays.stream(msgParts[2].split(" ")).mapToDouble(Double::parseDouble).toArray();
+        System.out.println("StARTPAOSDA:; DAS " + startCoordinates[1]);
+        Pose startPos = new Pose(startCoordinates[0], startCoordinates[1], startCoordinates[2]);
+
+
+        double[] endCoordinates = Arrays.stream(msgParts[3].split(" ")).mapToDouble(Double::parseDouble).toArray();
+        Pose endPos = new Pose(endCoordinates[0], endCoordinates[1], endCoordinates[2]);
         // replace intexes
         return new Task(Integer.parseInt(msgParts[0]), message.sender,null, false, ore, Double.parseDouble(msgParts[4]),
                         Double.parseDouble(msgParts[5]), this.posefyString(msgParts[2]), this.posefyString(msgParts[3]));
