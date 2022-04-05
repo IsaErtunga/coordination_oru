@@ -211,7 +211,7 @@ public class CommunicationAid {
         double[] endCoordinates = Arrays.stream(msgParts[3].split(" ")).mapToDouble(Double::parseDouble).toArray();
         Pose endPos = new Pose(endCoordinates[0], endCoordinates[1], endCoordinates[2]);
         // replace intexes
-        return new Task(Integer.parseInt(msgParts[0]), message.sender,null, false, ore, Double.parseDouble(msgParts[4]),
+        return new Task(Integer.parseInt(msgParts[0]), message.sender,null, false, Double.parseDouble(msgParts[6]), Double.parseDouble(msgParts[4]),
                         Double.parseDouble(msgParts[5]), this.posefyString(msgParts[2]), this.posefyString(msgParts[3]));
     }
     
