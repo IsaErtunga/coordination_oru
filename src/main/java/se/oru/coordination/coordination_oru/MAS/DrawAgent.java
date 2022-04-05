@@ -250,11 +250,13 @@ public class DrawAgent extends CommunicationAid{
     } 
 
     protected int evalService(double dist){
+        System.out.println(this.robotID + "\teval --------->" + dist );
         if (dist <= 2.0) return -1;
 
         dist = 100 * 1.0 / dist;
+        double evaluatedCapacity = 50.0 * this.amount / this.capacity; 
 
-        return 0;
+        return (int)(dist + evaluatedCapacity);
     }
     
 }
