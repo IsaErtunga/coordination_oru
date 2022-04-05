@@ -37,9 +37,6 @@ public class CommunicationAid {
     public Random rand = new Random(System.currentTimeMillis());
     
 
-    public int sendMessage(Message m){
-        return this.sendMessage(m, false); 
-    }
     /**
      * Function for sending a message. 
      * If genTaskID is true. The function generates an id, converts it to a string and attaches it to the message. 
@@ -60,6 +57,10 @@ public class CommunicationAid {
         return taskID;
     }
     
+    public int sendMessage(Message m){
+        return this.sendMessage(m, false); 
+    }
+    
 
 
     public String[] parseMessage(Message m, String get){
@@ -75,7 +76,7 @@ public class CommunicationAid {
         else {
             String[] attributes = {};
 
-            if (m.type == "accept" || m.type == "echo"){
+            if (m.type == "accept" || m.type == "echo" || m.type == "hello-world"){
                 attributes = new String[] {"taskID"};
             }
 

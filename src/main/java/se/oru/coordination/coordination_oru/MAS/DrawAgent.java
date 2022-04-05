@@ -91,11 +91,12 @@ public class DrawAgent extends CommunicationAid{
             }
 
             for (Message m : inbox_copy){
+                System.out.println(m.type +"\t"+m.body+"\tparseRes: "+ this.parseMessage(m, "taskID"));
                 int taskID = Integer.parseInt(this.parseMessage(m, "taskID")[0]);
                 
                 if (m.type == "hello-world"){ 
                     if ( !this.robotsInNetwork.contains(m.sender) ) this.robotsInNetwork.add(m.sender);
-                    this.sendMessage( new Message( m.receiver.get(0), m.sender, "echo", ""));
+                    this.sendMessage( new Message( m.receiver.get(0), m.sender, "echo", Integer.toString(taskID)));
                 }
 
                 if (m.type == "echo"){ 
