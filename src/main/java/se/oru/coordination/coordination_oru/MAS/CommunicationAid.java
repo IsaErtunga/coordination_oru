@@ -37,9 +37,6 @@ public class CommunicationAid {
     public Random rand = new Random(System.currentTimeMillis());
     
 
-    public int sendMessage(Message m){
-        return this.sendMessage(m, false); 
-    }
     /**
      * Function for sending a message. 
      * If genTaskID is true. The function generates an id, converts it to a string and attaches it to the message. 
@@ -59,6 +56,10 @@ public class CommunicationAid {
         synchronized(this.outbox){ this.outbox.add(m); }
         return taskID;
     }
+
+    public int sendMessage(Message m){
+        return this.sendMessage(m, false); 
+    }
     
 
 
@@ -75,7 +76,7 @@ public class CommunicationAid {
         else {
             String[] attributes = {};
 
-            if (m.type == "accept" || m.type == "echo"){
+            if (m.type == "accept" || m.type == "echo" || m.type == "hello-world"){
                 attributes = new String[] {"taskID"};
             }
 
@@ -150,6 +151,16 @@ public class CommunicationAid {
     }
 
     /**
+     * extract pose from string-formatted pose
+     * @param string
+     * @return a pose
+     */
+    public Pose posefyString(String s) {
+        double[] coordinates = Arrays.stream(s.split(" ")).mapToDouble(Double::parseDouble).toArray();
+        return new Pose(coordinates[0], coordinates[1], coordinates[2]);
+    }
+
+    /**
      * Helper function to calculate endTime based on startTime and the path it took. 
      * @param startTime
      * @param path
@@ -192,7 +203,8 @@ public class CommunicationAid {
     protected Task createTaskFromMessage(Message message, double ore) {
         String[] msgParts = parseMessage(message, "", true);
         // replace intexes
-        return new Task(msgParts[0], message.sender, null, false, ore, msgParts[4], msgParts[5], msgParts[2], msgParts[3]);
+        return new Task(Integer.parseInt(msgParts[0]), message.sender,null, false, ore, Double.parseDouble(msgParts[4]),
+                        Double.parseDouble(msgParts[5]), this.posefyString(msgParts[2]), this.posefyString(msgParts[3]));
     }
     
     public static void main(String[] args){
