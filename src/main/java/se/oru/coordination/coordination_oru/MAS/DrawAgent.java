@@ -91,7 +91,7 @@ public class DrawAgent extends CommunicationAid{
             }
 
             for (Message m : inbox_copy){
-                System.out.println(m.type +"\t"+m.body+"\tparseRes: "+ this.parseMessage(m, "taskID"));
+                //System.out.println(m.type +"\t"+m.body+"\tparseRes: "+ this.parseMessage(m, "taskID"));
                 int taskID = Integer.parseInt(this.parseMessage(m, "taskID")[0]);
                 
                 if (m.type == "hello-world"){ 
@@ -172,11 +172,9 @@ public class DrawAgent extends CommunicationAid{
         double ore = 10.0;
 
         // get pose of TA
-        
-        double[] coordinates = Arrays.stream(mParts[2].split(" ")).mapToDouble(Double::parseDouble).toArray();
-        Pose TApos = new Pose(coordinates[0], coordinates[1], coordinates[2]);
 
-        System.out.println(Arrays.toString(coordinates));
+        Pose TApos = this.posefyString(mParts[2]);
+
         //calc euclidean dist between DA -> TA, and capacity evaluation
         
         //TODO also include schedule: look if other agent will collect ore here at same time.
@@ -200,7 +198,6 @@ public class DrawAgent extends CommunicationAid{
             if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + TApos);
         PoseSteering[] path = this.mp.getPath();
 
-
         double startTime = Double.parseDouble(mParts[3]);
         double endTime = this.calculateEndTime(startTime, path);
 
@@ -216,19 +213,16 @@ public class DrawAgent extends CommunicationAid{
         // this.timeSchedule.printSchedule();
 
         // offer value calc
-        double evaluatedDistance = this.calcDistance(this.pos, new Pose(coordinates[0], coordinates[1], coordinates[2]));
+        double distToTA = this.calcDistance(this.pos, TApos);
 
-        //TODO temp fix
-        if (evaluatedDistance <= 0.0) {
-            evaluatedDistance = 150.0;
-        } 
+        int offer = this.evalService(distToTA);
 
-        evaluatedDistance = 100.0 * 1.0 / evaluatedDistance;
-        System.out.println(this.robotID + " dist eval --------->" + evaluatedDistance );
-        double evaluatedCapacity = 100.0 * this.amount / this.capacity; 
+        //distToTA = 100.0 * 1.0 / distToTA;
+        //System.out.println(this.robotID + " dist eval --------->" + distToTA );
+        //double evaluatedCapacity = 100.0 * this.amount / this.capacity; 
 
         // generate offer..
-        int offer = (int)(evaluatedDistance + evaluatedCapacity);
+        //int offer = (int)(distToTA + evaluatedCapacity);
         Message response = createOffer(m, mParts, TApos, this.pos, offer, startTime, endTime);
         
         //send offer and log event
@@ -249,9 +243,18 @@ public class DrawAgent extends CommunicationAid{
     protected Message createOffer(Message message, String[] messageParts, Pose startPose, Pose endPos, int offer, double startTime, double endTime) {
         String startPoseStr = this.stringifyPose(startPose);
         String endPoseStr = this.stringifyPose(endPos);
-        String body = messageParts[0] + this.separator + offer + this.separator + startPoseStr + this.separator + 
-                      endPoseStr + this.separator + startTime + this.separator + endTime;
+        String s = this.separator;
+        String body = messageParts[0] +s+ offer +s+ startPoseStr +s+ 
+                      endPoseStr +s+ startTime +s+ endTime;
         return new Message(this.robotID, message.sender, "offer", body);
     } 
+
+    protected int evalService(double dist){
+        if (dist <= 2.0) return -1;
+
+        dist = 100 * 1.0 / dist;
+
+        return 0;
+    }
     
 }

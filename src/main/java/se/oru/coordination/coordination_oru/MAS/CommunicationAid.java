@@ -56,7 +56,7 @@ public class CommunicationAid {
         synchronized(this.outbox){ this.outbox.add(m); }
         return taskID;
     }
-    
+
     public int sendMessage(Message m){
         return this.sendMessage(m, false); 
     }
