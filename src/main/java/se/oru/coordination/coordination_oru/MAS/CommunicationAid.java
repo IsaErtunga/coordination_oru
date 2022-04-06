@@ -76,7 +76,7 @@ public class CommunicationAid {
         else {
             String[] attributes = {};
 
-            if (m.type == "accept" || m.type == "echo" || m.type == "hello-world"){
+            if (m.type == "accept" || m.type == "decline" || m.type == "echo" || m.type == "hello-world"){
                 attributes = new String[] {"taskID"};
             }
 
@@ -202,14 +202,6 @@ public class CommunicationAid {
      */
     protected Task createTaskFromMessage(Message message) {
         String[] msgParts = parseMessage(message, "", true);
-        
-        double[] startCoordinates = Arrays.stream(msgParts[2].split(" ")).mapToDouble(Double::parseDouble).toArray();
-        System.out.println("StARTPAOSDA:; DAS " + startCoordinates[1]);
-        Pose startPos = new Pose(startCoordinates[0], startCoordinates[1], startCoordinates[2]);
-
-
-        double[] endCoordinates = Arrays.stream(msgParts[3].split(" ")).mapToDouble(Double::parseDouble).toArray();
-        Pose endPos = new Pose(endCoordinates[0], endCoordinates[1], endCoordinates[2]);
         // replace intexes
         return new Task(Integer.parseInt(msgParts[0]), message.sender,null, false, Double.parseDouble(msgParts[6]), Double.parseDouble(msgParts[4]),
                         Double.parseDouble(msgParts[5]), this.posefyString(msgParts[2]), this.posefyString(msgParts[3]));

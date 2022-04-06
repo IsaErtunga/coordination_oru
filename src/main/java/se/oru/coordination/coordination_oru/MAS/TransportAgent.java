@@ -68,8 +68,9 @@ public class TransportAgent extends CommunicationAid{
     }
 
     protected double getNextTime(){
+        double STARTUP_ADD = 5.0;
         double nextTime = this.timeSchedule.getNextStartTime();
-        return nextTime == -1.0 ? this.getTime() : nextTime;
+        return nextTime == -1.0 ? this.getTime()+STARTUP_ADD : nextTime;
     }
 
 
@@ -167,9 +168,10 @@ public class TransportAgent extends CommunicationAid{
                     this.sleep(500);
                 }
                 //done
+                System.out.println(this.robotID+"------------Mission DONE at time: "+this.getTime());
 
                 // if robot managed to complete task 
-                String oreChange = task.partner<10000 ? Integer.toString(this.oreCap) : Integer.toString(-this.oreCap);
+                //String oreChange = task.partner<10000 ? Integer.toString(this.oreCap) : Integer.toString(-this.oreCap);
 
                 Message doneMessage = new Message(this.robotID, task.partner, "inform", task.taskID + "," + "done" + "," + Double.toString(task.ore));
                 this.sendMessage(doneMessage, false);
@@ -240,6 +242,7 @@ public class TransportAgent extends CommunicationAid{
 
             // SCHEDULE: Add into schedule according to time.
             this.timeSchedule.add(task);
+            System.out.println("___________________"+this.robotID +"___________________");
             this.timeSchedule.printSchedule();
 
             // wait for SA mission to be added
@@ -260,7 +263,6 @@ public class TransportAgent extends CommunicationAid{
      */
  
     public Message offerService(double startTime) {
-        //System.out.println(this.robotID + "=======================1");
 
         // Get correct receivers
         ArrayList<Integer> receivers = this.getReceivers(this.robotsInNetwork, "DRAW");
@@ -278,11 +280,8 @@ public class TransportAgent extends CommunicationAid{
         //sleep 6 sec before looking at offers
         //TODO create while loop to wait either S seconds or until all agents have responded
         double before = this.getTime();    // wait for offers..
-        while ( this.offers.size() < receivers.size() || this.getTime() - before <= 2.0){
+        while ( this.offers.size() < receivers.size() && this.getTime() - before <= 2.0){
             this.sleep(50);
-        }
-        if ( this.offers.size() < receivers.size() ){
-            System.out.println(this.robotID+"\tall offers received within "+ (this.getTime() - before) +" seconds");
         }
         
         System.out.println(this.robotID +"======================4");

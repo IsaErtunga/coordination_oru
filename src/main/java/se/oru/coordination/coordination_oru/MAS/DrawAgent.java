@@ -105,7 +105,13 @@ public class DrawAgent extends CommunicationAid{
 
                 else if (m.type == "accept"){
                     // SCHEDULE: Change isActive.
-                    this.timeSchedule.setTaskActive(taskID);
+                    if ( !this.timeSchedule.setTaskActive(taskID) ){
+                        System.out.println(this.robotID+"-----ACCEPT FROM TASK THAT IS NOT POSSIBLE!");
+                    }
+                    else{
+                        System.out.println("___________________"+this.robotID +"___________________");
+                        this.timeSchedule.printSchedule();
+                    }
                 }
 
                 else if (m.type == "decline"){
@@ -125,7 +131,7 @@ public class DrawAgent extends CommunicationAid{
                         /* SCHEDULE: 
                             * If early just remove from schedule.
                         */ 
-                        int oreChange = Integer.parseInt(messageParts[2]); 
+                        double oreChange = Double.parseDouble(messageParts[2]); 
                         this.timeSchedule.remove(taskID);
                         this.takeOre(oreChange);
                     }
@@ -203,23 +209,27 @@ public class DrawAgent extends CommunicationAid{
 
         // If task is not possible
         if (this.timeSchedule.taskPossible(startTime, endTime) == false) {
+            System.out.println(this.robotID +"------------task not possible with start-->"+startTime+"\tand end-->"+endTime);
+            System.out.println("___________________"+this.robotID +"___________________");
+            this.timeSchedule.printSchedule();
             return false; 
+        }
+        else{
+            System.out.println(this.robotID +"------------task possible with start-->"+startTime+"\tand end-->"+endTime);
+            System.out.println("___________________"+this.robotID +"___________________");
+            this.timeSchedule.printSchedule();
         }
 
         // SCHEDULE: Create new task & and add it to schedule
         Mission mission = new Mission(this.robotID, path);
         Task DAtask = new Task(Integer.parseInt(mParts[0]), m.sender, mission, false, ore, startTime, endTime, TApos, this.pos);
         this.timeSchedule.add(DAtask);
-        // this.timeSchedule.printSchedule();
+        //this.timeSchedule.printSchedule();
 
         // offer value calc
         double distToTA = this.calcDistance(this.pos, TApos);
 
         int offer = this.evalService(distToTA);
-
-        //distToTA = 100.0 * 1.0 / distToTA;
-        //System.out.println(this.robotID + " dist eval --------->" + distToTA );
-        //double evaluatedCapacity = 100.0 * this.amount / this.capacity; 
 
         // generate offer..
         //int offer = (int)(distToTA + evaluatedCapacity);

@@ -30,6 +30,7 @@ public class TimeSchedule {
     protected Task currentTask = null;    
     protected Pose lastSetPose;
     private ArrayList<Task> schedule = new ArrayList<Task>();
+    private HashMap<Integer, Task> reservedTasks = new HashMap<Integer, Task>();
     private HashMap<Double, Double> oreState = new HashMap<Double, Double>();
 
     /*  [00:00 , 0.0]
@@ -54,6 +55,12 @@ public class TimeSchedule {
     }
 
     public boolean setTaskActive(int taskID){
+
+        Task t = this.reservedTasks.remove(taskID);
+        t.isActive = true;
+
+        return this.add(t);
+        /*
         ArrayList<Task> tasks = this.getActiveTasks();
 
         for (Task t : tasks){ 
@@ -68,6 +75,7 @@ public class TimeSchedule {
             }
         }
         return true;
+        */
     }
 
     private ArrayList<Task> getActiveTasks(){
@@ -198,56 +206,43 @@ public class TimeSchedule {
 
 
     protected boolean add(Task task) {
+        if (!task.isActive){
+            this.reservedTasks.put(task.taskID, task);
+            return true;
+        }
+
         synchronized(this.schedule){
-
-            if (!task.isActive){
-                for (int i=0; i<this.schedule.size(); i++){                     
-                    Task curr = this.schedule.get(i);
-                    if ( curr.startTime >= task.startTime ){
-                        this.schedule.add(i, task);
-                        break;
-                    }
-                }
-                return true;
-            }
-
-            this.addOreState(task);
-
-            ArrayList<Task> tasks = this.getActiveTasks();
-
-            if (tasks.size() <= 0){                                 // case size = 0
+            if (this.schedule.size() <= 0){             // case size = 0
                 this.schedule.add(task);
-                this.lastSetPose = task.toPose;
+                this.addOreState(task);
                 return true;
             }
 
-            for (int i=0; i<tasks.size(); i++){                     // case size > 0
-                Task curr = tasks.get(i);
+            int scSize = this.schedule.size();
 
-                if ( curr.endTime <= task.startTime ){   // if curr is left of task
-                    if ( i == tasks.size()-1){ // task should be added at end of schedule
-                        this.schedule.add(task);
-                        this.lastSetPose = task.toPose;
-                        return true;
-                    }
-                    else continue;
-                }
-                if ( this.isTaskOverlapping(task, curr) ) return false;
+            for (int i=0; i<scSize; i++){               // case size > 0
+                
+                Task curr = this.schedule.get(i);
 
-                this.schedule.add(this.schedule.indexOf(curr), task);
-                tasks = this.getActiveTasks();
-                this.lastSetPose = tasks.get(tasks.size()-1).toPose;
-                return true;            
+                if (this.isTaskOverlapping(task, curr)) return false;   // task does not fit in schedule
+
+                if ( curr.startTime < task.startTime && i != scSize-1) continue;
+
+                i = curr.startTime < task.startTime ? i++ : i;  // add task after curr if true
+
+                this.schedule.add(i, task); // add task to schedule
+                this.addOreState(task);
+                break;
             }
-
-            return false;
+            return true;
         }
     }
 
 
     private void addOreState(Task t){
         if ( this.oreState.size() > 0 ){
-            this.oreState.put(t.endTime, this.checkEndStateOreLvl() + t.ore); // prev state + oreChange
+            this.oreState.put(t.endTime, (this.checkEndStateOreLvl() + t.ore)); // prev state + oreChange
+            return;
         }
         this.oreState.put(t.endTime, t.ore);    // no prev state = just add
     }
@@ -326,30 +321,32 @@ public class TimeSchedule {
         for (Task t : this.schedule){
             System.out.println("----------------------------------------------------------------------------------");
             System.out.println("time: " + t.startTime + " --> " + t.endTime + "\t taskID: "+t.taskID + "\tisActive: "+ t.isActive);
+        }
+
+        System.out.println("__________________________________RESERVED_________________________________________");
+        for (int key : this.reservedTasks.keySet()) {
+            Task t = this.reservedTasks.get(key);
+        
             System.out.println("----------------------------------------------------------------------------------");
+            System.out.println("time: " + t.startTime + " --> " + t.endTime + "\t taskID: "+t.taskID + "\tisActive: "+ t.isActive);
         }
         System.out.println("ORESTATE: " + this.oreState);
-
-        System.out.println("____________________________________________________________________________________");
 
     }
 
 
     public static void main(String args[]){
 
-
-
-
-        
-
         TimeSchedule ts = new TimeSchedule();
 
 
         //overlap test
-        boolean testOverlap = true;
-        boolean testAddFunc = true;
-        boolean testSmallFuncs = true;
-        boolean testUpdate = true;
+        boolean testOverlap = false;
+        boolean testAddFunc = false;
+        boolean testSmallFuncs = false;
+        boolean testUpdate = false;
+        boolean testOreState = false;
+        boolean testSetActive = true;
 
         if (testOverlap){
             System.out.println("######### testing isTaskOverlapping(Task t, Task t) #########");
@@ -387,6 +384,7 @@ public class TimeSchedule {
             Task t6 = new Task(25.0, 35.0, 6);
 
             System.out.println( ts.add(t1) == true ? "t1 success" : "t1 fail");
+            ts.printSchedule();
             System.out.println( ts.add(t2) == true ? "t2 success" : "t2 fail");
             System.out.println( ts.add(t3) == true ? "t3 success" : "t3 fail");
             System.out.println( ts.add(t4) == true ? "t4 success" : "t4 fail");
@@ -439,6 +437,39 @@ public class TimeSchedule {
                 System.out.println("start-->"+t.startTime+"\t end-->"+t.endTime+"\t task-->"+t.taskID);
             }
             
+            ts.printSchedule();
+        }
+
+        if (testOreState){
+            Task over1 = new Task(5.0, 8.0);
+            over1.ore = 15.0;
+            Task over2 = new Task(15.0, 20.0);
+            over2.ore = -15.0;
+
+            ts.addOreState(over1);
+            System.out.println(ts.checkEndStateOreLvl());
+            System.out.println(ts.oreState);
+            ts.addOreState(over2);
+            System.out.println(ts.checkEndStateOreLvl());
+            System.out.println(ts.oreState);
+
+        }
+
+        if ( testSetActive ){
+            Task t1 = new Task(10.0, 20.0, 1);
+            t1.isActive = false;
+            Task t2 = new Task(30.0, 40.0, 2);
+            t2.isActive = false;
+            Task t3 = new Task(50.0, 60.0, 3);
+            t3.isActive = false;
+
+            System.out.println( ts.add(t1) == true ? "t1 success" : "t1 fail");
+            System.out.println( ts.add(t2) == true ? "t2 success" : "t2 fail");
+            System.out.println( ts.add(t3) == true ? "t3 success" : "t3 fail");
+
+
+            System.out.println( ts.setTaskActive(t1.taskID) == true ? "t1 success" : "t1 fail");
+
             ts.printSchedule();
         }
         
