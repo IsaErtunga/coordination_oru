@@ -200,11 +200,14 @@ public class CommunicationAid {
      * @param message
      * @return Task
      */
-    protected Task createTaskFromMessage(Message message) {
+    protected Task createTaskFromMessage(Message message, boolean isTakeOre) {
         String[] msgParts = parseMessage(message, "", true);
         // replace intexes
-        return new Task(Integer.parseInt(msgParts[0]), message.sender, true, Double.parseDouble(msgParts[6]), Double.parseDouble(msgParts[4]),
+        double ore = isTakeOre ? Double.parseDouble(msgParts[6]) : -Double.parseDouble(msgParts[6]);
+        return new Task(Integer.parseInt(msgParts[0]), message.sender, true, ore, Double.parseDouble(msgParts[4]),
                         Double.parseDouble(msgParts[5]), this.posefyString(msgParts[2]), this.posefyString(msgParts[3]));
+        
+        
     }
     
     public static void main(String[] args){

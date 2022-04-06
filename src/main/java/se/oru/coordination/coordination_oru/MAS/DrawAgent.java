@@ -195,7 +195,7 @@ public class DrawAgent extends CommunicationAid{
         if (this.timeSchedule.taskPossible(startTime, endTime) == false) return false;
 
         // SCHEDULE: Create new task & and add it to schedule
-        Task DAtask = new Task(Integer.parseInt(mParts[0]), m.sender, false, ore, startTime, endTime, TApos, this.pos);
+        Task DAtask = new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, startTime, endTime, TApos, this.pos);
         this.timeSchedule.add(DAtask);
         //this.timeSchedule.printSchedule();
 

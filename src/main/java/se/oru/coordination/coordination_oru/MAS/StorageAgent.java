@@ -57,6 +57,12 @@ public class StorageAgent extends CommunicationAid{
         return (double)(diff)/1000.0;
     }
 
+    protected double getNextTime(){
+        double STARTUP_ADD = 5.0;
+        double nextTime = this.timeSchedule.getNextStartTime();
+        return nextTime == -1.0 ? this.getTime()+STARTUP_ADD : nextTime;
+    }
+
 
     /**
      * 
@@ -64,14 +70,14 @@ public class StorageAgent extends CommunicationAid{
     public void status () {
         while(true) {
             if (this.timeSchedule.checkEndStateOreLvl() < this.oreStateThreshold && 
-                this.timeSchedule.checkEndStateOreLvl() < capacity) {
+                this.timeSchedule.checkEndStateOreLvl() < 0.7*capacity) {
                 // SCHEDULE
                 Message bestOffer = this.offerService();
                 if (!bestOffer.isNull) {
-                    Task task = this.createTaskFromMessage(bestOffer);
+                    Task task = this.createTaskFromMessage(bestOffer, true);
                     this.timeSchedule.add(task);
                 }
-            this.sleep(1000);
+            this.sleep(5000);
             }   
         }      
     }
@@ -199,7 +205,7 @@ public class StorageAgent extends CommunicationAid{
 
         String startPos = this.stringifyPose(this.startPose);
  
-        int taskID = this.createCNPMessage(this.timeSchedule.getNextStartTime(), startPos, receivers);
+        int taskID = this.createCNPMessage(this.getNextTime(), startPos, receivers);
         System.out.println(this.robotID +"======================3");
 
         //sleep  before looking at offers

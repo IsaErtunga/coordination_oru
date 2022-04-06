@@ -181,7 +181,7 @@ public class TransportAgent extends CommunicationAid{
     }
 
     protected void initialState() {
-        double oreLevelThreshold = 2.0;
+        double oreLevelThreshold = 0.0;
         while (true) {
             // start CNP with DA
             /* SCHEDULE:
@@ -219,10 +219,7 @@ public class TransportAgent extends CommunicationAid{
             // queue mission to DA
             // TODO move to function
 
-            Pose start = this.posefyString(msgParts[2]);
-            Pose goal = this.posefyString(msgParts[3]);
-
-            Task task = this.createTaskFromMessage(bestOffer);
+            Task task = this.createTaskFromMessage(bestOffer, true);
     
             // ===========================================================================
 
@@ -397,8 +394,8 @@ public class TransportAgent extends CommunicationAid{
         }
 
         // SCHEDULE: Create new task & and add it to schedule
-        double ore = -15.0;
-        Task TAtask = new Task(Integer.parseInt(mParts[0]), m.sender, true, ore, startTime, endTime, start, SApos);
+        double ore = 15.0;
+        Task TAtask = new Task(Integer.parseInt(mParts[0]), m.sender, true, -ore, startTime, endTime, start, SApos);
         this.timeSchedule.add(TAtask);
         System.out.println("Added task.");
         this.timeSchedule.printSchedule();

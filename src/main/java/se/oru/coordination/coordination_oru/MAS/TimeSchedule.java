@@ -71,12 +71,12 @@ public class TimeSchedule {
      */
     public Pose getLastToPose(){
         if (this.schedule.size() <= 0){
+            System.out.println("HEJHEJ");
             if ( this.currentTask == null ) return this.startPose;
-
             else return this.currentTask.toPose;
         }
-
-        return this.schedule.get(this.schedule.size()-1).toPose;
+        printSchedule();
+        return this.schedule.get(2).toPose;
     }
 
 
@@ -337,7 +337,8 @@ public class TimeSchedule {
         boolean testSmallFuncs = false;
         boolean testUpdate = false;
         boolean testOreState = false;
-        boolean testSetActive = true;
+        boolean testSetActive = false;
+        boolean testLastToPose = true;
 
         if (testOverlap){
             System.out.println("######### testing isTaskOverlapping(Task t, Task t) #########");
@@ -462,6 +463,30 @@ public class TimeSchedule {
             System.out.println( ts.setTaskActive(t1.taskID) == true ? "t1 success" : "t1 fail");
 
             ts.printSchedule();
+        }
+
+        if ( testLastToPose ){
+            TimeSchedule tss = new TimeSchedule(new Pose(0.0, 0.0, 0.0));
+
+            Task t1 = new Task(10.0, 20.0, 1);
+            t1.fromPose = new Pose(0.0, 0.0, 0.0);
+            t1.toPose = new Pose(0.0, 2.0, 0.0);
+            
+            Task t2 = new Task(30.0, 40.0, 2);
+            t2.fromPose = new Pose(0.0, 2.0, 0.0);
+            t2.toPose = new Pose(2.0, 2.0, 0.0);
+
+            Task t3 = new Task(50.0, 60.0, 3);
+            t3.fromPose = new Pose(2.0, 2.0, 0.0);
+            t3.toPose = new Pose(2.0, 10.0, 0.0);
+
+            tss.add(t1);
+           
+            tss.add(t2);
+           
+            tss.add(t3);
+            System.out.println(tss.getLastToPose().toString());
+
         }
         
     }
