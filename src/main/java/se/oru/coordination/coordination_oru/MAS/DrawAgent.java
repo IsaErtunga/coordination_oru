@@ -47,7 +47,6 @@ public class DrawAgent extends CommunicationAid{
 
 
     protected double getTime(){
-        System.out.println(this.robotID+"\ttime---> "+(System.currentTimeMillis() - this.startTime));
         long diff = System.currentTimeMillis() - this.startTime;
         return (double)(diff)/1000.0;
     }
@@ -64,21 +63,6 @@ public class DrawAgent extends CommunicationAid{
 
     }
 
-    public void taskHandler(int taskID, Message m){
-        String[] taskInfo = this.activeTasks.get(taskID).split(this.separator);
-
-        if (taskInfo[0] == "hello-world" && !this.robotsInNetwork.contains(m.sender)){
-            this.robotsInNetwork.add(m.sender);
-        }
-
-        else if(taskInfo[0].equals("offer")){   // we sent an offer to a SA and got accept reply
-            System.out.println(this.robotID + ", in taskhandler: " + taskInfo);
-            System.out.println(Arrays.toString(taskInfo));
-            //TODO does this agent do something? I think it does nothing.
-
-            // log pick up in schedule.
-        }
-    }
 
     public void listener(){
         ArrayList<Message> inbox_copy;
@@ -106,7 +90,7 @@ public class DrawAgent extends CommunicationAid{
                 else if (m.type == "accept"){
                     // SCHEDULE: Change isActive.
                     if ( !this.timeSchedule.setTaskActive(taskID) ){
-                        System.out.println(this.robotID+"-----ACCEPT FROM TASK THAT IS NOT POSSIBLE!");
+                        System.out.println(this.robotID+"############# ACCEPT FROM TASK THAT IS NOT POSSIBLE! #####################");
                     }
                     else{
                         System.out.println("___________________"+this.robotID +"___________________");
@@ -201,24 +185,14 @@ public class DrawAgent extends CommunicationAid{
         // Calculate path
         this.mp.setGoals(this.pos);
         this.mp.setStart(TApos);
-            if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + TApos);
+        if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + TApos);
         PoseSteering[] path = this.mp.getPath();
 
         double startTime = Double.parseDouble(mParts[3]);
         double endTime = this.calculateEndTime(startTime, path);
 
         // If task is not possible
-        if (this.timeSchedule.taskPossible(startTime, endTime) == false) {
-            System.out.println(this.robotID +"------------task not possible with start-->"+startTime+"\tand end-->"+endTime);
-            System.out.println("___________________"+this.robotID +"___________________");
-            this.timeSchedule.printSchedule();
-            return false; 
-        }
-        else{
-            System.out.println(this.robotID +"------------task possible with start-->"+startTime+"\tand end-->"+endTime);
-            System.out.println("___________________"+this.robotID +"___________________");
-            this.timeSchedule.printSchedule();
-        }
+        if (this.timeSchedule.taskPossible(startTime, endTime) == false) return false;
 
         // SCHEDULE: Create new task & and add it to schedule
         Mission mission = new Mission(this.robotID, path);
@@ -260,7 +234,6 @@ public class DrawAgent extends CommunicationAid{
     } 
 
     protected int evalService(double dist){
-        System.out.println(this.robotID + "\teval --------->" + dist );
         if (dist <= 2.0) return -1;
 
         dist = 100 * 1.0 / dist;

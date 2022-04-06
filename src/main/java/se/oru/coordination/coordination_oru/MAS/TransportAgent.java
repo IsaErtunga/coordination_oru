@@ -194,7 +194,7 @@ public class TransportAgent extends CommunicationAid{
             // SHEDULE: Message bestOffer = this.offerService(double startTime);
             double oreLevelThreshold = 0;
             if (this.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold) {
-                System.out.println(this.robotID + "\tthis.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold ----> " + (this.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold));
+                System.out.println(this.robotID + "\t waiting for drop-off task...");
                 // We only create an auction if ore level is lower than treshold
                 // Possibly bad to check every iteration
                 this.sleep(1000);
@@ -269,19 +269,22 @@ public class TransportAgent extends CommunicationAid{
 
         if (receivers.size() <= 0) return new Message();
         
-        System.out.println(this.robotID +"======================2");
 
         this.offers.clear();
 
         // Create and send CNP message
         int taskID = createCNPMessage(startTime, receivers);
-        System.out.println(this.robotID +"======================3");
     
         //sleep 6 sec before looking at offers
         //TODO create while loop to wait either S seconds or until all agents have responded
         double before = this.getTime();    // wait for offers..
         while ( this.offers.size() < receivers.size() && this.getTime() - before <= 2.0){
             this.sleep(50);
+        }
+
+        if (this.offers.size() <= 0){
+            System.out.println(this.robotID +"---------------no offer received, ABORT");
+            return new Message();
         }
         
         System.out.println(this.robotID +"======================4");
@@ -528,9 +531,7 @@ public class TransportAgent extends CommunicationAid{
                             * remove task from schedule
                         */
                         this.timeSchedule.remove(taskID);
-
                     } 
-
                 }
                 
             }
