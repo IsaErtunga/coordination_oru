@@ -71,17 +71,16 @@ public class TimeSchedule {
      */
     public Pose getLastToPose(){
         if (this.schedule.size() <= 0){
-            System.out.println("HEJHEJ");
             if ( this.currentTask == null ) return this.startPose;
             else return this.currentTask.toPose;
         }
-        printSchedule();
-        return this.schedule.get(2).toPose;
+        return this.schedule.get(this.schedule.size()-1).toPose;
     }
 
 
     public boolean setTaskActive(int taskID){
-        Task t = this.reservedTasks.remove(taskID);
+        Task t = this.reservedTasks.get(taskID);
+        this.reservedTasks.remove(taskID);
         t.isActive = true;
 
         return this.add(t);
@@ -234,14 +233,22 @@ public class TimeSchedule {
 
             int scSize = this.schedule.size();
 
+            //System.out.println("t <"+task.startTime +", "+task.endTime+">");
+
             for (int i=0; i<scSize; i++){               // case size > 0
                 Task curr = this.schedule.get(i);
+
+                //System.out.println("\tcurr <"+curr.startTime +", "+curr.endTime+">");
 
                 if (this.isTaskOverlapping(task, curr)) return false;   // task does not fit in schedule
 
                 if ( curr.startTime < task.startTime && i != scSize-1) continue;
 
-                i = curr.startTime < task.startTime ? i++ : i;  // add task after curr if true
+                //System.out.println("\tcurr.startTime < task.startTime && i != scSize-1 -->"+(curr.startTime < task.startTime && i != scSize-1));
+
+                i = curr.startTime < task.startTime ? i+1 : i;  // add task after curr if true
+
+                //System.out.println("\ti -->"+i);
 
                 this.schedule.add(i, task); // add task to schedule
                 this.addOreState(task);
@@ -298,17 +305,17 @@ public class TimeSchedule {
     
 
     public void printSchedule(){
-        System.out.println("___________________________________SCHEDULE_________________________________________");
+        System.out.println("_____________________________SCHEDULE__________________");
         for (Task t : this.schedule){
-            System.out.println("----------------------------------------------------------------------------------");
+            System.out.println("---------------------------------------------------");
             System.out.println("time: " + t.startTime + " --> " + t.endTime + "\t taskID: "+t.taskID + "\tisActive: "+ t.isActive);
         }
 
-        System.out.println("__________________________________RESERVED_________________________________________");
+        System.out.println("____________________________RESERVED___________________");
         for (int key : this.reservedTasks.keySet()) {
             Task t = this.reservedTasks.get(key);
         
-            System.out.println("----------------------------------------------------------------------------------");
+            System.out.println("---------------------------------------------------");
             System.out.println("time: " + t.startTime + " --> " + t.endTime + "\t taskID: "+t.taskID + "\tisActive: "+ t.isActive);
         }
         System.out.println("ORESTATE: " + this.oreState);
@@ -469,22 +476,32 @@ public class TimeSchedule {
             TimeSchedule tss = new TimeSchedule(new Pose(0.0, 0.0, 0.0));
 
             Task t1 = new Task(10.0, 20.0, 1);
+            Task t2 = new Task(30.0, 40.0, 2);
+            Task t3 = new Task(50.0, 60.0, 3);
+
             t1.fromPose = new Pose(0.0, 0.0, 0.0);
             t1.toPose = new Pose(0.0, 2.0, 0.0);
             
-            Task t2 = new Task(30.0, 40.0, 2);
             t2.fromPose = new Pose(0.0, 2.0, 0.0);
             t2.toPose = new Pose(2.0, 2.0, 0.0);
 
-            Task t3 = new Task(50.0, 60.0, 3);
             t3.fromPose = new Pose(2.0, 2.0, 0.0);
             t3.toPose = new Pose(2.0, 10.0, 0.0);
 
+            System.out.println(tss.getLastToPose().toString());
+
             tss.add(t1);
-           
+            //tss.printSchedule();
+            System.out.println(tss.getLastToPose().toString());
+
             tss.add(t2);
-           
+            //tss.printSchedule();
+
+            System.out.println(tss.getLastToPose().toString());
+
             tss.add(t3);
+            //tss.printSchedule();
+
             System.out.println(tss.getLastToPose().toString());
 
         }

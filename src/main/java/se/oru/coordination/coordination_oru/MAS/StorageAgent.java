@@ -52,7 +52,6 @@ public class StorageAgent extends CommunicationAid{
 
 
     protected double getTime(){
-        System.out.println(this.robotID+"\ttime---> "+(System.currentTimeMillis() - this.startTime));
         long diff = System.currentTimeMillis() - this.startTime;
         return (double)(diff)/1000.0;
     }

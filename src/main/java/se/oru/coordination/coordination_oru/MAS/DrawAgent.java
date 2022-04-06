@@ -75,7 +75,7 @@ public class DrawAgent extends CommunicationAid{
             }
 
             for (Message m : inbox_copy){
-                System.out.println(m.type +"\t"+m.body+"\tparseRes: "+ this.parseMessage(m, "taskID"));
+                //System.out.println(m.type +"\t"+m.body);
                 int taskID = Integer.parseInt(this.parseMessage(m, "taskID")[0]);
                 
                 if (m.type == "hello-world"){ 

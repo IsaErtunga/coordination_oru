@@ -21,6 +21,7 @@ public class TransportAgent extends CommunicationAid{
     protected Coordinate[] rShape;
     protected Pose startPose;
     protected final Double oreCap = 15.0;
+    protected final int taskCap = 4;
 
     protected TimeSchedule timeSchedule;
     protected long startTime;
@@ -184,11 +185,11 @@ public class TransportAgent extends CommunicationAid{
         double oreLevelThreshold = 0.0;
         while (true) {
             // start CNP with DA
-            /* SCHEDULE:
-                * if endState of the last task has no ore, plan mission with DA 
-                * (when robot start endState = {[time=0 : ore=0]})
-                * Send time of when it can start mission to DrawAgent
-             */
+
+            while (this.timeSchedule.getSize() >= this.taskCap) {   // dont overbook tasks
+                this.sleep(3000);
+            }
+ 
             // SHEDULE: Message bestOffer = this.offerService(double startTime);
             // System.out.println("12345" + this.timeSchedule.checkEndStateOreLvl());
             while (this.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold) {
@@ -357,26 +358,13 @@ public class TransportAgent extends CommunicationAid{
     public boolean handleService(Message m) { 
         if (m.type != "cnp-service") return false;
 
+        if ( this.timeSchedule.getSize() >= this.taskCap) return false;    // dont overbook tasks
+
         String[] mParts = this.parseMessage( m, "", true);
         
         Pose SApos = this.posefyString(mParts[2]);
-
-
-        // SCHEDULE: Need to lookup schedule too see if task is possible. 
-        /* SCHEDULE: offer calc will include 
-            * calc path from SA to TA
-            * estimate the time TA will be using the storage
-            * look in schedule if there is a time window for the task to fit in. 
-            * - IF true: send offer & reserve time (Insert into schedule list)
-            * - else: dont send offer
-
-            * offer message will include: taskID, offerVal, pos, startTime, endTime
-        */
-
-        //calc euclidean dist between DA -> TA, and capacity evaluation
-        //TODO setStart(Pose)?
-        
         Pose start = this.timeSchedule.getLastToPose();
+
         this.mp.setStart(start);
         this.mp.setGoals(SApos);
 
@@ -388,6 +376,8 @@ public class TransportAgent extends CommunicationAid{
         double endTime = this.calculateEndTime(startTime, path);
         double distEval = endTime - startTime;
 
+        
+
         // If task is not possible
         if (this.timeSchedule.taskPossible(startTime, endTime) == false) {
             return false; 
@@ -395,9 +385,9 @@ public class TransportAgent extends CommunicationAid{
 
         // SCHEDULE: Create new task & and add it to schedule
         double ore = 15.0;
-        Task TAtask = new Task(Integer.parseInt(mParts[0]), m.sender, true, -ore, startTime, endTime, start, SApos);
+        Task TAtask = new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, startTime, endTime, start, SApos);
         this.timeSchedule.add(TAtask);
-        System.out.println("Added task.");
+        System.out.println("schedule for: "+this.robotID);
         this.timeSchedule.printSchedule();
 
         // TODO: Change to time. 
@@ -407,9 +397,7 @@ public class TransportAgent extends CommunicationAid{
     
         // räkna ut ett bud och skicka det.
         this.sendMessage(response);
-        
-        System.out.println(this.robotID + ", task: " + this.activeTasks.get(Integer.parseInt(mParts[0])));
-        
+                
         return true;
     }
 
@@ -428,7 +416,14 @@ public class TransportAgent extends CommunicationAid{
         String body = messageParts[0] + this.separator + offer + this.separator + this.stringifyPose(startPos) + this.separator + this.stringifyPose(endPos)
                                     + this.separator + startTime + this.separator + endTime + this.separator + ore;
         return new Message(this.robotID, message.sender, "offer", body);
-    } 
+    }
+    
+    
+    protected int evalService(double dist){
+
+
+        return 0;
+    }   
 
     /**
      * 
@@ -479,7 +474,6 @@ public class TransportAgent extends CommunicationAid{
                 }
 
                 else if (m.type == "accept"){
-                    // SCHEDULE: Change task to actuve
                     int taskID = Integer.parseInt(messageParts[0]);
                     this.timeSchedule.setTaskActive(taskID);
                 }
