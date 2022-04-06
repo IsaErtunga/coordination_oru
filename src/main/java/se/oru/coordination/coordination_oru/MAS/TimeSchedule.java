@@ -171,6 +171,25 @@ public class TimeSchedule {
         }
     } 
 
+    /**
+     * Checks if last task was put by an SA. 
+     * @return
+     */
+    public boolean lastTaskSA() { 
+        synchronized(this.schedule){
+            ArrayList<Task> tasks = this.getActiveTasks();
+            if (tasks.size() > 0) {
+                Boolean lastTaskSA = tasks.get(tasks.size() - 1).isSaTask;
+                // check if SA
+                if (lastTaskSA) {
+                    return true;
+                }
+                return false;
+            }
+            return false; 
+        }
+    } 
+
 
     /**
      * Returns the amount of ore after the endTime of the last task. 

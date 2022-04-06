@@ -20,7 +20,7 @@ public class TransportAgent extends CommunicationAid{
 
     protected Coordinate[] rShape;
     protected Pose startPose;
-    protected final int oreCap = 15;
+    protected final Double oreCap = 15.0;
 
     protected TimeSchedule timeSchedule;
     protected long startTime;
@@ -160,16 +160,13 @@ public class TransportAgent extends CommunicationAid{
                 if (task == null) {
                     continue;
                 }
-                this.tec.addMissions(task.mission);
+
+
+                this.tec.addMissions(this.createMission(task));
                 
-                while (isMissionDone(task) == false) {
-                    // not done yet
-                    this.sleep(500);
-                }
-                //done
 
                 // if robot managed to complete task 
-                String oreChange = task.partner<10000 ? Integer.toString(this.oreCap) : Integer.toString(-this.oreCap);
+                String oreChange = task.partner<10000 ? Double.toString(this.oreCap) : Double.toString(-this.oreCap);
 
                 Message doneMessage = new Message(this.robotID, task.partner, "inform", task.taskID + "," + "done" + "," + Double.toString(task.ore));
                 this.sendMessage(doneMessage, false);
@@ -182,6 +179,7 @@ public class TransportAgent extends CommunicationAid{
     }
 
     protected void initialState() {
+        double oreLevelThreshold = 2;
         while (true) {
             // start CNP with DA
             /* SCHEDULE:
@@ -190,14 +188,16 @@ public class TransportAgent extends CommunicationAid{
                 * Send time of when it can start mission to DrawAgent
              */
             // SHEDULE: Message bestOffer = this.offerService(double startTime);
-            double oreLevelThreshold = 0;
-            if (this.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold) {
-                System.out.println(this.robotID + "\tthis.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold ----> " + (this.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold));
+            
+            while (this.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold) {
+                // System.out.println(this.robotID + "\tthis.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold ----> " + (this.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold));
+                System.out.println("+++ WAITING FOR TASK BY STORAGE AGENT +++");
                 // We only create an auction if ore level is lower than treshold
                 // Possibly bad to check every iteration
+                
                 this.sleep(1000);
-                continue;
             }
+            
 
             // SCHEDULE: Send when it can start. 
             Message bestOffer = this.offerService(this.getNextTime());
@@ -216,30 +216,17 @@ public class TransportAgent extends CommunicationAid{
 
             // queue mission to DA
             // TODO move to function
-        
-            
-            double[] startCoordinates = Arrays.stream(msgParts[2].split(" "))
-                                        .mapToDouble(Double::parseDouble).toArray();
-            double[] endCoordinates = Arrays.stream(msgParts[3].split(" "))
-                                        .mapToDouble(Double::parseDouble).toArray();
 
-            Pose start = new Pose(startCoordinates[0], startCoordinates[1], startCoordinates[2]);
-            Pose goal = new Pose(endCoordinates[0], endCoordinates[1], endCoordinates[2]);
-            
-            this.mp.setStart(start);
-            this.mp.setGoals(goal);
-            
-            if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + goal);
-            PoseSteering[] path = this.mp.getPath();
+            Pose start = this.posefyString(msgParts[2]);
+            Pose goal = this.posefyString(msgParts[3]);
+
+            Task task = this.createTaskFromMessage(bestOffer);
     
-            // TODO Function that creates task based on offer message. 
-            Task task = new Task(Integer.parseInt(msgParts[0]), bestOffer.sender,
-                                 new Mission(this.robotID, path), true, this.oreCap, 
-                                Double.parseDouble(msgParts[4]), Double.parseDouble(msgParts[5]), start, goal);
             // ===========================================================================
 
             // SCHEDULE: Add into schedule according to time.
             this.timeSchedule.add(task);
+            System.out.println("________________________" + this.robotID + "___________________");
             this.timeSchedule.printSchedule();
 
             // wait for SA mission to be added
@@ -374,8 +361,8 @@ public class TransportAgent extends CommunicationAid{
         if (m.type != "cnp-service") return false;
 
         String[] mParts = this.parseMessage( m, "", true);
-        double[] coordinates = Arrays.stream(mParts[2].split(" ")).mapToDouble(Double::parseDouble).toArray();
-        Pose SApos = new Pose(coordinates[0], coordinates[1], coordinates[2]);
+        
+        Pose SApos = this.posefyString(mParts[2]);
 
 
         // SCHEDULE: Need to lookup schedule too see if task is possible. 
@@ -410,9 +397,8 @@ public class TransportAgent extends CommunicationAid{
         }
 
         // SCHEDULE: Create new task & and add it to schedule
-        double ore = 10.0;
-        Mission mission = new Mission(this.robotID, path);
-        Task TAtask = new Task(Integer.parseInt(mParts[0]), m.sender, mission, false, ore, startTime, endTime, start, SApos);
+        double ore = 15.0;
+        Task TAtask = new Task(Integer.parseInt(mParts[0]), m.sender, false, ore, startTime, endTime, start, SApos);
         this.timeSchedule.add(TAtask);
 
         // TODO: Change to time. 
@@ -444,6 +430,20 @@ public class TransportAgent extends CommunicationAid{
                                     + this.separator + startTime + this.separator + endTime + this.separator + Double.toString(ore);
         return new Message(this.robotID, message.sender, "offer", body);
     } 
+
+    /**
+     * 
+     * @param startPose
+     * @param endPose
+     * @return
+     */
+    public Mission createMission(Task task) {
+        this.mp.setStart(task.fromPose);
+        this.mp.setGoals(task.toPose);
+        if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + task.toPose);
+        PoseSteering[] path = this.mp.getPath();
+        return new Mission(this.robotID, path);
+    }
 
 
     /**

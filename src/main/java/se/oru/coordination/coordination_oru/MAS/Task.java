@@ -12,9 +12,7 @@ public class Task {
     int taskID;
     float expiryTime;
     String status;
-    boolean isSATask;
-
-    
+    boolean isSaTask;
 
     double startTime;
     double endTime;
@@ -50,10 +48,9 @@ public class Task {
      * @param fromPose
      * @param toPose
      */
-    Task(int taskID, int partner, Mission mission, boolean isActive, double ore, double startTime, double endTime, Pose fromPose, Pose toPose) {
+    Task(int taskID, int partner, boolean isActive, double ore, double startTime, double endTime, Pose fromPose, Pose toPose) {
         this.taskID = taskID;
         this.partner = partner;
-        this.mission = mission;
         this.isActive = isActive;
         this.ore = ore;
         this.startTime = startTime;

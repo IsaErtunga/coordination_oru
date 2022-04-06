@@ -91,7 +91,7 @@ public class DrawAgent extends CommunicationAid{
             }
 
             for (Message m : inbox_copy){
-                //System.out.println(m.type +"\t"+m.body+"\tparseRes: "+ this.parseMessage(m, "taskID"));
+                System.out.println(m.type +"\t"+m.body+"\tparseRes: "+ this.parseMessage(m, "taskID"));
                 int taskID = Integer.parseInt(this.parseMessage(m, "taskID")[0]);
                 
                 if (m.type == "hello-world"){ 
@@ -125,7 +125,7 @@ public class DrawAgent extends CommunicationAid{
                         /* SCHEDULE: 
                             * If early just remove from schedule.
                         */ 
-                        int oreChange = Integer.parseInt(messageParts[2]); 
+                        Double oreChange = Double.parseDouble(messageParts[2]); 
                         this.timeSchedule.remove(taskID);
                         this.takeOre(oreChange);
                     }
@@ -169,7 +169,7 @@ public class DrawAgent extends CommunicationAid{
 
         // SCHEDULE: Need time in the message from TA, need to extend with ore. 
         String[] mParts = this.parseMessage(m, "", true); //parse=[ taskID, agentID, pos, startTime ]
-        double ore = 10.0;
+        double ore = 15.0;
 
         // get pose of TA
 
@@ -195,7 +195,7 @@ public class DrawAgent extends CommunicationAid{
         // Calculate path
         this.mp.setGoals(this.pos);
         this.mp.setStart(TApos);
-            if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + TApos);
+        if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + TApos);
         PoseSteering[] path = this.mp.getPath();
 
         double startTime = Double.parseDouble(mParts[3]);
@@ -207,8 +207,7 @@ public class DrawAgent extends CommunicationAid{
         }
 
         // SCHEDULE: Create new task & and add it to schedule
-        Mission mission = new Mission(this.robotID, path);
-        Task DAtask = new Task(Integer.parseInt(mParts[0]), m.sender, mission, false, ore, startTime, endTime, TApos, this.pos);
+        Task DAtask = new Task(Integer.parseInt(mParts[0]), m.sender, false, ore, startTime, endTime, TApos, this.pos);
         this.timeSchedule.add(DAtask);
         // this.timeSchedule.printSchedule();
 
@@ -223,7 +222,7 @@ public class DrawAgent extends CommunicationAid{
 
         // generate offer..
         //int offer = (int)(distToTA + evaluatedCapacity);
-        Message response = createOffer(m, mParts, TApos, this.pos, offer, startTime, endTime);
+        Message response = createOffer(m, mParts, TApos, this.pos, offer, startTime, endTime, ore);
         
         //send offer and log event
         this.sendMessage(response);
@@ -240,12 +239,12 @@ public class DrawAgent extends CommunicationAid{
      * @param offer
      * @return
      */
-    protected Message createOffer(Message message, String[] messageParts, Pose startPose, Pose endPos, int offer, double startTime, double endTime) {
+    protected Message createOffer(Message message, String[] messageParts, Pose startPose, Pose endPos, int offer, double startTime, double endTime, double ore) {
         String startPoseStr = this.stringifyPose(startPose);
         String endPoseStr = this.stringifyPose(endPos);
         String s = this.separator;
         String body = messageParts[0] +s+ offer +s+ startPoseStr +s+ 
-                      endPoseStr +s+ startTime +s+ endTime;
+                      endPoseStr +s+ startTime +s+ endTime +s+ ore;
         return new Message(this.robotID, message.sender, "offer", body);
     } 
 
