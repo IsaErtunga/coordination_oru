@@ -89,8 +89,7 @@ public class TransportAgent extends CommunicationAid{
         };
         listenerThread.start();
 
-        try { Thread.sleep(2000); }
-        catch (InterruptedException e) { e.printStackTrace(); }
+        this.sleep(2000);
 
         Thread stateThread = new Thread() {
             public void run() {
@@ -137,7 +136,7 @@ public class TransportAgent extends CommunicationAid{
      */
     protected Boolean isMissionDone (Task task) {
         // Distance from robots actual position to task goal pose
-        return this.tec.getRobotReport(this.robotID).getPose().distanceTo(task.mission.getToPose()) < 0.5;
+        return this.tec.getRobotReport(this.robotID).getPose().distanceTo(task.toPose) < 0.5;
     }
 
     /**
@@ -165,11 +164,13 @@ public class TransportAgent extends CommunicationAid{
 
                 this.tec.addMissions(this.createMission(task));
                 
-
                 // if robot managed to complete task 
                 //String oreChange = task.partner<10000 ? Integer.toString(this.oreCap) : Integer.toString(-this.oreCap);
-
-                Message doneMessage = new Message(this.robotID, task.partner, "inform", task.taskID + "," + "done" + "," + Double.toString(task.ore));
+                while (!isMissionDone(task)) {
+                    this.sleep(500);
+                }
+                
+                Message doneMessage = new Message(this.robotID, task.partner, "inform", task.taskID + this.separator + "done" + "," + task.ore);
                 this.sendMessage(doneMessage, false);
 
                 // if robot didn't manage to complete task
@@ -180,7 +181,7 @@ public class TransportAgent extends CommunicationAid{
     }
 
     protected void initialState() {
-        double oreLevelThreshold = 2;
+        double oreLevelThreshold = 2.0;
         while (true) {
             // start CNP with DA
             /* SCHEDULE:
@@ -189,14 +190,14 @@ public class TransportAgent extends CommunicationAid{
                 * Send time of when it can start mission to DrawAgent
              */
             // SHEDULE: Message bestOffer = this.offerService(double startTime);
-            
+            // System.out.println("12345" + this.timeSchedule.checkEndStateOreLvl());
             while (this.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold) {
                 // System.out.println(this.robotID + "\tthis.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold ----> " + (this.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold));
                 System.out.println("+++ WAITING FOR TASK BY STORAGE AGENT +++");
                 // We only create an auction if ore level is lower than treshold
                 // Possibly bad to check every iteration
                 
-                this.sleep(1000);
+                this.sleep(500);
             }
             
 
@@ -393,9 +394,11 @@ public class TransportAgent extends CommunicationAid{
         }
 
         // SCHEDULE: Create new task & and add it to schedule
-        double ore = 15.0;
-        Task TAtask = new Task(Integer.parseInt(mParts[0]), m.sender, false, ore, startTime, endTime, start, SApos);
+        double ore = -15.0;
+        Task TAtask = new Task(Integer.parseInt(mParts[0]), m.sender, true, ore, startTime, endTime, start, SApos);
         this.timeSchedule.add(TAtask);
+        System.out.println("Added task.");
+        this.timeSchedule.printSchedule();
 
         // TODO: Change to time. 
         
@@ -423,7 +426,7 @@ public class TransportAgent extends CommunicationAid{
         if (evaluatedDistance <= 0.0) evaluatedDistance = 150.0; //TODO temp fix
         int offer = (int)(100.0 * 1.0 / evaluatedDistance);
         String body = messageParts[0] + this.separator + offer + this.separator + this.stringifyPose(startPos) + this.separator + this.stringifyPose(endPos)
-                                    + this.separator + startTime + this.separator + endTime + this.separator + Double.toString(ore);
+                                    + this.separator + startTime + this.separator + endTime + this.separator + ore;
         return new Message(this.robotID, message.sender, "offer", body);
     } 
 

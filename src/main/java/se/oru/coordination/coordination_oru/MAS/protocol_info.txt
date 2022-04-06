@@ -25,7 +25,7 @@ body -> int taskID :
 
 6:
 tag -> inform
-body -> taskID & done & oreChange
+body -> taskID & done & ore
 
 tag -> inform
 body -> taskID & status & newEndTime

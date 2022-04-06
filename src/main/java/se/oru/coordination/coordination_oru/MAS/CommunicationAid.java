@@ -85,7 +85,7 @@ public class CommunicationAid {
             }
 
             else if (m.type == "inform") {
-                attributes = new String[] {"taskID", "informVal", "oreChange"};
+                attributes = new String[] {"taskID", "informVal", "ore"};
             }
 
             else if (m.type == "cnp-service"){

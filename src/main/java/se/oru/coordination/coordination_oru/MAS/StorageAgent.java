@@ -67,8 +67,10 @@ public class StorageAgent extends CommunicationAid{
                 this.timeSchedule.checkEndStateOreLvl() < capacity) {
                 // SCHEDULE
                 Message bestOffer = this.offerService();
-                Task task = this.createTaskFromMessage(bestOffer);
-                this.timeSchedule.add(task);
+                if (!bestOffer.isNull) {
+                    Task task = this.createTaskFromMessage(bestOffer);
+                    this.timeSchedule.add(task);
+                }
             this.sleep(1000);
             }   
         }      
@@ -157,7 +159,7 @@ public class StorageAgent extends CommunicationAid{
                     // TA informs SA when its done with a task.
                     String informVal = this.parseMessage(m, "informVal")[0]; 
                     String taskID = this.parseMessage(m, "taskID")[0];
-                    Integer ore = Integer.parseInt(this.parseMessage(m, "oreChange")[0]);
+                    double ore = Double.parseDouble(this.parseMessage(m, "ore")[0]);
     
                     if (informVal.equals(new String("abort"))) {
                         // Create a new task. 
@@ -213,14 +215,14 @@ public class StorageAgent extends CommunicationAid{
             Message acceptMessage = new Message(robotID, bestOffer.sender, "accept", Integer.toString(taskID) );
             this.sendMessage(acceptMessage);
 
-            receivers.removeIf(i -> i==bestOffer.sender);    //storage agents has robotID > 5000
-    
-            // Send decline message to all the others. 
-            Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));
-            this.sendMessage(declineMessage);
+            receivers.removeIf(i -> i==bestOffer.sender);
 
-            //TODO add amout A to be received at time T in schedule
+            if (receivers.size() > 0){
+                // Send decline message to all the others. 
+                Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));
+                this.sendMessage(declineMessage);
 
+            }
         }
         return bestOffer;
     }
@@ -235,7 +237,7 @@ public class StorageAgent extends CommunicationAid{
     public int createCNPMessage(double startTime, String startPos, ArrayList<Integer> receivers) {
         // taskID & agentID & pos & startTime 
         String startTimeStr = Double.toString(startTime);
-        String body = this.robotID + this.separator + startPos + this.separator + startTime;
+        String body = this.robotID + this.separator + startPos + this.separator + startTimeStr;
         Message m = new Message(this.robotID, receivers, "cnp-service", body);
         return this.sendMessage(m, true);
     }

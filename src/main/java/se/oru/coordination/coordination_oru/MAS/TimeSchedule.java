@@ -28,7 +28,7 @@ public class TimeSchedule {
 
     private static double time_sensitivity = 10.0;
     protected Task currentTask = null;    
-    protected Pose lastSetPose;
+    protected Pose startPose;
     private ArrayList<Task> schedule = new ArrayList<Task>();
     private HashMap<Integer, Task> reservedTasks = new HashMap<Integer, Task>();
     private HashMap<Double, Double> oreState = new HashMap<Double, Double>();
@@ -46,7 +46,7 @@ public class TimeSchedule {
     public TimeSchedule() {}
 
     public TimeSchedule(Pose lastSetPose) {
-        this.lastSetPose = lastSetPose;
+        this.startPose = lastSetPose;
     }
 
 
@@ -304,13 +304,15 @@ public class TimeSchedule {
      * Create a lastSetPose in constructor, use it whenever we have no tasks. 
      * @return
      */
-    public Pose getLastToPose() {
+    public Pose getLastToPose(){
+        // if schedule empty check currentTask
+        if (this.schedule.size() <= 0){
+            if ( this.currentTask == null ) return this.startPose;
 
-        /**
-         * if tasks.size >= 0 --> return null
-         * else return sista lement toPose
-         */
-        return this.lastSetPose;
+            else return this.currentTask.toPose;
+        }
+
+        return this.schedule.get(this.schedule.size()-1).toPose;
     }
 
     public Task get(int taskID) {
