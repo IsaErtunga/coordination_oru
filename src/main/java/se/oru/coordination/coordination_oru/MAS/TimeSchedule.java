@@ -7,22 +7,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 
-/* Schedule:
-    * add(Task task) -> bool
-    * remove(int taskID) -> Task
-    * get(int taskID) --> Task
-    * update(int taskID, double newEndTime) --> bool
-    * taskPossible(double startTime, double endTime) --> bool // check if timeslot is possible
-    * getNextStartTime() --> double startTime
-    
-    (oreState will be updated internally but agents can check it via schedule)
-    * this.oreState arrayList<double time, double oreLvl>
-    * checkEndStateOreLvl() -> double oreLvl
-
-    Isa
-    * func som kollar när den kan börja ett nytt mission
-    getNextStartTime() -> double startTime
-*/
 
 public class TimeSchedule {
 
@@ -33,49 +17,83 @@ public class TimeSchedule {
     private HashMap<Integer, Task> reservedTasks = new HashMap<Integer, Task>();
     private HashMap<Double, Double> oreState = new HashMap<Double, Double>();
 
-    /*  [00:00 , 0.0]
-        [00:15 , 15.0]
-        [00:35 , 0.0]
-        [00:15 , 15.0]
-        [00:35 , 0.0]
-
-
-
-    */
 
     public TimeSchedule() {}
-
     public TimeSchedule(Pose lastSetPose) {
-
         this.startPose = lastSetPose;
     }
 
 
-    public boolean setTaskActive(int taskID){
+    public int getSize() {
+        return this.schedule.size();
+    }
 
+
+    public Task get(int taskID) {
+        synchronized(this.schedule){
+
+            for (Task task : this.schedule) {
+                if (task.taskID == taskID) {
+                    return task;
+                }
+            }
+            return null;
+        }
+    }
+
+
+    public int getOreStateSize () {
+        return this.oreState.size();
+    }
+
+
+    /** getNextStartTime() will retrive the next time available for scheduling. 
+     * return type is double
+     * @return the endTime of the last Task in schedule. it does NOT care if task is reserved or not.
+     */
+    public double getNextStartTime(){ //return endTime for last task
+        synchronized(this.schedule){
+            if ( this.schedule.size() <=0 ){
+                if (this.currentTask != null) return this.currentTask.endTime;
+
+                else return -1.0;
+            }
+
+            return this.schedule.get(this.schedule.size()-1).endTime;
+        }
+    } 
+
+
+    /**
+     * Returns the of where the agent completed its last task. 
+     * Create a lastSetPose in constructor, use it whenever we have no tasks. 
+     * @return
+     */
+    public Pose getLastToPose(){
+        if (this.schedule.size() <= 0){
+            if ( this.currentTask == null ) return this.startPose;
+
+            else return this.currentTask.toPose;
+        }
+
+        return this.schedule.get(this.schedule.size()-1).toPose;
+    }
+
+
+    public boolean setTaskActive(int taskID){
         Task t = this.reservedTasks.remove(taskID);
         t.isActive = true;
 
         return this.add(t);
-        /*
-        ArrayList<Task> tasks = this.getActiveTasks();
-
-        for (Task t : tasks){ 
-            if (t.taskID == taskID){
-                if ( !this.taskPossible(t.startTime, t.endTime) ){
-                    this.remove(taskID);
-                    return false;
-                } 
-                t.isActive = true;
-                this.addOreState(t);
-                break;
-            }
-        }
-        return true;
-        */
     }
 
-    private ArrayList<Task> getActiveTasks(){
+
+    private boolean isTaskOverlapping(Task t1, Task t2){ 
+        return (t1.endTime > t2.startTime && t1.startTime < t2.endTime);
+    }
+
+
+    private ArrayList<Task> getActiveTasks(){ //TODO remove, old, not used anymore
         ArrayList<Task> ret = new ArrayList<Task>(this.schedule);
         ret.removeIf(i -> i.isActive == false); 
         return ret;
@@ -152,27 +170,13 @@ public class TimeSchedule {
      */
     public boolean taskPossible(double start, double end){  // return true if possible
         synchronized(this.schedule){
-            ArrayList<Task> tasks = this.getActiveTasks();
-
             Task task = new Task(start, end);
-            for (int i=0; i<tasks.size(); i++){
-                if ( this.isTaskOverlapping(tasks.get(i), task) ) return false;
-            } 
-                
+
+            for (Task t : this.schedule){
+                if ( this.isTaskOverlapping(t, task) ) return false;
+            }
+
             return true;
-        }
-    } 
-
-
-    /** getNextStartTime() will retrive the next time available for scheduling. 
-     * return type is double
-     * @return the endTime of the last Task in schedule. it does NOT care if task is reserved or not.
-     */
-    public double getNextStartTime(){ //return endTime for last task
-        synchronized(this.schedule){
-            ArrayList<Task> tasks = this.getActiveTasks();
-            if( tasks.size() > 0 ) return tasks.get(tasks.size()-1).endTime;
-            else return -1.0;
         }
     } 
 
@@ -194,12 +198,6 @@ public class TimeSchedule {
         return ore;
     } 
 
-    /**
-     * @return size of oreState
-     */
-    public int getOreStateSize () {
-        return this.oreState.size();
-    }
 
 
     protected boolean add(Task task) {
@@ -218,7 +216,6 @@ public class TimeSchedule {
             int scSize = this.schedule.size();
 
             for (int i=0; i<scSize; i++){               // case size > 0
-                
                 Task curr = this.schedule.get(i);
 
                 if (this.isTaskOverlapping(task, curr)) return false;   // task does not fit in schedule
@@ -248,7 +245,8 @@ public class TimeSchedule {
     public Task remove(int taskID) {
         synchronized(this.schedule){
 
-            Task ret = null;
+            Task ret = null; //TODO does this work?
+
             for ( int i=0; i < this.schedule.size(); i++){
                 if ( this.schedule.get(i).taskID == taskID ){
                     ret = this.schedule.get(i);
@@ -260,60 +258,25 @@ public class TimeSchedule {
         }
     }
 
+
     /**
      * 
      * @return
      */
     public Task pop() {
         synchronized(this.schedule) {
-            ArrayList<Task> tasks = this.getActiveTasks();
             Task ret = null;
-            if (tasks.size() > 0) {
-                ret = tasks.get(0);
-                this.currentTask = ret;
-                this.schedule.remove(ret);
-            }
+
+            if ( this.schedule.size() <=0 ) return null;
+
+            ret = this.schedule.get(0);
+            this.currentTask = ret;
+            this.schedule.remove(ret);
             return ret;
+
         }
     }
     
-    /**
-     * Returns the of where the agent completed its last task. 
-     * Create a lastSetPose in constructor, use it whenever we have no tasks. 
-     * @return
-     */
-    public Pose getLastToPose(){
-        // if schedule empty check currentTask
-        if (this.schedule.size() <= 0){
-            if ( this.currentTask == null ) return this.startPose;
-
-            else return this.currentTask.toPose;
-        }
-
-        return this.schedule.get(this.schedule.size()-1).toPose;
-    }
-
-    public Task get(int taskID) {
-        synchronized(this.schedule){
-
-            for (Task task : this.schedule) {
-                if (task.taskID == taskID) {
-                    return task;
-                }
-            }
-            return null;
-        }
-    }
-
-    private boolean isTaskOverlapping(Task t1, Task t2){ 
-        return (t1.endTime > t2.startTime && t1.startTime < t2.endTime);
-    }
-
-
-    public int getSize() {
-        return this.getActiveTasks().size();
-    }
-
 
     public void printSchedule(){
         System.out.println("___________________________________SCHEDULE_________________________________________");
@@ -332,6 +295,16 @@ public class TimeSchedule {
         System.out.println("ORESTATE: " + this.oreState);
 
     }
+
+
+
+
+
+
+
+
+
+
 
 
     public static void main(String args[]){
