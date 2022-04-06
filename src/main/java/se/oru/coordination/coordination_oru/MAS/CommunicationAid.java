@@ -202,7 +202,6 @@ public class CommunicationAid {
      */
     protected Task createTaskFromMessage(Message message) {
         String[] msgParts = parseMessage(message, "", true);
-        
         // replace intexes
         return new Task(Integer.parseInt(msgParts[0]), message.sender, true, Double.parseDouble(msgParts[6]), Double.parseDouble(msgParts[4]),
                         Double.parseDouble(msgParts[5]), this.posefyString(msgParts[2]), this.posefyString(msgParts[3]));
