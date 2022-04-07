@@ -204,7 +204,7 @@ public class CommunicationAid {
         String[] msgParts = parseMessage(message, "", true);
         // replace intexes
         double ore = isTakeOre ? Double.parseDouble(msgParts[6]) : -Double.parseDouble(msgParts[6]);
-        return new Task(Integer.parseInt(msgParts[0]), message.sender, true, ore, Double.parseDouble(msgParts[4]),
+        return new Task(Integer.parseInt(msgParts[0]), message.sender, false, ore, Double.parseDouble(msgParts[4]),
                         Double.parseDouble(msgParts[5]), this.posefyString(msgParts[2]), this.posefyString(msgParts[3]));
         
         

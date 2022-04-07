@@ -143,7 +143,7 @@ public class CommunicationDraw {
 													/*		DRAW AGENT	*/
 	final int[] numDraw = {10001, 10002, 10003};
 	Pose[] drawPoses = { DA1pos, DA2pos, DA3pos };
-	final int[] iter3 = {0};
+	final int[] iter3 = {0, 1};
 
 	ReedsSheppCarPlanner mp = new ReedsSheppCarPlanner();
 	mp.setFootprint(footprint1, footprint2, footprint3, footprint4);
@@ -200,7 +200,7 @@ public class CommunicationDraw {
 													/*		STORAGE AGENT	*/
 	final int[] numStorages = {5001, 5002};
 	Pose[] storagePoses = { SA1pos, SA2pos };
-	final int[] iter2 = {0};
+	final int[] iter2 = {0, 1};
 
 	for (final int i : iter2) {
 

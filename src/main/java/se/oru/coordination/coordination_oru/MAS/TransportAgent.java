@@ -183,6 +183,7 @@ public class TransportAgent extends CommunicationAid{
 
     protected void initialState() {
         double oreLevelThreshold = 10.0;
+        this.timeSchedule.printSchedule();
         while (true) {
             // start CNP with DA
 
@@ -195,8 +196,7 @@ public class TransportAgent extends CommunicationAid{
                 this.timeSchedule.printSchedule();
                 this.sleep(500);
             }
-            
-
+        
             // SCHEDULE: Send when it can start. 
             Message bestOffer = this.offerService(this.getNextTime());
             
@@ -205,30 +205,10 @@ public class TransportAgent extends CommunicationAid{
                 continue;
             }
 
-            // SCHEDULE: Receive offer message from DrawAgent. 
-            // body -> int taskID & int offerVal & pos & startTime & endTime
-            String[] msgParts = this.parseMessage(bestOffer, "", true);
-
-
-            // create task ========================================================
-
-            // queue mission to DA
-            // TODO move to function
-
             Task task = this.createTaskFromMessage(bestOffer, true);
-    
-            // ===========================================================================
-
-            // SCHEDULE: Add into schedule according to time.
             this.timeSchedule.add(task);
-            // this.timeSchedule.printSchedule();
+            this.timeSchedule.setTaskActive(task.taskID);
 
-            // wait for SA mission to be added
-            // while (!this.schedule.isLastTaskSA()){
-
-            //     try { Thread.sleep(300); }
-            //     catch (InterruptedException e) { e.printStackTrace(); }
-            // }
             this.sleep(2000);
 
         }
