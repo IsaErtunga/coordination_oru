@@ -182,7 +182,7 @@ public class TransportAgent extends CommunicationAid{
     }
 
     protected void initialState() {
-        double oreLevelThreshold = 0.0;
+        double oreLevelThreshold = 10.0;
         while (true) {
             // start CNP with DA
 
@@ -190,14 +190,9 @@ public class TransportAgent extends CommunicationAid{
                 this.sleep(3000);
             }
  
-            // SHEDULE: Message bestOffer = this.offerService(double startTime);
-            // System.out.println("12345" + this.timeSchedule.checkEndStateOreLvl());
             while (this.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold) {
-                // System.out.println(this.robotID + "\tthis.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold ----> " + (this.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold));
                 System.out.println("+++ WAITING FOR TASK BY STORAGE AGENT +++");
-                // We only create an auction if ore level is lower than treshold
-                // Possibly bad to check every iteration
-                
+                this.timeSchedule.printSchedule();
                 this.sleep(500);
             }
             
@@ -226,7 +221,7 @@ public class TransportAgent extends CommunicationAid{
 
             // SCHEDULE: Add into schedule according to time.
             this.timeSchedule.add(task);
-            this.timeSchedule.printSchedule();
+            // this.timeSchedule.printSchedule();
 
             // wait for SA mission to be added
             // while (!this.schedule.isLastTaskSA()){
@@ -388,7 +383,7 @@ public class TransportAgent extends CommunicationAid{
         Task TAtask = new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, startTime, endTime, start, SApos);
         this.timeSchedule.add(TAtask);
         System.out.println("schedule for: "+this.robotID);
-        this.timeSchedule.printSchedule();
+        // this.timeSchedule.printSchedule();
 
         // TODO: Change to time. 
         

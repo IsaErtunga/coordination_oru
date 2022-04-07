@@ -94,7 +94,7 @@ public class DrawAgent extends CommunicationAid{
                     }
                     else{
                         System.out.println("___________________"+this.robotID +"___________________");
-                        this.timeSchedule.printSchedule();
+                        // this.timeSchedule.printSchedule();
                     }
                 }
 

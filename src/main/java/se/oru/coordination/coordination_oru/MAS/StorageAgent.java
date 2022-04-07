@@ -68,16 +68,16 @@ public class StorageAgent extends CommunicationAid{
      */
     public void status () {
         while(true) {
-            if (this.timeSchedule.checkEndStateOreLvl() < this.oreStateThreshold && 
-                this.timeSchedule.checkEndStateOreLvl() < 0.7*capacity) {
+            if (this.timeSchedule.checkEndStateOreLvl() < capacity) {
+                //this.timeSchedule.printSchedule();
                 // SCHEDULE
                 Message bestOffer = this.offerService();
                 if (!bestOffer.isNull) {
                     Task task = this.createTaskFromMessage(bestOffer, true);
                     this.timeSchedule.add(task);
                 }
-            this.sleep(5000);
-            }   
+            this.sleep(4000);
+            }
         }      
     }
 
@@ -162,32 +162,22 @@ public class StorageAgent extends CommunicationAid{
                 
                 else if (m.type == "inform") {
                     // TA informs SA when its done with a task.
-                    String informVal = this.parseMessage(m, "informVal")[0]; 
-                    String taskID = this.parseMessage(m, "taskID")[0];
-                    double ore = Double.parseDouble(this.parseMessage(m, "ore")[0]);
+                    String[] msgParts = this.parseMessage(m, "", true);
+                    String informVal = msgParts[1];
+                    int taskID = Integer.parseInt(msgParts[0]);
     
                     if (informVal.equals(new String("abort"))) {
-                        // Create a new task. 
-                        // offerService();
+                        this.timeSchedule.remove(taskID);
                     } 
                     else if (informVal.equals(new String("done"))) {
-                        System.out.println("****************** DONE ***********************");
-                        if (ore >= 0) {
-                            addOre(ore);
-                        } else {
-                            dumpOre(ore);
-                        }
+                        this.timeSchedule.remove(taskID);
+
+                   
                     }
-                    else if (informVal.equals(new String("result"))) {
-                        
-                    }
-                    
                 }
-                
             }
             this.sleep(1000);
         }
-
     }
 
     /** offerService is called when a robot want to plan in a new task to execute.
