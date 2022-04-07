@@ -185,10 +185,6 @@ public class TransportAgent extends CommunicationAid{
         double oreLevelThreshold = 0.0;
         while (true) {
             // start CNP with DA
-
-            while (this.timeSchedule.getSize() >= this.taskCap) {   // dont overbook tasks
-                this.sleep(3000);
-            }
  
             // SHEDULE: Message bestOffer = this.offerService(double startTime);
             // System.out.println("12345" + this.timeSchedule.checkEndStateOreLvl());
@@ -206,7 +202,7 @@ public class TransportAgent extends CommunicationAid{
             Message bestOffer = this.offerService(this.getNextTime());
             
             if (bestOffer.isNull){ // if we got no offers from auction we sleep and try again
-                this.sleep(100);
+                this.sleep(1000);
                 continue;
             }
 
@@ -236,6 +232,12 @@ public class TransportAgent extends CommunicationAid{
             // }
             this.sleep(2000);
 
+
+
+            break;
+
+
+
         }
 
     }
@@ -261,7 +263,7 @@ public class TransportAgent extends CommunicationAid{
         //sleep 6 sec before looking at offers
         //TODO create while loop to wait either S seconds or until all agents have responded
         double before = this.getTime();    // wait for offers..
-        while ( this.offers.size() < receivers.size() && this.getTime() - before <= 2.0){
+        while ( this.offers.size() < receivers.size() && this.getTime() - before <= 3.0){
             this.sleep(50);
         }
 
@@ -461,12 +463,11 @@ public class TransportAgent extends CommunicationAid{
             for (Message m : inbox_copy){
                 //TODO fix new msg type 'echo' to respond to 'hello-world'.
                 // this will help us remove this.activeTasks
-                String[] messageParts = this.parseMessage(m, "", true);
+                int taskID = Integer.parseInt(this.parseMessage(m, "taskID")[0]);
                 
-
                 if (m.type == "hello-world"){ 
                     if ( !this.robotsInNetwork.contains(m.sender) ) this.robotsInNetwork.add(m.sender);
-                    this.sendMessage( new Message( m.receiver.get(0), m.sender, "echo", ""));
+                    this.sendMessage( new Message( m.receiver.get(0), m.sender, "echo", Integer.toString(taskID)));
                 }
 
                 if (m.type == "echo"){ 
@@ -474,14 +475,12 @@ public class TransportAgent extends CommunicationAid{
                 }
 
                 else if (m.type == "accept"){
-                    int taskID = Integer.parseInt(messageParts[0]);
                     this.timeSchedule.setTaskActive(taskID);
                 }
 
                 else if (m.type == "decline"){
                     //remove task from activeTasks
                     //SCHEDULE: remove reserved task from schedule
-                    int taskID = Integer.parseInt(messageParts[0]);
                     this.timeSchedule.remove(taskID);
                 }
 
@@ -495,9 +494,8 @@ public class TransportAgent extends CommunicationAid{
 
                 else if (m.type.equals(new String("inform"))) {
                     // TA informs SA when its done with a task.
-                    int taskID = Integer.parseInt(messageParts[0]);
                     String informVal = this.parseMessage(m, "informVal")[0]; 
-                    
+
                     if (informVal.equals(new String("done"))) {
                         // current solution does not receive 'done'-msg
                         //TODO add code if implementing it that way
@@ -511,7 +509,7 @@ public class TransportAgent extends CommunicationAid{
                             * if 2 mission have big overlap then send ABORT msg to later mission.
                             * else all is good.
                         */ 
-                        double newEndTime = Double.parseDouble(messageParts[2]);
+                        double newEndTime = Double.parseDouble(this.parseMessage(m, "ore")[0]); //TODO ore is 3rd element NOT ore in this case
                         if (newEndTime > this.timeSchedule.get(taskID).endTime) {
                             this.timeSchedule.update(taskID, newEndTime);
                         }

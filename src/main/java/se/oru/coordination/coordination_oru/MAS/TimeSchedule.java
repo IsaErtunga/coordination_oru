@@ -22,6 +22,10 @@ public class TimeSchedule {
     public TimeSchedule(Pose lastSetPose) {
         this.startPose = lastSetPose;
     }
+    public TimeSchedule(Pose lastSetPose, double startOre) {
+        this.startPose = lastSetPose;
+        this.oreState.put(0.0, startOre);
+    }
 
 
     public int getSize() {
@@ -177,9 +181,13 @@ public class TimeSchedule {
 
             return true;
         }
+    }
+    public boolean taskPossible(Task t){
+        return this.taskPossible(t.startTime, t.endTime);
     } 
 
-    /**
+
+    /** WE DONT WANT TO USE THIS! REMOVE WHEN POSSIBLE
      * Checks if last task was put by an SA. 
      * @return
      */
@@ -204,7 +212,7 @@ public class TimeSchedule {
      * @return
      */
     public double checkEndStateOreLvl(){    // return the last state
-        double endTime = 0.0;
+        double endTime = -1.0;
         double ore = 0.0;
 
         for (Double key : this.oreState.keySet()) {
@@ -220,6 +228,7 @@ public class TimeSchedule {
 
     protected boolean add(Task task) {
         if (!task.isActive){
+            System.out.println(task.startTime + "-> " + task.endTime +"\tprovider-->"+task.partner);
             this.reservedTasks.put(task.taskID, task);
             return true;
         }

@@ -157,7 +157,7 @@ public class CommunicationDraw {
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);
 
-				DrawAgent DA = new DrawAgent(numDraw[i], router, 45.0, drawPoses[i], mp, startTime);
+				DrawAgent DA = new DrawAgent(numDraw[i], router, 20.0, drawPoses[i], mp, startTime);
 				DA.listener();
 				
 			}

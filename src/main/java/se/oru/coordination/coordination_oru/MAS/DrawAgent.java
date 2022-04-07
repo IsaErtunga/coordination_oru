@@ -37,7 +37,7 @@ public class DrawAgent extends CommunicationAid{
         this.pos = pos;
         this.initalXPos = pos.getX();
 
-        this.timeSchedule = new TimeSchedule();
+        this.timeSchedule = new TimeSchedule(pos, capacity);
         this.startTime = startTime;
 
         router.enterNetwork(this.robotID, this.inbox, this.outbox);
@@ -45,22 +45,19 @@ public class DrawAgent extends CommunicationAid{
 
     }
 
-
     protected double getTime(){
         long diff = System.currentTimeMillis() - this.startTime;
         return (double)(diff)/1000.0;
     }
 
     public void takeOre(double oreChange){
-        // alter ore amount
-        if (this.amount + oreChange > 0.0) this.amount += oreChange;
-        else this.amount = 0; //TODO fix case, TA can think it gets 15 tons but dont
+        oreChange = oreChange < 0.0 ? oreChange : -oreChange; // make sure sign is negative
+        this.amount += oreChange;
 
         double x = this.finalXPos + (this.initalXPos - this.finalXPos) * this.amount / this.capacity;
         this.pos = new Pose( x, pos.getY(), pos.getYaw() );
 
-        System.out.println(this.robotID + " oreChange, new pos -------------->" + this.pos.toString());
-
+        this.print("position updated"+this.pos.toString());
     }
 
 
@@ -88,19 +85,16 @@ public class DrawAgent extends CommunicationAid{
                 }
 
                 else if (m.type == "accept"){
-                    // SCHEDULE: Change isActive.
-                    if ( !this.timeSchedule.setTaskActive(taskID) ){
-                        System.out.println(this.robotID+"############# ACCEPT FROM TASK THAT IS NOT POSSIBLE! #####################");
+                    if ( !this.timeSchedule.setTaskActive(taskID) ){ 
+                        System.out.println(this.robotID +"\t got 'accept' but cant add task to schedule.");
                     }
                     else{
-                        System.out.println("___________________"+this.robotID +"___________________");
+                        System.out.println(this.robotID +"\t TASK ADDED. updated schedule:");
                         this.timeSchedule.printSchedule();
                     }
                 }
 
-                else if (m.type == "decline"){
-                    //TODO add case
-                }
+                else if (m.type == "decline"){} //TODO remove task from reservedTasks in schedule
 
                 else if (m.type == "cnp-service"){
                     this.handleService(m);
@@ -112,42 +106,33 @@ public class DrawAgent extends CommunicationAid{
                     String informVal = messageParts[1];
                     
                     if (informVal.equals(new String("done"))) {
-                        /* SCHEDULE: 
-                            * If early just remove from schedule.
-                        */ 
                         double oreChange = Double.parseDouble(messageParts[2]); 
                         this.timeSchedule.remove(taskID);
                         this.takeOre(oreChange);
                     }
 
-                    else if (informVal.equals(new String("status"))) {
-                        /* SCHEDULE: 
-                            * if TA notice it will not be done in time, we get inform->status msg
-                            * update schedule with new time and check if problem
-                            * if 2 mission have big overlap then send ABORT msg to later mission.
-                            * else all is good.
-                        */ 
-                        double newEndTime = Double.parseDouble(messageParts[2]);
-                        if (newEndTime > this.timeSchedule.get(taskID).endTime) {
-                            this.timeSchedule.update(taskID, newEndTime);
-                        }
-                    }
+                    else if (informVal.equals(new String("status"))) {} //TODO change so schedule gets updated: newEndTime = Double.parseDouble(messageParts[2])                    
 
-                    else if (informVal.equals(new String("abort"))) {
-                        /* SCHEDULE:
-                            * remove task from schedule
-                        */
-                    } 
+                    else if (informVal.equals(new String("abort"))) {} //TODO remove task from schedule 
 
                 }
                 
             }
 
-            //System.out.println(this.robotID + " -- " + this.robotsInNetwork);
             try { Thread.sleep(1000); }
             catch (InterruptedException e) { e.printStackTrace(); }
         }
     }
+
+
+    public PoseSteering[] calculatePath(Pose from, Pose to){
+        this.mp.setGoals(from);
+        this.mp.setStart(to);
+        if (!this.mp.plan()) throw new Error ("No path between " + from + " and " + to);
+
+        return this.mp.getPath();
+    }
+
 
     /**
      * DA responds to TA with offer that is calculated in this function. 
@@ -155,90 +140,83 @@ public class DrawAgent extends CommunicationAid{
      * - Will receive a time from TA of when it can come and fetch ore. 
      */
     public boolean handleService(Message m){ 
-        if (m.type != "cnp-service") return false;
 
-        // SCHEDULE: Need time in the message from TA, need to extend with ore. 
-        String[] mParts = this.parseMessage(m, "", true); //parse=[ taskID, agentID, pos, startTime ]
-        double ore = 15.0;
+        this.print("aaa-start");
 
-        // get pose of TA
+        double availabeOre = this.timeSchedule.checkEndStateOreLvl();
+        if (availabeOre <= 0.0) return false;   //if we dont have ore dont act 
+
+        else availabeOre = availabeOre >= 15.0 ? 15.0 : availabeOre; // only give what ore we have available
+
+        Task DAtask = createTaskFromServiceOffer(m, availabeOre);
+
+        if ( !this.timeSchedule.taskPossible(DAtask) ) return false;    // task doesnt fit in schedule
+
+        int offerVal = this.calculateOffer(DAtask);
+
+        if ( offerVal <= 0 ) return false;
+        
+        if (! this.timeSchedule.add(DAtask) ){
+            this.print("not added!");
+            return false;
+        }
+        
+        /*
+        if( offerVal <= 0 && this.timeSchedule.add(DAtask) == false ) return false; 
+        offerVal == 0:                      enter IF
+        offerVal > 0 -> add(Task) == true:  dont enter IF 
+        offerVal > 0 -> add(Task) == false: enter IF 
+        */
+        this.timeSchedule.printSchedule();
+
+        this.print("aaa-final");
+
+        this.sendMessage(this.createOfferMsgFromTask(DAtask, offerVal, availabeOre));
+
+        return true;
+    }
+
+    protected Message createOfferMsgFromTask(Task t, int offer, double ore){
+        String s = this.separator;
+
+        String startPoseStr = this.stringifyPose(t.fromPose);
+        String endPoseStr = this.stringifyPose(t.toPose);
+        String body = t.taskID +s+ offer +s+ startPoseStr +s+ 
+                      endPoseStr +s+ startTime +s+ t.endTime +s+ ore;
+
+        return new Message(this.robotID, t.partner, "offer", body);
+    }
+
+
+    protected Task createTaskFromServiceOffer(Message m, double ore){
+        String[] mParts = this.parseMessage(m, "", true);
 
         Pose TApos = this.posefyString(mParts[2]);
-
-        //calc euclidean dist between DA -> TA, and capacity evaluation
-        
-        //TODO also include schedule: look if other agent will collect ore here at same time.
-        //TODO add poseSteering.length
-
-        // SCHEDULE: Need to lookup schedule too see if task is possible. 
-        /* SCHEDULE: offer calc will include 
-            * calc path from TA to DA
-            * estimate the time TA will be using this tunnel
-            * look in schedule if there is a time window for the task to fit in. 
-            * - IF true: send offer & reserve time (Insert into schedule list)
-            * - else: dont send offer
-
-            * offer message will include: taskID, offerVal, pos, startTime, endTime
-        */
-
-
-        // Calculate path
-        this.mp.setGoals(this.pos);
-        this.mp.setStart(TApos);
-        if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + TApos);
-        PoseSteering[] path = this.mp.getPath();
+        PoseSteering[] path = this.calculatePath(this.pos, TApos);
+        double distToTA = this.calcDistance(this.pos, TApos);
 
         double startTime = Double.parseDouble(mParts[3]);
         double endTime = this.calculateEndTime(startTime, path);
 
-        // If task is not possible
-        if (this.timeSchedule.taskPossible(startTime, endTime) == false) return false;
-
-        // SCHEDULE: Create new task & and add it to schedule
-        Task DAtask = new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, startTime, endTime, TApos, this.pos);
-        this.timeSchedule.add(DAtask);
-        //this.timeSchedule.printSchedule();
-
-        // offer value calc
-        double distToTA = this.calcDistance(this.pos, TApos);
-
-        int offer = this.evalService(distToTA);
-
-        // generate offer..
-        //int offer = (int)(distToTA + evaluatedCapacity);
-        Message response = createOffer(m, mParts, TApos, this.pos, offer, startTime, endTime, ore);
-        
-        //send offer and log event
-        this.sendMessage(response);
-
-        //System.out.println(this.robotID + ", task: " + this.activeTasks.get(Integer.parseInt(mParts[0])));
-        return true;
+        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, startTime, endTime, distToTA, TApos, this.pos);
     }
 
-    /**
-     * Helper function for creating an offer to respond a service. 
-     * @param message
-     * @param messageParts
-     * @param position
-     * @param offer
-     * @return
-     */
-    protected Message createOffer(Message message, String[] messageParts, Pose startPose, Pose endPos, int offer, double startTime, double endTime, double ore) {
-        String startPoseStr = this.stringifyPose(startPose);
-        String endPoseStr = this.stringifyPose(endPos);
-        String s = this.separator;
-        String body = messageParts[0] +s+ offer +s+ startPoseStr +s+ 
-                      endPoseStr +s+ startTime +s+ endTime +s+ ore;
-        return new Message(this.robotID, message.sender, "offer", body);
-    } 
 
-    protected int evalService(double dist){
-        if (dist <= 2.0) return -1;
+    protected int calculateOffer(Task t){
+        if (t.pathDist <= 2.0) return 0;
 
-        dist = 100 * 1.0 / dist;
+        double dist = 100.0 * 1.0 / t.pathDist;
         double evaluatedCapacity = 50.0 * this.amount / this.capacity; 
 
+        System.out.println("aaaa");
+
+
+
         return (int)(dist + evaluatedCapacity);
+    }
+
+    protected void print(String s){
+        System.out.println("\033[0;36m"+this.robotID+"\t" + s + "\033[0m");
     }
     
 }

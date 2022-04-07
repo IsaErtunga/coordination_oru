@@ -17,6 +17,7 @@ public class Task {
     double startTime;
     double endTime;
     boolean isActive;
+    double pathDist;
 
     // TA
     Mission mission;
@@ -58,6 +59,21 @@ public class Task {
         this.fromPose = fromPose;
         this.toPose = toPose;
     }
+
+    Task(int taskID, int partner, boolean isActive, double ore, double startTime, double endTime, double dist, Pose fromPose, Pose toPose) {
+        this.taskID = taskID;
+        this.partner = partner;
+        this.isActive = isActive;
+        this.ore = ore;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.fromPose = fromPose;
+        this.toPose = toPose;
+        this.pathDist = dist;
+    }
+
+
+
 
     Task(double start, double end){
         this(start, end, 0);

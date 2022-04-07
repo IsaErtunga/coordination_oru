@@ -19,7 +19,7 @@ import se.oru.coordination.coordination_oru.simulation2D.TrajectoryEnvelopeCoord
 import se.oru.coordination.coordination_oru.Mission;
 
 
-public class CommunicationAid {
+public class CommunicationAid extends HelpFunctions{
     protected int lowerTaskIDBound = 1000;
     protected int upperTaskIDBound = 9999;
     protected String separator = ",";
@@ -158,30 +158,6 @@ public class CommunicationAid {
     public Pose posefyString(String s) {
         double[] coordinates = Arrays.stream(s.split(" ")).mapToDouble(Double::parseDouble).toArray();
         return new Pose(coordinates[0], coordinates[1], coordinates[2]);
-    }
-
-    /**
-     * Helper function to calculate endTime based on startTime and the path it took. 
-     * @param startTime
-     * @param path
-     * @return
-     */
-    public double calculateEndTime(double startTime, PoseSteering[] path) {
-          // Estimate path time
-          double accumulatedDist = 0.0;
-	    
-          for (int i=0; i< path.length-1; i++) {
-              Pose p1 = path[i].getPose();
-              Pose p2 = path[i+1].getPose();
-  
-              double deltaS = p1.distanceTo(p2);
-              accumulatedDist += deltaS;
-          }
-  
-          double vel = 0.068;
-          double estimatedPathTime = vel * accumulatedDist;
-          double endTime = startTime + estimatedPathTime;
-          return endTime;
     }
 
 
