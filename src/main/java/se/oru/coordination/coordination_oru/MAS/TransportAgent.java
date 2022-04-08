@@ -133,11 +133,11 @@ public class TransportAgent extends CommunicationAid{
 
 
     /**
-     * 
+     * Compare robot pose to task end pose to see if Task is finished
      * @param task
      * @return
      */
-    protected Boolean isMissionDone (Task task) {
+    protected Boolean isTaskDone (Task task) {
         // Distance from robots actual position to task goal pose
         return this.tec.getRobotReport(this.robotID).getPose().distanceTo(task.toPose) < 0.5;
     }
@@ -150,10 +150,7 @@ public class TransportAgent extends CommunicationAid{
         while (true) {
             // Execute task while its schedule is not empty
             if (this.timeSchedule.getSize() > 0) {
-                /* SCHEDULE: Only execute task if: 
-                    * It is time to perform task. (if not wait, TODO do not just wait or something..)
-                    * The task is marked as active.
-
+                /* SCHEDULE:
                     * IF we start performing task long after startTime:
                         - update schedule to the delay
                     *   - inform receiving-end of the delay
@@ -169,7 +166,7 @@ public class TransportAgent extends CommunicationAid{
                 
                 // if robot managed to complete task 
                 //String oreChange = task.partner<10000 ? Integer.toString(this.oreCap) : Integer.toString(-this.oreCap);
-                while (!isMissionDone(task)) {
+                while (!isTaskDone(task)) {
                     this.sleep(500);
                 }
                 
@@ -178,15 +175,14 @@ public class TransportAgent extends CommunicationAid{
 
                 // if robot didn't manage to complete task
             }
-            try { Thread.sleep(500); }
-            catch (InterruptedException e) { e.printStackTrace(); }
+            this.sleep(500);
         }
     }
 
     protected void initialState() {
-        double oreLevelThreshold = 0.0;
+        double oreLevelThreshold = 1.0;
         while (true) {
-
+            
             if ( false ){} //TODO check if we have an inconsistent schedule ore-wise
 
             else if ( this.timeSchedule.checkEndStateOreLvl() <= oreLevelThreshold ){ // book task to get ore
@@ -198,11 +194,13 @@ public class TransportAgent extends CommunicationAid{
                     continue;
                 }
     
-                Task task = this.createTaskFromMessage(bestOffer, true);
+                Task task = this.createTaskFromOfferMessage(bestOffer);
     
                 if ( this.timeSchedule.add(task) == false ){ // if false then task no longer possible, send abort msg to task partner
+                    this.print("TASK ABORTED");
                     this.sendMessage(new Message(this.robotID, task.partner, "abort", Integer.toString(task.taskID)));
                 }
+                this.timeSchedule.printSchedule();
             }
 
             else {
@@ -314,6 +312,9 @@ public class TransportAgent extends CommunicationAid{
      * @return true if we send offer = we expect resp.
      */
     public boolean handleService(Message m) { 
+
+        this.print("handleService-START");
+        
         double availabeOre = this.timeSchedule.checkEndStateOreLvl();
         if (availabeOre <= 0.0) return false;   //if we dont have ore dont act 
 
@@ -324,39 +325,15 @@ public class TransportAgent extends CommunicationAid{
         if ( !this.timeSchedule.taskPossible(SATask) ) return false;    // task doesnt fit in schedule
 
         int offerVal = this.calculateOffer(SATask);
-        
-        Pose SApos = this.posefyString(mParts[2]);
-        Pose start = this.timeSchedule.getLastToPose();
 
-        this.mp.setStart(start);
-        this.mp.setGoals(SApos);
+        if ( offerVal <= 0 ) return false;
 
-        if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + SApos);
-        PoseSteering[] path = this.mp.getPath();
-
-        // Extract startTime, and calculate endTime.
-        double startTime = Double.parseDouble(mParts[3]);
-        double endTime = this.calculateEndTime(startTime, path);
-        double distEval = endTime - startTime;
-
-        
-
-        // If task is not possible
-        if (this.timeSchedule.taskPossible(startTime, endTime) == false) {
-            return false; 
+        if (! this.timeSchedule.add(SATask) ){
+            this.print("not added!");
+            return false;
         }
-
-        // SCHEDULE: Create new task & and add it to schedule
-        double ore = 15.0;
-        Task TAtask = new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, startTime, endTime, start, SApos);
-        this.timeSchedule.add(TAtask);
-        System.out.println("schedule for: "+this.robotID);
-        this.timeSchedule.printSchedule();
-
-        // TODO: Change to time. 
-        
-        // Create offer
-        Message response = createOffer(m, mParts, distEval, start, SApos, startTime, endTime, ore);
+   
+        Message response = this.createOfferMsgFromTask(SATask, offerVal, availabeOre);
     
         // räkna ut ett bud och skicka det.
         this.sendMessage(response);
@@ -370,18 +347,33 @@ public class TransportAgent extends CommunicationAid{
      * @param ore the amount of ore the task is about
      * @return a Task with attributes extracted from m
      */
-    protected Task createTaskFromServiceOffer(Message m, double ore, Pose pos){
+    protected Task createTaskFromServiceOffer(Message m, double ore, Pose startPos){
         String[] mParts = this.parseMessage(m, "", true);
 
-        Pose TApos = this.posefyString(mParts[2]);
-        PoseSteering[] path = this.calculatePath(pos, TApos);
+        Pose SAPos = this.posefyString(mParts[2]);
+        PoseSteering[] path = this.calculatePath(startPos, SAPos);
         double pathDist = this.calculatePathDist(path);
         double pathTime = this.calculateDistTime(pathDist);
 
-        double startTime = Double.parseDouble(mParts[3]);
+        double startTime = this.getNextTime();
         double endTime = startTime + pathTime;
 
-        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, startTime, endTime, pathTime, TApos, pos);
+        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, startTime, endTime, pathDist, startPos, SAPos);
+    }
+
+    // -----------------------------ANVÄNDS EJ----------------------------------------
+    /**
+     * 
+     * @param message
+     * @return Task
+     */
+    protected Task createTaskFromOfferMessage(Message m) {
+        String[] mParts = this.parseMessage(m, "", true);
+        // replace intexes
+        
+        // Task(int taskID, int partner, boolean isActive, double ore, double startTime, double endTime, double dist, Pose fromPose, Pose toPose) {
+        return new Task(Integer.parseInt(mParts[0]), m.sender, true, Double.parseDouble(mParts[6]), Double.parseDouble(mParts[4]),
+                        Double.parseDouble(mParts[5]), this.posefyString(mParts[2]), this.posefyString(mParts[3]));
     }
 
     /**
@@ -400,6 +392,26 @@ public class TransportAgent extends CommunicationAid{
                                     + this.separator + startTime + this.separator + endTime + this.separator + ore;
         return new Message(this.robotID, message.sender, "offer", body);
     }
+    // -----------------------------------------------------------------------------------
+
+       /** Used to generate a response message from a task. Called from {@link handleService}
+     * after creating a task with {@link createTaskFromServiceOffer}.
+     * @param t a Task that is unactive = t.isActive = false
+     * @param offer an int that is the calculated evaluation of the service related to t
+     * @param ore a double representing the ore amount the task handels
+     * @return returns a Message with attributes extracted from the parameters
+     */
+    protected Message createOfferMsgFromTask(Task t, int offer, double ore){
+        String s = this.separator;
+
+        String startPoseStr = this.stringifyPose(t.fromPose);
+        String endPoseStr = this.stringifyPose(t.toPose);
+        String body = t.taskID +s+ offer +s+ startPoseStr +s+ 
+                      endPoseStr +s+ startTime +s+ t.endTime +s+ ore;
+
+        return new Message(this.robotID, t.partner, "offer", body);
+    }
+
 
     public PoseSteering[] calculatePath(Pose from, Pose to){
         this.mp.setGoals(from);
@@ -410,10 +422,21 @@ public class TransportAgent extends CommunicationAid{
     }
     
     
+    /**
+     * Calculates and returns offer based on distance and ore-level
+     * @param t
+     * @return offer
+     */
     protected int calculateOffer(Task t){
+        // STEG 1: Full amount - Kolla distans 
 
+        // Annars: (100 * this.amount) / (pathDistance * this.capacity)
+        // If this.getNextTime > startTime för SA. Ge penalty
 
-        return 0;
+        if (t.pathDist <= 0.0) t.pathDist = 150.0; //TODO temp fix
+        int offer = (int)(100.0 * 1.0 / t.pathDist);
+
+        return offer;
     }   
 
     /**
