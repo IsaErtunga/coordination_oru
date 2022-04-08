@@ -15,12 +15,17 @@ import se.oru.coordination.coordination_oru.ConstantAccelerationForwardModel;
 
 
 public class TransportAgent extends CommunicationAid{
+    //Control parameters
+    protected double TIME_WAITING_FOR_OFFERS = 3.0;
+
+
     protected TrajectoryEnvelopeCoordinatorSimulation tec;
     protected ReedsSheppCarPlanner mp;
 
     protected Coordinate[] rShape;
     protected Pose startPose;
     protected final Double oreCap = 15.0;
+    protected Double holdingOre = 0.0;
     protected final int taskCap = 4;
 
     protected TimeSchedule timeSchedule;
@@ -46,13 +51,11 @@ public class TransportAgent extends CommunicationAid{
         this.startPose = startPos;
         this.startTime = startTime;
 
-        this.timeSchedule = new TimeSchedule(startPos);
+        this.timeSchedule = new TimeSchedule(startPos, 0.0);
 
         // enter network and broadcast our id to others.
         router.enterNetwork(this);
-
-        String type = "hello-world";
-        this.sendMessage(new Message(this.robotID, type, ""), true);
+        this.sendMessage(new Message(this.robotID, "hello-world", ""), true);
                 
         double xl = 5.0;
 	    double yl = 3.7;
@@ -126,7 +129,6 @@ public class TransportAgent extends CommunicationAid{
 
         // Motion planner
         tec.setMotionPlanner(this.robotID, this.mp);
-
     }
 
 
@@ -184,60 +186,30 @@ public class TransportAgent extends CommunicationAid{
     protected void initialState() {
         double oreLevelThreshold = 0.0;
         while (true) {
-            // start CNP with DA
- 
-            // SHEDULE: Message bestOffer = this.offerService(double startTime);
-            // System.out.println("12345" + this.timeSchedule.checkEndStateOreLvl());
-            while (this.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold) {
-                // System.out.println(this.robotID + "\tthis.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold ----> " + (this.timeSchedule.checkEndStateOreLvl() > oreLevelThreshold));
-                System.out.println("+++ WAITING FOR TASK BY STORAGE AGENT +++");
-                // We only create an auction if ore level is lower than treshold
-                // Possibly bad to check every iteration
-                
-                this.sleep(500);
-            }
-            
 
-            // SCHEDULE: Send when it can start. 
-            Message bestOffer = this.offerService(this.getNextTime());
-            
-            if (bestOffer.isNull){ // if we got no offers from auction we sleep and try again
-                this.sleep(1000);
-                continue;
-            }
+            if ( false ){} //TODO check if we have an inconsistent schedule ore-wise
 
-            // SCHEDULE: Receive offer message from DrawAgent. 
-            // body -> int taskID & int offerVal & pos & startTime & endTime
-            String[] msgParts = this.parseMessage(bestOffer, "", true);
+            else if ( this.timeSchedule.checkEndStateOreLvl() <= oreLevelThreshold ){ // book task to get ore
 
+                Message bestOffer = this.offerService(this.getNextTime()); // hold auction with DA's
 
-            // create task ========================================================
-
-            // queue mission to DA
-            // TODO move to function
-
-            Task task = this.createTaskFromMessage(bestOffer, true);
+                if (bestOffer.isNull){ 
+                    this.sleep(200);
+                    continue;
+                }
     
-            // ===========================================================================
+                Task task = this.createTaskFromMessage(bestOffer, true);
+    
+                if ( this.timeSchedule.add(task) == false ){ // if false then task no longer possible, send abort msg to task partner
+                    this.sendMessage(new Message(this.robotID, task.partner, "abort", Integer.toString(task.taskID)));
+                }
+            }
 
-            // SCHEDULE: Add into schedule according to time.
-            this.timeSchedule.add(task);
-            this.timeSchedule.printSchedule();
+            else {
+                this.print("WAITING FOR TASK BY STORAGE AGENT");
+            }
 
-            // wait for SA mission to be added
-            // while (!this.schedule.isLastTaskSA()){
-
-            //     try { Thread.sleep(300); }
-            //     catch (InterruptedException e) { e.printStackTrace(); }
-            // }
-            this.sleep(2000);
-
-
-
-            break;
-
-
-
+            this.sleep(500);
         }
 
     }
@@ -246,7 +218,6 @@ public class TransportAgent extends CommunicationAid{
      * 
      * @param robotID id of robot{@link TransportAgent} calling this
      */
- 
     public Message offerService(double startTime) {
 
         // Get correct receivers
@@ -254,46 +225,42 @@ public class TransportAgent extends CommunicationAid{
 
         if (receivers.size() <= 0) return new Message();
         
-
         this.offers.clear();
-
-        // Create and send CNP message
-        int taskID = createCNPMessage(startTime, receivers);
+        String startPos = this.stringifyPose(this.timeSchedule.getLastToPose());
+        int taskID = this.sendCNPmessage(startTime, startPos, receivers);
     
-        //sleep 6 sec before looking at offers
-        //TODO create while loop to wait either S seconds or until all agents have responded
-        double before = this.getTime();    // wait for offers..
-        while ( this.offers.size() < receivers.size() && this.getTime() - before <= 3.0){
-            this.sleep(50);
-        }
 
-        if (this.offers.size() <= 0){
-            System.out.println(this.robotID +"---------------no offer received, ABORT");
-            return new Message();
-        }
-        
-        System.out.println(this.robotID +"======================4");
-
+        double time = this.waitForAllOffersToCome(receivers.size());
+        this.print("time waited for offers-->"+time);
     
         Message bestOffer = this.handleOffers(taskID); //extract best offer
 
-        System.out.println(this.robotID +"======================5");
-
         if (!bestOffer.isNull){        
-            // Send response: Mission to best offer sender, and deny all the other ones.
             Message acceptMessage = new Message(robotID, bestOffer.sender, "accept", Integer.toString(taskID) );
             this.sendMessage(acceptMessage);
 
             receivers.removeIf(i -> i==bestOffer.sender);
 
             if (receivers.size() > 0){
-                // Send decline message to all the others. 
                 Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));
                 this.sendMessage(declineMessage);
-
             }
         }
         return bestOffer;
+    }
+
+    /** This function is locking. will wait for offers from all recipients to arrive OR return on the time delay.
+     * 
+     * @param nrOfReceivers an int with the number of recipients of the cnp message sent. 
+     * @return a double with the time it took before exiting this function.
+     */
+    protected double waitForAllOffersToCome(int nrOfReceivers){
+        double before = this.getTime();
+
+        while ( this.offers.size() < nrOfReceivers && this.getTime() - before <= this.TIME_WAITING_FOR_OFFERS){
+            this.sleep(50);
+        }
+        return (this.getTime() - before);
     }
 
     /**
@@ -301,54 +268,43 @@ public class TransportAgent extends CommunicationAid{
      * TODO needs to be changed in various ways. And maybe moved to communicationAid.
      * @param startTime
      * @param receivers
-     * @return
+     * @return taskID
      */
-    public int createCNPMessage(double startTime, ArrayList<Integer> receivers) {
-        // broadcast message to all transport agents
-        //Pose pos = new Pose(63.0,68.0, 0.0);
-        
-        // SCHEDULE: TODO change to lastToPose. 
-        Pose start = this.timeSchedule.getLastToPose();
-        // start = this.tec.getRobotReport(this.robotID).getPose();
-        String startPos = this.stringifyPose(start);
-
+    public int sendCNPmessage(double startTime, String startPos, ArrayList<Integer> receivers) {
         // taskID & agentID & pos & startTime 
-        String body = this.robotID + this.separator + startPos + this.separator + startTime;
+        String startTimeStr = Double.toString(startTime);
+        String body = this.robotID + this.separator + startPos + this.separator + startTimeStr;
         Message m = new Message(this.robotID, receivers, "cnp-service", body);
-
         return this.sendMessage(m, true);
     }
 
-    /**
-     * Eventually remove from communicationAid
-     * SCHEDULE: Check if task fits into our schedule.
+    /** //TODO looks good for now. will use timeSchedule.evaluateTimeSlot() in future
+     * 
+     * HandleOffers is called from a SA, to either accept the offer of a TA, or deny it.
+     * @return the message that is the best offer
      */
     public Message handleOffers(int taskID) {
-
         Message bestOffer = new Message();
         int offerVal = 0;
-        
-        // Sort offers for the best one
-
-        for ( Message m : this.offers ){
-
+    
+        for (Message m : this.offers) {
             // SCHEDULE: Extract startTime & endTime and see if it fits into schedule
             double startTime = Double.parseDouble(parseMessage(m, "startTime")[0]);
             double endTime = Double.parseDouble(parseMessage(m, "endTime")[0]);
-
-            if(!m.isNull && this.timeSchedule.taskPossible(startTime, endTime)) {
+  
+            if( this.timeSchedule.taskPossible(startTime, endTime) ) {
                 String[] mParts = this.parseMessage( m, "", true); // sort out offer not part of current auction(taskID)
-                if (Integer.parseInt(mParts[0]) == taskID){
+
+                if ( Integer.parseInt(mParts[0]) == taskID ){
                     int val = Integer.parseInt(mParts[1]);
-                    if (val > offerVal) {
+
+                    if (val > offerVal){
                         offerVal = val;
                         bestOffer = new Message(m);
                     }
-                    //this.offers.remove(m);
                 }
             }
         }
-        //TODO make it able to choose another offer if OG one was not possible
         return bestOffer;
     }
 
@@ -358,11 +314,16 @@ public class TransportAgent extends CommunicationAid{
      * @return true if we send offer = we expect resp.
      */
     public boolean handleService(Message m) { 
-        if (m.type != "cnp-service") return false;
+        double availabeOre = this.timeSchedule.checkEndStateOreLvl();
+        if (availabeOre <= 0.0) return false;   //if we dont have ore dont act 
 
-        if ( this.timeSchedule.getSize() >= this.taskCap) return false;    // dont overbook tasks
+        Pose pos = this.timeSchedule.getLastToPose();
 
-        String[] mParts = this.parseMessage( m, "", true);
+        Task SATask = this.createTaskFromServiceOffer(m, availabeOre, pos);
+
+        if ( !this.timeSchedule.taskPossible(SATask) ) return false;    // task doesnt fit in schedule
+
+        int offerVal = this.calculateOffer(SATask);
         
         Pose SApos = this.posefyString(mParts[2]);
         Pose start = this.timeSchedule.getLastToPose();
@@ -403,6 +364,26 @@ public class TransportAgent extends CommunicationAid{
         return true;
     }
 
+    /** When receiving a cnp-message, this function will create a task from that message.
+     * Only used in {@link handleService}.
+     * @param m the message from the auctioneer
+     * @param ore the amount of ore the task is about
+     * @return a Task with attributes extracted from m
+     */
+    protected Task createTaskFromServiceOffer(Message m, double ore, Pose pos){
+        String[] mParts = this.parseMessage(m, "", true);
+
+        Pose TApos = this.posefyString(mParts[2]);
+        PoseSteering[] path = this.calculatePath(pos, TApos);
+        double pathDist = this.calculatePathDist(path);
+        double pathTime = this.calculateDistTime(pathDist);
+
+        double startTime = Double.parseDouble(mParts[3]);
+        double endTime = startTime + pathTime;
+
+        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, startTime, endTime, pathTime, TApos, pos);
+    }
+
     /**
      * Helper function for handleService to create an offer message.
      * @param message
@@ -419,9 +400,17 @@ public class TransportAgent extends CommunicationAid{
                                     + this.separator + startTime + this.separator + endTime + this.separator + ore;
         return new Message(this.robotID, message.sender, "offer", body);
     }
+
+    public PoseSteering[] calculatePath(Pose from, Pose to){
+        this.mp.setGoals(from);
+        this.mp.setStart(to);
+        if (!this.mp.plan()) throw new Error ("No path between " + from + " and " + to);
+
+        return this.mp.getPath();
+    }
     
     
-    protected int evalService(double dist){
+    protected int calculateOffer(Task t){
 
 
         return 0;
@@ -530,4 +519,12 @@ public class TransportAgent extends CommunicationAid{
             catch (InterruptedException e) { e.printStackTrace(); }
         }
     }
+
+    /**simlpe print func with color and robotID included
+     * @param s string to be printed
+     */
+    protected void print(String s){
+        System.out.println("\033[0;35m"+this.robotID+"\t" + s + "\033[0m");
+    }
+
 }

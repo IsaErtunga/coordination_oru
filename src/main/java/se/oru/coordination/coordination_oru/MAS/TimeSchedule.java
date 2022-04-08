@@ -187,6 +187,18 @@ public class TimeSchedule {
     } 
 
 
+    /** will evaluate how good a timeslot is in the schedule.
+     * 
+     * @param start start time of slot
+     * @param end end time of slot
+     * @return an int where higher is better, and 0 is not possible
+     */
+    public int evaluateTimeSlot(double start, double end){
+
+        return 0;
+    }
+
+
     /** WE DONT WANT TO USE THIS! REMOVE WHEN POSSIBLE
      * Checks if last task was put by an SA. 
      * @return
@@ -228,7 +240,6 @@ public class TimeSchedule {
 
     protected boolean add(Task task) {
         if (!task.isActive){
-            System.out.println(task.startTime + "-> " + task.endTime +"\tprovider-->"+task.partner);
             this.reservedTasks.put(task.taskID, task);
             return true;
         }

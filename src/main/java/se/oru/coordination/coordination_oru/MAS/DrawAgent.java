@@ -85,13 +85,10 @@ public class DrawAgent extends CommunicationAid{
                 }
 
                 else if (m.type == "accept"){
-                    if ( !this.timeSchedule.setTaskActive(taskID) ){ 
-                        System.out.println(this.robotID +"\t got 'accept' but cant add task to schedule.");
+                    if ( this.timeSchedule.setTaskActive(taskID) ){ 
+                        this.print("task added to schedule, taskID-->"+taskID);
                     }
-                    else{
-                        System.out.println(this.robotID +"\t TASK ADDED. updated schedule:");
-                        this.timeSchedule.printSchedule();
-                    }
+                    else{} //TODO task not added, need to send abort to taskProvider.
                 }
 
                 else if (m.type == "decline"){} //TODO remove task from reservedTasks in schedule
@@ -101,20 +98,7 @@ public class DrawAgent extends CommunicationAid{
                 }
 
                 else if (m.type.equals(new String("inform"))) {
-                    // TA informs SA when its done with a task.
-                    String[] messageParts = this.parseMessage(m, "", true);
-                    String informVal = messageParts[1];
-                    
-                    if (informVal.equals(new String("done"))) {
-                        double oreChange = Double.parseDouble(messageParts[2]); 
-                        this.timeSchedule.remove(taskID);
-                        this.takeOre(oreChange);
-                    }
-
-                    else if (informVal.equals(new String("status"))) {} //TODO change so schedule gets updated: newEndTime = Double.parseDouble(messageParts[2])                    
-
-                    else if (informVal.equals(new String("abort"))) {} //TODO remove task from schedule 
-
+                    this.handleInformMessage(m);
                 }
                 
             }
@@ -122,6 +106,21 @@ public class DrawAgent extends CommunicationAid{
             try { Thread.sleep(1000); }
             catch (InterruptedException e) { e.printStackTrace(); }
         }
+    }
+
+    protected void handleInformMessage(Message m){
+        int taskID = Integer.parseInt(this.parseMessage(m, "taskID")[0]);
+        String informVal = this.parseMessage(m, "informVal")[0];
+        
+        if (informVal.equals(new String("done"))) {
+            double oreChange = Double.parseDouble(this.parseMessage(m, "", true)[2]);
+            this.timeSchedule.remove(taskID);
+            this.takeOre(oreChange);
+        }
+
+        else if (informVal.equals(new String("status"))) {} //TODO change so schedule gets updated: newEndTime = Double.parseDouble(messageParts[2])                    
+
+        else if (informVal.equals(new String("abort"))) {} //TODO remove task from schedule 
     }
 
 
@@ -133,7 +132,6 @@ public class DrawAgent extends CommunicationAid{
         return this.mp.getPath();
     }
 
-
     /**
      * DA responds to TA with offer that is calculated in this function. 
      * SCHEDULE:
@@ -141,7 +139,7 @@ public class DrawAgent extends CommunicationAid{
      */
     public boolean handleService(Message m){ 
 
-        this.print("aaa-start");
+        this.print("handleService-START");
 
         double availabeOre = this.timeSchedule.checkEndStateOreLvl();
         if (availabeOre <= 0.0) return false;   //if we dont have ore dont act 
@@ -154,28 +152,50 @@ public class DrawAgent extends CommunicationAid{
 
         int offerVal = this.calculateOffer(DAtask);
 
+
         if ( offerVal <= 0 ) return false;
-        
+
         if (! this.timeSchedule.add(DAtask) ){
             this.print("not added!");
             return false;
         }
-        
-        /*
-        if( offerVal <= 0 && this.timeSchedule.add(DAtask) == false ) return false; 
-        offerVal == 0:                      enter IF
-        offerVal > 0 -> add(Task) == true:  dont enter IF 
-        offerVal > 0 -> add(Task) == false: enter IF 
-        */
+
         this.timeSchedule.printSchedule();
 
-        this.print("aaa-final");
+        this.print("handleService-SENDING OFFER");
 
         this.sendMessage(this.createOfferMsgFromTask(DAtask, offerVal, availabeOre));
 
         return true;
     }
 
+    /** When receiving a cnp-message, this function will create a task from that message.
+     * Only used in {@link handleService}.
+     * @param m the message from the auctioneer
+     * @param ore the amount of ore the task is about
+     * @return a Task with attributes extracted from m
+     */
+    protected Task createTaskFromServiceOffer(Message m, double ore){
+        String[] mParts = this.parseMessage(m, "", true);
+
+        Pose TApos = this.posefyString(mParts[2]);
+        PoseSteering[] path = this.calculatePath(this.pos, TApos);
+        double pathDist = this.calculatePathDist(path);
+        double pathTime = this.calculateDistTime(pathDist);
+
+        double startTime = Double.parseDouble(mParts[3]);
+        double endTime = startTime + pathTime;
+
+        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, startTime, endTime, pathTime, TApos, this.pos);
+    }
+
+    /** Used to generate a response message from a task. Called from {@link handleService}
+     * after creating a task with {@link createTaskFromServiceOffer}.
+     * @param t a Task that is unactive = t.isActive = false
+     * @param offer an int that is the calculated evaluation of the service related to t
+     * @param ore a double representing the ore amount the task handels
+     * @return returns a Message with attributes extracted from the parameters
+     */
     protected Message createOfferMsgFromTask(Task t, int offer, double ore){
         String s = this.separator;
 
@@ -187,34 +207,24 @@ public class DrawAgent extends CommunicationAid{
         return new Message(this.robotID, t.partner, "offer", body);
     }
 
-
-    protected Task createTaskFromServiceOffer(Message m, double ore){
-        String[] mParts = this.parseMessage(m, "", true);
-
-        Pose TApos = this.posefyString(mParts[2]);
-        PoseSteering[] path = this.calculatePath(this.pos, TApos);
-        double distToTA = this.calcDistance(this.pos, TApos);
-
-        double startTime = Double.parseDouble(mParts[3]);
-        double endTime = this.calculateEndTime(startTime, path);
-
-        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, startTime, endTime, distToTA, TApos, this.pos);
-    }
-
-
+    /** this function evaluates a task and calculates how good this task fits for this agent.
+     * If this function determins that we dont want to participate in the auction this function
+     * will return 0.
+     * @param t the task to be evaluated how well it fits for this agent
+     * @return an int with the value of this task.
+     */
     protected int calculateOffer(Task t){
         if (t.pathDist <= 2.0) return 0;
 
         double dist = 100.0 * 1.0 / t.pathDist;
         double evaluatedCapacity = 50.0 * this.amount / this.capacity; 
 
-        System.out.println("aaaa");
-
-
-
         return (int)(dist + evaluatedCapacity);
     }
 
+    /**simlpe print func with color and robotID included
+     * @param s string to be printed
+     */
     protected void print(String s){
         System.out.println("\033[0;36m"+this.robotID+"\t" + s + "\033[0m");
     }

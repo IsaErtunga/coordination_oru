@@ -14,6 +14,11 @@ import se.oru.coordination.coordination_oru.MAS.Router;
 
 
 public class StorageAgent extends CommunicationAid{
+    //Control parameters
+    protected double TIME_WAITING_FOR_OFFERS = 3.0;
+
+
+
     protected Pose startPose;
     protected double capacity;  // capacity of storage = max ore it can store in TONS
     protected double amount;    // the current amount it has stored in TONS
@@ -36,18 +41,17 @@ public class StorageAgent extends CommunicationAid{
      * @param startPos
      */
     public StorageAgent(int r_id, Router router, double capacity, Pose startPos, long startTime){
-        System.out.println("===== Storage Constructor =====");
+        this.print("STORAGE AGENT INITIATED");
         this.robotID = r_id;
         this.capacity = capacity;
-        this.amount = 0;
+        this.amount = capacity / 2.0;
         this.startPose = startPos;
-        this.timeSchedule = new TimeSchedule();
+        this.timeSchedule = new TimeSchedule(startPos, this.amount);
         this.startTime = startTime;
 
         router.enterNetwork(this);
 
-        String type = "hello-world";
-        this.sendMessage(new Message(this.robotID, type, ""), true);
+        this.sendMessage(new Message(this.robotID, "hello-world", ""), true);
     }
 
 
@@ -62,22 +66,24 @@ public class StorageAgent extends CommunicationAid{
         return nextTime == -1.0 ? this.getTime()+STARTUP_ADD : nextTime;
     }
 
-
-    /**
-     * 
-     */
     public void status () {
         while(true) {
-            if (this.timeSchedule.checkEndStateOreLvl() < this.oreStateThreshold && 
-                this.timeSchedule.checkEndStateOreLvl() < 0.7*capacity) {
-                // SCHEDULE
-                Message bestOffer = this.offerService();
+            if ( this.amount < this.oreStateThreshold ){} //TODO request ore fast
+
+
+            else if ( false ){} //TODO check if we need more or at some point in future
+
+
+            else if ( this.timeSchedule.checkEndStateOreLvl() < 0.9*capacity ){ // plan future tasks
+
+                Message bestOffer = this.offerService(this.getNextTime());
+
                 if (!bestOffer.isNull) {
                     Task task = this.createTaskFromMessage(bestOffer, true);
                     this.timeSchedule.add(task);
                 }
-            this.sleep(5000);
-            }   
+            }
+            this.sleep(2000);
         }      
     }
 
@@ -97,57 +103,41 @@ public class StorageAgent extends CommunicationAid{
     }
 
     public void addOre(double ore){
-        
+        ore = ore > 0.0 ? ore : -ore; // give ore + sign
         if (this.amount + ore <= this.capacity && ore>0) this.amount = this.amount + ore;
     }
 
     public double dumpOre(double reqAmount){
-        double ret = 0.0;
+        reqAmount = reqAmount > 0.0 ? reqAmount : -reqAmount; // give reqAmount + sign
         
-        if (reqAmount > 0){
-            if (this.amount - reqAmount < 0){
-                ret = this.amount;
-                this.amount = 0.0;
-            }
-            else{
-                ret = reqAmount;
-                this.amount = this.amount - reqAmount;
-            } 
-        }
-        return ret;
-    }
-
-    public void communicateState(){
-        // coms
-
-    }
-
-    public void taskHandler(int taskID, Message m){
-        String[] taskInfo = this.activeTasks.get(taskID).split(this.separator);
-
-        if (taskInfo[0] == "hello-world" && !this.robotsInNetwork.contains(m.sender)){
-            this.robotsInNetwork.add(m.sender);
+        if (this.amount - reqAmount < 0){
+            double ret = this.amount;
+            this.amount = 0.0;
+            return ret;
         }
 
+        this.amount = this.amount - reqAmount;
+        return reqAmount;
     }
 
     public void listener(){
         ArrayList<Message> inbox_copy;
 
         while(true){
-        
             synchronized(inbox){
                 inbox_copy = new ArrayList<Message>(this.inbox);
                 this.inbox.clear();
             }
 
             for (Message m : inbox_copy){
+                int taskID = Integer.parseInt(this.parseMessage(m, "taskID")[0]);
+                
                 if (m.type == "hello-world"){ 
                     if ( !this.robotsInNetwork.contains(m.sender) ) this.robotsInNetwork.add(m.sender);
-                    this.sendMessage( new Message( m.receiver.get(0), m.sender, "echo", ""));
+                    this.sendMessage( new Message( m.receiver.get(0), m.sender, "echo", Integer.toString(taskID)));
                 }
 
-                if (m.type == "echo"){ 
+                else if (m.type == "echo"){ 
                     if ( !this.robotsInNetwork.contains(m.sender) ) this.robotsInNetwork.add(m.sender);
                 }
 
@@ -155,33 +145,11 @@ public class StorageAgent extends CommunicationAid{
                     this.offers.add(m);
                 }
 
-                else if (m.type == "accept"){
-                    this.taskHandler(Integer.parseInt(m.body), m);
-                }
+                else if (m.type == "accept"){} //TODO does nothing in our Scenario atm
 
                 
                 else if (m.type == "inform") {
-                    // TA informs SA when its done with a task.
-                    String informVal = this.parseMessage(m, "informVal")[0]; 
-                    String taskID = this.parseMessage(m, "taskID")[0];
-                    double ore = Double.parseDouble(this.parseMessage(m, "ore")[0]);
-    
-                    if (informVal.equals(new String("abort"))) {
-                        // Create a new task. 
-                        // offerService();
-                    } 
-                    else if (informVal.equals(new String("done"))) {
-                        System.out.println("****************** DONE ***********************");
-                        if (ore >= 0) {
-                            addOre(ore);
-                        } else {
-                            dumpOre(ore);
-                        }
-                    }
-                    else if (informVal.equals(new String("result"))) {
-                        
-                    }
-                    
+                    this.handleInformMessage(m);
                 }
                 
             }
@@ -190,30 +158,44 @@ public class StorageAgent extends CommunicationAid{
 
     }
 
+    /** this function holds the logic for handeling messages with type 'inform'. 
+     * 
+     * @param m the message with the 'inform'-type.
+     */
+    protected void handleInformMessage(Message m){
+        int taskID = Integer.parseInt(this.parseMessage(m, "taskID")[0]);
+        String informVal = this.parseMessage(m, "informVal")[0];
+        
+        if (informVal.equals(new String("done"))) {
+            double oreChange = Double.parseDouble(this.parseMessage(m, "", true)[2]);
+            this.timeSchedule.remove(taskID);
+
+            if (oreChange > 0) this.addOre(oreChange);
+                
+            else this.dumpOre(oreChange);
+        }
+
+        else if (informVal.equals(new String("status"))) {} //TODO change so schedule gets updated: newEndTime = Double.parseDouble(messageParts[2])                    
+
+        else if (informVal.equals(new String("abort"))) {} //TODO remove task from schedule 
+    }
+
     /** offerService is called when a robot want to plan in a new task to execute.
      * 
      * @param robotID id of robot{@link TransportAgent} calling this
      */
-    public Message offerService(){
-
-        System.out.println(this.robotID +"======================1");
-
+    public Message offerService(double startTime){
         ArrayList<Integer> receivers = this.getReceivers(this.robotsInNetwork, "TRANSPORT");
+
+        if ( receivers.size() <= 0 ) return new Message();
         
-        System.out.println(this.robotID +"======================2");
+        this.offers.clear();
+        int taskID = this.sendCNPmessage(startTime, this.stringifyPose(this.startPose), receivers);
 
-        String startPos = this.stringifyPose(this.startPose);
- 
-        int taskID = this.createCNPMessage(this.getNextTime(), startPos, receivers);
-        System.out.println(this.robotID +"======================3");
-
-        //sleep  before looking at offers
-        this.sleep(2500);
-
-        System.out.println(this.robotID +"======================4");
+        double time = this.waitForAllOffersToCome(receivers.size());  //locking function. wait for receivers
+        this.print("time waited for offers-->"+time);
 
         Message bestOffer = this.handleOffers(taskID); //extract best offer
-        System.out.println(this.robotID +"======================5");
 
         if (!bestOffer.isNull){        
             // Send response: Mission to best offer sender, and deny all the other ones.
@@ -232,6 +214,20 @@ public class StorageAgent extends CommunicationAid{
         return bestOffer;
     }
 
+    /** This function is locking. will wait for offers from all recipients to arrive OR return on the time delay.
+     * 
+     * @param nrOfReceivers an int with the number of recipients of the cnp message sent. 
+     * @return a double with the time it took before exiting this function.
+     */
+    protected double waitForAllOffersToCome(int nrOfReceivers){
+        double before = this.getTime();
+
+        while ( this.offers.size() < nrOfReceivers && this.getTime() - before <= this.TIME_WAITING_FOR_OFFERS){
+            this.sleep(50);
+        }
+        return (this.getTime() - before);
+    }
+
     /**
      * Helper function for structuring and sending a CNP message. 
      * TODO needs to be changed in various ways. And maybe moved to communicationAid.
@@ -239,7 +235,7 @@ public class StorageAgent extends CommunicationAid{
      * @param receivers
      * @return taskID
      */
-    public int createCNPMessage(double startTime, String startPos, ArrayList<Integer> receivers) {
+    public int sendCNPmessage(double startTime, String startPos, ArrayList<Integer> receivers) {
         // taskID & agentID & pos & startTime 
         String startTimeStr = Double.toString(startTime);
         String body = this.robotID + this.separator + startPos + this.separator + startTimeStr;
@@ -247,36 +243,41 @@ public class StorageAgent extends CommunicationAid{
         return this.sendMessage(m, true);
     }
 
-       /**
+    /** //TODO looks good for now. will use timeSchedule.evaluateTimeSlot() in future
+     * 
      * HandleOffers is called from a SA, to either accept the offer of a TA, or deny it.
      * @return the message that is the best offer
      */
     public Message handleOffers(int taskID) {
-
         Message bestOffer = new Message();
         int offerVal = 0;
-        
-        // Sort offers for the best one
-
+    
         for (Message m : this.offers) {
             // SCHEDULE: Extract startTime & endTime and see if it fits into schedule
             double startTime = Double.parseDouble(parseMessage(m, "startTime")[0]);
             double endTime = Double.parseDouble(parseMessage(m, "endTime")[0]);
   
-            if(!m.isNull && this.timeSchedule.taskPossible(startTime, endTime)) {
+            if( this.timeSchedule.taskPossible(startTime, endTime) ) {
                 String[] mParts = this.parseMessage( m, "", true); // sort out offer not part of current auction(taskID)
-                if (Integer.parseInt(mParts[0]) == taskID){
+
+                if ( Integer.parseInt(mParts[0]) == taskID ){
                     int val = Integer.parseInt(mParts[1]);
+
                     if (val > offerVal){
                         offerVal = val;
                         bestOffer = new Message(m);
                     }
-                    //this.offers.remove(m);
                 }
             }
         }
-        //TODO make it able to choose another offer if OG one was not possible
         return bestOffer;
+    }
+
+    /**simlpe print func with color and robotID included
+     * @param s string to be printed
+     */
+    protected void print(String s){
+        System.out.println("\033[1;33m"+this.robotID+"\t" + s + "\033[0m");
     }
 
 }

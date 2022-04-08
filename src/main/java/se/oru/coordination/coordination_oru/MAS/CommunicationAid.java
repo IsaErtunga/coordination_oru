@@ -31,8 +31,6 @@ public class CommunicationAid extends HelpFunctions{
     public ArrayList<Message> inbox = new ArrayList<Message>();
     public ArrayList<Message> outbox = new ArrayList<Message>();
 
-    public HashMap<Integer,String> activeTasks = new HashMap<Integer, String>();
-
     // messaging utils
     public Random rand = new Random(System.currentTimeMillis());
     
@@ -61,8 +59,6 @@ public class CommunicationAid extends HelpFunctions{
         return this.sendMessage(m, false); 
     }
     
-
-
     public String[] parseMessage(Message m, String get){
         return this.parseMessage(m, get, false);
     }
@@ -97,7 +93,7 @@ public class CommunicationAid extends HelpFunctions{
                 if (get == attribute) return new String[]{parts[i]};
                 i = i+1;
             }
-    }
+        }
 
         return new String[] {}; // default
     }
@@ -108,7 +104,6 @@ public class CommunicationAid extends HelpFunctions{
     public int tID() { // generate a new task id bound 1000-9999
         return this.rand.nextInt((this.upperTaskIDBound - this.lowerTaskIDBound) + 1) + this.lowerTaskIDBound;
     }
-
 
     /**
      * Helper function to get the right receivers.
@@ -132,46 +127,6 @@ public class CommunicationAid extends HelpFunctions{
     }
 
     /**
-     * Call when need to sleep
-     * @param ms
-     */
-    public void sleep(int ms) {
-        try { Thread.sleep(ms); }
-        catch (InterruptedException e) { e.printStackTrace(); }
-    }
-
-
-    /**
-     * Helper function that gets a pose and prepares it for message.
-     * @param pose
-     * @return
-     */
-    public String stringifyPose(Pose pose) {
-        return pose.getX() + " " + pose.getY() + " " + pose.getYaw();
-    }
-
-    /**
-     * extract pose from string-formatted pose
-     * @param string
-     * @return a pose
-     */
-    public Pose posefyString(String s) {
-        double[] coordinates = Arrays.stream(s.split(" ")).mapToDouble(Double::parseDouble).toArray();
-        return new Pose(coordinates[0], coordinates[1], coordinates[2]);
-    }
-
-
-    /**
-     * Helper function to calculate distance between to Pose objects. 
-     * @param start
-     * @param end
-     * @return
-     */
-    protected double calcDistance(Pose start, Pose end) {
-        return start.distanceTo(end);
-    }
-
-    /**
      * 
      * @param message
      * @return Task
@@ -182,10 +137,11 @@ public class CommunicationAid extends HelpFunctions{
         double ore = isTakeOre ? Double.parseDouble(msgParts[6]) : -Double.parseDouble(msgParts[6]);
         return new Task(Integer.parseInt(msgParts[0]), message.sender, true, ore, Double.parseDouble(msgParts[4]),
                         Double.parseDouble(msgParts[5]), this.posefyString(msgParts[2]), this.posefyString(msgParts[3]));
-        
-        
     }
     
+
+
+
     public static void main(String[] args){
         /*
         RobotAgent r1 = new RobotAgent(0);
