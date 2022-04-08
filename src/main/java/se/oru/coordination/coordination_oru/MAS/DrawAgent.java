@@ -1,5 +1,5 @@
 /**
- * 
+ * DrawAgent
  */
 package se.oru.coordination.coordination_oru.MAS;
 
