@@ -360,12 +360,12 @@ public class TimeSchedule {
 
         //overlap test
         boolean testOverlap = false;
-        boolean testAddFunc = false;
+        boolean testAddFunc = true;
         boolean testSmallFuncs = false;
         boolean testUpdate = false;
         boolean testOreState = false;
         boolean testSetActive = false;
-        boolean testLastToPose = true;
+        boolean testLastToPose = false;
 
         if (testOverlap){
             System.out.println("######### testing isTaskOverlapping(Task t, Task t) #########");
@@ -395,24 +395,24 @@ public class TimeSchedule {
         if (testAddFunc){
             System.out.println("######### testing add(Task t) #########");
 
-            Task t1 = new Task(10.0, 20.0, 1);
-            Task t2 = new Task(30.0, 40.0, 2);
-            Task t3 = new Task(50.0, 60.0, 3);
-            Task t4 = new Task(40.0, 50.0, 4);
-            Task t5 = new Task(100.0, 110.0, 5);
-            Task t6 = new Task(25.0, 35.0, 6);
+            //add first to 0
+            System.out.println( ts.add(new Task(10.0, 20.0, 1)) == true ? "add first success" : "add first fail");
 
-            System.out.println( ts.add(t1) == true ? "t1 success" : "t1 fail");
-            ts.printSchedule();
-            System.out.println( ts.add(t2) == true ? "t2 success" : "t2 fail");
-            System.out.println( ts.add(t3) == true ? "t3 success" : "t3 fail");
-            System.out.println( ts.add(t4) == true ? "t4 success" : "t4 fail");
-            System.out.println( ts.add(t5) == true ? "t5 success" : "t5 fail");
-            System.out.println( ts.add(t6) == false ? "t6 success" : "t6 fail");
-            System.out.println( ts.add(new Task(25.0, 30.0, 15)) == true ? "t7 success" : "t7 fail");
-            System.out.println( ts.add(new Task(5.0, 10.0, 16)) == true ? "t8 success" : "t8 fail");
-            System.out.println( ts.add(new Task(109.0, 111.0, 17)) == false ? "t9 success" : "t9 fail");
-            ts.printSchedule();
+            //add to schedule w 1
+            System.out.println( ts.add(new Task(5.0, 10.0, 2)) == true ? "success" : "fail");
+            ts.remove(2);
+            System.out.println( ts.add(new Task(20.0, 25.0, 2)) == true ? "success" : "fail");
+            ts.remove(2);
+
+            System.out.println( ts.add(new Task(9.0, 21.0, 2)) == false ? "success" : "fail");
+            ts.remove(2);
+            System.out.println( ts.add(new Task(11.0, 19.0, 2)) == false ? "success" : "fail");
+            ts.remove(2);
+
+            System.out.println( ts.add(new Task(5.0, 11.0, 2)) == false ? "success" : "fail");
+            ts.remove(2);
+            System.out.println( ts.add(new Task(19.0, 25.0, 2)) == false ? "success" : "fail");
+
         }
 
         if (testSmallFuncs){
@@ -475,16 +475,26 @@ public class TimeSchedule {
         }
 
         if ( testSetActive ){
-            Task t1 = new Task(10.0, 20.0, 1);
+            if (!testAddFunc){
+                ts.add(new Task(10.0, 20.0, 11));
+                ts.add(new Task(30.0, 40.0, 12));
+                ts.add(new Task(40.0, 50.0, 13));
+                ts.add(new Task(52.0, 100.0, 14));
+            }
+
+            Task t1 = new Task(20.0, 30.0, 1);
             t1.isActive = false;
             Task t2 = new Task(30.0, 40.0, 2);
             t2.isActive = false;
-            Task t3 = new Task(50.0, 60.0, 3);
+            Task t3 = new Task(50.0, 53.0, 3);
             t3.isActive = false;
 
             System.out.println( ts.add(t1) == true ? "t1 success" : "t1 fail");
+            ts.printSchedule();
             System.out.println( ts.add(t2) == true ? "t2 success" : "t2 fail");
+            ts.printSchedule();
             System.out.println( ts.add(t3) == true ? "t3 success" : "t3 fail");
+            ts.printSchedule();
 
 
             System.out.println( ts.setTaskActive(t1.taskID) == true ? "t1 success" : "t1 fail");

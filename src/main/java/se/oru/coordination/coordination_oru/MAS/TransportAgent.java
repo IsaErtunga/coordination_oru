@@ -314,6 +314,7 @@ public class TransportAgent extends CommunicationAid{
      * @return true if we send offer = we expect resp.
      */
     public boolean handleService(Message m) { 
+        /*
         double availabeOre = this.timeSchedule.checkEndStateOreLvl();
         if (availabeOre <= 0.0) return false;   //if we dont have ore dont act 
 
@@ -360,6 +361,7 @@ public class TransportAgent extends CommunicationAid{
     
         // räkna ut ett bud och skicka det.
         this.sendMessage(response);
+        */
                 
         return true;
     }
