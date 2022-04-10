@@ -123,6 +123,9 @@ public class CommunicationAid extends HelpFunctions{
         if (receiverType.equals("TRANSPORT")) {
             networkCopy.removeIf(i -> i > 5000); //storage agents has robotID > 5000 & < 10000
         }
+        if (receiverType.equals("TRANSPORTTRUCK")) {
+            networkCopy.removeIf(i -> i < 15000); //storage agents has robotID > 5000 & < 10000
+        }
         return networkCopy;
     }
 

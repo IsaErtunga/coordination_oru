@@ -144,7 +144,7 @@ public class TransportTruckAgent extends CommunicationAid{
      * TODO Add functionality for knowing if robot managed to complete a task or not. 
      */
     protected void executeTasks () {
-        this.timeSchedule.add(new Task(1, 2, true, 15, 0.00, 10.00, 0, new Pose(180.0, 25.0, Math.PI), new Pose(140.0, 25.0, Math.PI)));
+        // this.timeSchedule.add(new Task(1, 2, true, 15, 0.00, 10.00, 0, new Pose(180.0, 25.0, Math.PI), new Pose(140.0, 25.0, Math.PI)));
         while (true) {
             // Execute task while its schedule is not empty
             if (this.timeSchedule.getSize() > 0) {
@@ -386,18 +386,18 @@ public class TransportTruckAgent extends CommunicationAid{
                         this.timeSchedule.remove(taskID);
 
                     }
-                    else if (informVal.equals(new String("status"))) {
-                        /* SCHEDULE: 
-                            * if TA notice it will not be done in time, we get inform->status msg
-                            * update schedule with new time and check if problem
-                            * if 2 mission have big overlap then send ABORT msg to later mission.
-                            * else all is good.
-                        */ 
-                        double newEndTime = Double.parseDouble(this.parseMessage(m, "ore")[0]); //TODO ore is 3rd element NOT ore in this case
-                        if (newEndTime > this.timeSchedule.get(taskID).endTime) {
-                            this.timeSchedule.update(taskID, newEndTime);
-                        }
-                    }
+                    // else if (informVal.equals(new String("status"))) {
+                    //     /* SCHEDULE: 
+                    //         * if TA notice it will not be done in time, we get inform->status msg
+                    //         * update schedule with new time and check if problem
+                    //         * if 2 mission have big overlap then send ABORT msg to later mission.
+                    //         * else all is good.
+                    //     */ 
+                    //     double newEndTime = Double.parseDouble(this.parseMessage(m, "ore")[0]); //TODO ore is 3rd element NOT ore in this case
+                    //     if (newEndTime > this.timeSchedule.get(taskID).endTime) {
+                    //         this.timeSchedule.update(taskID, newEndTime);
+                    //     }
+                    // }
 
                     else if (informVal.equals(new String("abort"))) {
                         /* SCHEDULE:
