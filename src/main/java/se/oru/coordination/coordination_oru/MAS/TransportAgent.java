@@ -93,7 +93,8 @@ public class TransportAgent extends CommunicationAid{
         };
         listenerThread.start();
 
-        this.sleep(2000);
+        // Changed sleep from 2000
+        this.sleep(500);
 
         Thread stateThread = new Thread() {
             public void run() {
@@ -103,8 +104,7 @@ public class TransportAgent extends CommunicationAid{
         stateThread.start();
 
         this.executeTasks();
-        //try { Thread.sleep(5000); }
-        //catch (InterruptedException e) { e.printStackTrace(); }
+    
 
     }
 
@@ -167,7 +167,7 @@ public class TransportAgent extends CommunicationAid{
                 // if robot managed to complete task 
                 //String oreChange = task.partner<10000 ? Integer.toString(this.oreCap) : Integer.toString(-this.oreCap);
                 while (!isTaskDone(task)) {
-                    this.sleep(500);
+                    this.sleep(100);
                 }
                 
                 Message doneMessage = new Message(this.robotID, task.partner, "inform", task.taskID + this.separator + "done" + "," + task.ore);
@@ -536,10 +536,7 @@ public class TransportAgent extends CommunicationAid{
                 }
                 
             }
-        
-            // System.out.println(this.robotID + " -- " + this.robotsInNetwork);
-            try { Thread.sleep(100); }
-            catch (InterruptedException e) { e.printStackTrace(); }
+            this.sleep(100);
         }
     }
 

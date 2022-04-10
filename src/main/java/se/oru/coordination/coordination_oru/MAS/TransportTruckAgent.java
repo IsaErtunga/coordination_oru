@@ -93,7 +93,7 @@ public class TransportTruckAgent extends CommunicationAid{
         };
         listenerThread.start();
 
-        this.sleep(2000);
+        this.sleep(500);
 
         Thread stateThread = new Thread() {
             public void run() {
@@ -103,9 +103,6 @@ public class TransportTruckAgent extends CommunicationAid{
         stateThread.start();
 
         this.executeTasks();
-        //try { Thread.sleep(5000); }
-        //catch (InterruptedException e) { e.printStackTrace(); }
-
     }
 
     /**
@@ -147,15 +144,10 @@ public class TransportTruckAgent extends CommunicationAid{
      * TODO Add functionality for knowing if robot managed to complete a task or not. 
      */
     protected void executeTasks () {
+        this.timeSchedule.add(new Task(1, 2, true, 15, 0.00, 10.00, 0, new Pose(180.0, 25.0, Math.PI), new Pose(140.0, 25.0, Math.PI)));
         while (true) {
             // Execute task while its schedule is not empty
             if (this.timeSchedule.getSize() > 0) {
-                /* SCHEDULE:
-                    * IF we start performing task long after startTime:
-                        - update schedule to the delay
-                    *   - inform receiving-end of the delay
-                    * TODO: Calculate if we go over endTime.
-                */
                 Task task = this.timeSchedule.pop();
                 if (task == null) {
                     continue;

@@ -102,9 +102,8 @@ public class DrawAgent extends CommunicationAid{
                 }
                 
             }
-
-            try { Thread.sleep(1000); }
-            catch (InterruptedException e) { e.printStackTrace(); }
+            // Changed sleep from 1000
+            this.sleep(500);
         }
     }
 

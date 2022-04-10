@@ -97,7 +97,7 @@ public class StorageAgent extends CommunicationAid{
         };
         listener.start();
 
-        this.sleep(5000);
+        this.sleep(1000);
 
         this.status();
 
@@ -154,7 +154,8 @@ public class StorageAgent extends CommunicationAid{
                 }
                 
             }
-            this.sleep(1000);
+            // Changed sleep from 1000
+            this.sleep(500);
         }
 
     }
