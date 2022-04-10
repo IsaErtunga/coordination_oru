@@ -1,8 +1,10 @@
 package se.oru.coordination.coordination_oru.MAS;
 
 import org.metacsp.multi.spatioTemporal.paths.PoseSteering;
+import org.sat4j.minisat.orders.VarOrderHeap;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 import java.util.Arrays;
+import java.lang.Math;
 
 public class HelpFunctions {
 
@@ -62,5 +64,35 @@ public class HelpFunctions {
     public double calcDistance(Pose start, Pose end) {
         return start.distanceTo(end);
     }
-    
+
+    /**
+     * Returns value from Cumulative Distribution Function
+     * ATM: Exponential distribution Can play around with which one we want. 
+     * Value is distance. Around 65 distance = 0 in result
+     * @param value
+     * @return
+     */
+    public int calcCDF(double value) {
+        
+        double lambda = 0.07;
+        double e = 2.718;
+       
+        if (value <= 0) {
+            return 0;
+        }
+
+        int res = (int) (101 - Math.pow(e, lambda*value));
+
+        if (res < 0) {
+            res = 0;
+        }
+        return res;
+    }
+
+    public static void main(String args[]){
+
+        // HelpFunctions hf = new HelpFunctions();
+        // System.out.println(hf.calcCDF(100));
+
+    }
 }

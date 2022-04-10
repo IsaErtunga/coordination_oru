@@ -210,7 +210,7 @@ public class TransportTruckAgent extends CommunicationAid{
     public Message offerService(double startTime) {
 
         // Get correct receivers
-        ArrayList<Integer> receivers = this.getReceivers(this.robotsInNetwork, "DRAW");
+        ArrayList<Integer> receivers = this.getReceivers(this.robotsInNetwork, "STORAGE");
 
         if (receivers.size() <= 0) return new Message();
         
@@ -297,60 +297,7 @@ public class TransportTruckAgent extends CommunicationAid{
         return bestOffer;
     }
 
-    /** handleService is called from within a TA, when a TA did a {@link offerService}
-     * @param m the message with the service
-     * @param robotID the robotID of this object
-     * @return true if we send offer = we expect resp.
-     */
-    public boolean handleService(Message m) { 
-
-        this.print("handleService-START");
-        
-        double availabeOre = this.timeSchedule.checkEndStateOreLvl();
-        if (availabeOre <= 0.0) return false;   //if we dont have ore dont act 
-
-        Pose pos = this.timeSchedule.getLastToPose();
-
-        Task SATask = this.createTaskFromServiceOffer(m, availabeOre, pos);
-
-        if ( !this.timeSchedule.taskPossible(SATask) ) return false;    // task doesnt fit in schedule
-
-        int offerVal = this.calculateOffer(SATask);
-
-        if ( offerVal <= 0 ) return false;
-
-        if (! this.timeSchedule.add(SATask) ){
-            this.print("not added!");
-            return false;
-        }
    
-        Message response = this.createOfferMsgFromTask(SATask, offerVal, availabeOre);
-    
-        // räkna ut ett bud och skicka det.
-        this.sendMessage(response);
-                
-        return true;
-    }
-
-    /** When receiving a cnp-message, this function will create a task from that message.
-     * Only used in {@link handleService}.
-     * @param m the message from the auctioneer
-     * @param ore the amount of ore the task is about
-     * @return a Task with attributes extracted from m
-     */
-    protected Task createTaskFromServiceOffer(Message m, double ore, Pose startPos){
-        String[] mParts = this.parseMessage(m, "", true);
-
-        Pose SAPos = this.posefyString(mParts[2]);
-        PoseSteering[] path = this.calculatePath(startPos, SAPos);
-        double pathDist = this.calculatePathDist(path);
-        double pathTime = this.calculateDistTime(pathDist);
-
-        double startTime = this.getNextTime();
-        double endTime = startTime + pathTime;
-
-        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, startTime, endTime, pathDist, startPos, SAPos);
-    }
 
     // -----------------------------ANVÄNDS EJ----------------------------------------
     /**
@@ -367,68 +314,6 @@ public class TransportTruckAgent extends CommunicationAid{
                         Double.parseDouble(mParts[5]), this.posefyString(mParts[2]), this.posefyString(mParts[3]));
     }
 
-    /**
-     * Helper function for handleService to create an offer message.
-     * @param message
-     * @param messageParts
-     * @param evaluatedDistance
-     * @return
-     */
-    protected Message createOffer(Message message, String[] messageParts, double evaluatedDistance, 
-                                  Pose startPos, Pose endPos, double startTime, double endTime, double ore) {
-        
-        if (evaluatedDistance <= 0.0) evaluatedDistance = 150.0; //TODO temp fix
-        int offer = (int)(100.0 * 1.0 / evaluatedDistance);
-        String body = messageParts[0] + this.separator + offer + this.separator + this.stringifyPose(startPos) + this.separator + this.stringifyPose(endPos)
-                                    + this.separator + startTime + this.separator + endTime + this.separator + ore;
-        return new Message(this.robotID, message.sender, "offer", body);
-    }
-    // -----------------------------------------------------------------------------------
-
-       /** Used to generate a response message from a task. Called from {@link handleService}
-     * after creating a task with {@link createTaskFromServiceOffer}.
-     * @param t a Task that is unactive = t.isActive = false
-     * @param offer an int that is the calculated evaluation of the service related to t
-     * @param ore a double representing the ore amount the task handels
-     * @return returns a Message with attributes extracted from the parameters
-     */
-    protected Message createOfferMsgFromTask(Task t, int offer, double ore){
-        String s = this.separator;
-
-        String startPoseStr = this.stringifyPose(t.fromPose);
-        String endPoseStr = this.stringifyPose(t.toPose);
-        String body = t.taskID +s+ offer +s+ startPoseStr +s+ 
-                      endPoseStr +s+ startTime +s+ t.endTime +s+ ore;
-
-        return new Message(this.robotID, t.partner, "offer", body);
-    }
-
-
-    public PoseSteering[] calculatePath(Pose from, Pose to){
-        this.mp.setGoals(from);
-        this.mp.setStart(to);
-        if (!this.mp.plan()) throw new Error ("No path between " + from + " and " + to);
-
-        return this.mp.getPath();
-    }
-    
-    
-    /**
-     * Calculates and returns offer based on distance and ore-level
-     * @param t
-     * @return offer
-     */
-    protected int calculateOffer(Task t){
-        // STEG 1: Full amount - Kolla distans 
-
-        // Annars: (100 * this.amount) / (pathDistance * this.capacity)
-        // If this.getNextTime > startTime för SA. Ge penalty
-
-        if (t.pathDist <= 0.0) t.pathDist = 150.0; //TODO temp fix
-        int offer = (int)(100.0 * 1.0 / t.pathDist);
-
-        return offer;
-    }   
 
     /**
      * 
@@ -486,11 +371,7 @@ public class TransportTruckAgent extends CommunicationAid{
                     //SCHEDULE: remove reserved task from schedule
                     this.timeSchedule.remove(taskID);
                 }
-
-                else if (m.type == "cnp-service"){
-                    this.handleService(m);
-                }
-
+                
                 else if (m.type == "offer"){
                     this.offers.add(m);
                 }

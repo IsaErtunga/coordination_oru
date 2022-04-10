@@ -212,7 +212,10 @@ public class BaseTest {
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);
 
-				StorageAgent SA = new StorageAgent(numStorages[i], router, 100.0, storagePoses[i], startTime);
+				ReedsSheppCarPlanner rsp = new ReedsSheppCarPlanner();
+				rsp.setMap(yamlFile);
+
+				StorageAgent SA = new StorageAgent(numStorages[i], router, 100.0, storagePoses[i], startTime, rsp);
 				SA.start();
 			
 			}

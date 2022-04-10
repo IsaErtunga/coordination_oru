@@ -428,14 +428,26 @@ public class TransportAgent extends CommunicationAid{
      * @return offer
      */
     protected int calculateOffer(Task t){
-        // STEG 1: Full amount - Kolla distans 
-
-        // Annars: (100 * this.amount) / (pathDistance * this.capacity)
-        // If this.getNextTime > startTime för SA. Ge penalty
-
-        if (t.pathDist <= 0.0) t.pathDist = 150.0; //TODO temp fix
-        int offer = (int)(100.0 * 1.0 / t.pathDist);
-
+        int offer = 5;
+        if (t.pathDist > 0.0) {
+            int oreLevel = (int)this.timeSchedule.checkEndStateOreLvl();
+            if (oreLevel >= this.oreCap) {
+                // Step 1: Check if TA can give full amount. Check distance
+                // Must be in tune with lambda
+                int fullOreBonus = 100; 
+                offer =  this.calcCDF(t.pathDist) + fullOreBonus;
+            }
+            else {
+                // play around with scaling
+                int oreScale = 1;
+                int distScale = 1;
+                offer = (oreLevel * oreScale) + (this.calcCDF(t.pathDist * distScale));
+            }
+            // If this.getNextTime > startTime för SA. Ge penalty
+        }
+        else {
+            offer = 0;
+        }
         return offer;
     }   
 
