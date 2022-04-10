@@ -428,7 +428,7 @@ public class TransportAgent extends CommunicationAid{
      * @return offer
      */
     protected int calculateOffer(Task t){
-        int offer = 5;
+        int offer;
         if (t.pathDist > 0.0) {
             int oreLevel = (int)this.timeSchedule.checkEndStateOreLvl();
             if (oreLevel >= this.oreCap) {
