@@ -14,7 +14,7 @@ import se.oru.coordination.coordination_oru.motionplanning.ompl.ReedsSheppCarPla
 import se.oru.coordination.coordination_oru.ConstantAccelerationForwardModel;
 
 
-public class TransportAgent extends CommunicationAid{
+public class TransportTruckAgent extends CommunicationAid{
     //Control parameters
     protected double TIME_WAITING_FOR_OFFERS = 3.0;
 
@@ -34,12 +34,12 @@ public class TransportAgent extends CommunicationAid{
     public ArrayList<Message> missionList = new ArrayList<Message>();
 
 
-    public TransportAgent(int id){this.robotID = id;}   // for testing
+    public TransportTruckAgent(int id){this.robotID = id;}   // for testing
 
-    public TransportAgent(  int r_id, TrajectoryEnvelopeCoordinatorSimulation tec,
+    public TransportTruckAgent(  int r_id, TrajectoryEnvelopeCoordinatorSimulation tec,
                         ReedsSheppCarPlanner mp, Pose startPos, Router router){}
 
-    public TransportAgent(  int r_id, TrajectoryEnvelopeCoordinatorSimulation tec,
+    public TransportTruckAgent(  int r_id, TrajectoryEnvelopeCoordinatorSimulation tec,
                         ReedsSheppCarPlanner mp, Pose startPos, Router router, long startTime){
             
                             System.out.println("#######################");
@@ -82,7 +82,7 @@ public class TransportAgent extends CommunicationAid{
      * 
      */
     public void start(){
-        TransportAgent This = this;
+        TransportTruckAgent This = this;
 
         This.addRobotToSimulation();
 
@@ -161,7 +161,6 @@ public class TransportAgent extends CommunicationAid{
                     continue;
                 }
 
-
                 this.tec.addMissions(this.createMission(task));
                 
                 // if robot managed to complete task 
@@ -214,7 +213,7 @@ public class TransportAgent extends CommunicationAid{
 
     /** offerService is called when a robot want to plan in a new task to execute.
      * 
-     * @param robotID id of robot{@link TransportAgent} calling this
+     * @param robotID id of robot{@link TransportTruckAgent} calling this
      */
     public Message offerService(double startTime) {
 
@@ -361,7 +360,7 @@ public class TransportAgent extends CommunicationAid{
         return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, startTime, endTime, pathDist, startPos, SAPos);
     }
 
-    
+    // -----------------------------ANVÄNDS EJ----------------------------------------
     /**
      * 
      * @param message
@@ -375,7 +374,7 @@ public class TransportAgent extends CommunicationAid{
         return new Task(Integer.parseInt(mParts[0]), m.sender, true, Double.parseDouble(mParts[6]), Double.parseDouble(mParts[4]),
                         Double.parseDouble(mParts[5]), this.posefyString(mParts[2]), this.posefyString(mParts[3]));
     }
-// -----------------------------ANVÄNDS EJ----------------------------------------
+
     /**
      * Helper function for handleService to create an offer message.
      * @param message

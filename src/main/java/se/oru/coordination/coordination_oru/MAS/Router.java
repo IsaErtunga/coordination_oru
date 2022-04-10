@@ -21,6 +21,10 @@ public class Router {
         synchronized(this.inboxes){ this.inboxes.put(a.robotID, a.inbox); }
         synchronized(this.outboxes){ this.outboxes.put(a.robotID, a.outbox); }
     }
+    public void enterNetwork(TransportTruckAgent a){
+        synchronized(this.inboxes){ this.inboxes.put(a.robotID, a.inbox); }
+        synchronized(this.outboxes){ this.outboxes.put(a.robotID, a.outbox); }
+    }
     public void enterNetwork(StorageAgent a){
         synchronized(this.inboxes){ this.inboxes.put(a.robotID, a.inbox); }
         synchronized(this.outboxes){ this.outboxes.put(a.robotID, a.outbox); }

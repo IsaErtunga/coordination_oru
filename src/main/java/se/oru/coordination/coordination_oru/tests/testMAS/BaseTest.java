@@ -23,6 +23,7 @@ import se.oru.coordination.coordination_oru.util.JTSDrawingPanelVisualization;
 import se.oru.coordination.coordination_oru.util.Missions;
 
 import se.oru.coordination.coordination_oru.MAS.TransportAgent;
+import se.oru.coordination.coordination_oru.MAS.TransportTruckAgent;
 import se.oru.coordination.coordination_oru.MAS.Router;
 import se.oru.coordination.coordination_oru.MAS.StorageAgent;
 import se.oru.coordination.coordination_oru.MAS.DrawAgent;
@@ -168,7 +169,7 @@ public class BaseTest {
 
 												/*		TRANSPORT AGENT	*/
 	final int[] numTransport = {1, 2};
-	final int[] iter = {0};
+	final int[] iter = {};
 	Pose[] transportPoses = { TA1pos, TA2pos };    
 	
 	for (final int i : iter) {
@@ -200,7 +201,7 @@ public class BaseTest {
 													/*		STORAGE AGENT	*/
 	final int[] numStorages = {5001, 5002};
 	Pose[] storagePoses = { SA1pos, SA2pos };
-	final int[] iter2 = {0};
+	final int[] iter2 = {};
 
 	for (final int i : iter2) {
 
@@ -219,6 +220,36 @@ public class BaseTest {
 		try { Thread.sleep(3000); }
 		catch (InterruptedException e) { e.printStackTrace(); }
 	}
+
+	final int[] numTransportTruck = {15001, 15002};
+	final int[] iter4 = {0};
+	Pose[] transportTruckPoses = { TA1pos, TA2pos };    
+	
+	for (final int i : iter4) {
+
+		// Thread for each robot object
+        Thread t = new Thread() {
+            
+            @Override
+			public void run() {
+                this.setPriority(Thread.MAX_PRIORITY);
+
+				//Instantiate a simple motion planner (no map given here, otherwise provide yaml file)
+				ReedsSheppCarPlanner rsp = new ReedsSheppCarPlanner();
+				rsp.setFootprint(footprint1, footprint2, footprint3, footprint4);
+				rsp.setTurningRadius(4.0); 				//default is 1.0
+				rsp.setMap(yamlFile);
+
+				TransportTruckAgent TTA = new TransportTruckAgent(numTransportTruck[i], tec, rsp, transportTruckPoses[i], router, startTime);
+				TTA.start();
+
+			}
+                
+		};
+        t.start();
+		try { Thread.sleep(3000); }
+		catch (InterruptedException e) { e.printStackTrace(); }
+    }
 
 }
 
