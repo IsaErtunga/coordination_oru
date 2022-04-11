@@ -20,6 +20,7 @@ public class StorageAgent extends CommunicationAid{
 
 
     protected Pose startPose;
+    protected Pose startPoseRight;
     protected double capacity;  // capacity of storage = max ore it can store in TONS
     protected double amount;    // the current amount it has stored in TONS
 
@@ -62,12 +63,13 @@ public class StorageAgent extends CommunicationAid{
      * @param capacity
      * @param startPos
      */
-    public StorageAgent(int r_id, Router router, double capacity, Pose startPos, long startTime, ReedsSheppCarPlanner mp){
+    public StorageAgent(int r_id, Router router, double capacity, Pose startPos, Pose startPoseRight, long startTime, ReedsSheppCarPlanner mp){
         this.print("STORAGE AGENT INITIATED");
         this.robotID = r_id;
         this.capacity = capacity;
         this.amount = capacity / 2.0;
         this.startPose = startPos;
+        this.startPoseRight = startPoseRight;
         this.timeSchedule = new TimeSchedule(startPos, this.amount);
         this.startTime = startTime;
         this.mp = mp;
@@ -312,15 +314,17 @@ public class StorageAgent extends CommunicationAid{
         this.print("handleService-START"+m.sender);
         
         double availabeOre = this.timeSchedule.checkEndStateOreLvl();
+        
         if (availabeOre <= 0.0) return false;   //if we dont have ore dont act 
 
-        Task TTATask = this.createTaskFromServiceOffer(m, availabeOre, this.startPose);
+        Task TTATask = this.createTaskFromServiceOffer(m, availabeOre, this.startPoseRight);
 
         // Return abort?
         if ( !this.timeSchedule.taskPossible(TTATask) ) return false;    // task doesnt fit in schedule
+        
 
         int offerVal = this.calculateOffer(TTATask);
-
+        this.print(" OFFER"+offerVal);
         if ( offerVal <= 0 ) return false;
 
         if (! this.timeSchedule.add(TTATask) ){
@@ -357,20 +361,32 @@ public class StorageAgent extends CommunicationAid{
         return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, startTime, endTime, pathDist, TTAPos, startPos);
     }
 
-        /**
+   /**
      * Calculates and returns offer based on distance and ore-level
      * @param t
      * @return offer
      */
     protected int calculateOffer(Task t){
-        // STEG 1: Full amount - Kolla distans 
-
-        // Annars: (100 * this.amount) / (pathDistance * this.capacity)
-        // If this.getNextTime > startTime för SA. Ge penalty
-
-        if (t.pathDist <= 0.0) t.pathDist = 150.0; //TODO temp fix
-        int offer = (int)(100.0 * 1.0 / t.pathDist);
-
+        int offer;
+        if (t.pathDist > 0.5) {
+            int oreLevel = (int)this.timeSchedule.checkEndStateOreLvl();
+            if (oreLevel >= t.ore) {
+                // Step 1: Check if TA can give full amount. Check distance
+                // Must be in tune with lambda
+                int fullOreBonus = 10000; 
+                offer =  this.calcCDF(t.pathDist) + fullOreBonus;
+            }
+            else {
+                // play around with scaling
+                int oreScale = 1;
+                int distScale = 1;
+                offer = (oreLevel * oreScale) + (this.calcCDF(t.pathDist * distScale));
+            }
+            // If this.getNextTime > startTime för SA. Ge penalty
+        }
+        else {
+            offer = 0;
+        }
         return offer;
     }   
 

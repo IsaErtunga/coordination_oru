@@ -83,7 +83,7 @@ public class BaseTest {
 	tec.startInference();
 
 	// viz map file
-	final String yamlFile = "maps/test-map_complete.yaml";
+	final String yamlFile = "maps/map_2_blocks.yaml";
 	//yamlFile = "maps/test-map.yaml";	
 
 	//Set up a simple GUI
@@ -130,7 +130,9 @@ public class BaseTest {
 	Pose TA3pos = new Pose(50.0,100.0, 3*Math.PI/2);
 	Pose SA1pos = new Pose(63.0,68.0, 0.0);	
 	Pose SA2pos = new Pose(63.0,142.0, 0.0);
-	Pose TTA1pos = new Pose(140.0, 25.0, Math.PI);	
+	Pose SA1RightPos = new Pose(85.0, 68.0, Math.PI);	
+	Pose SA2RightPos = new Pose(85.0, 142.0, Math.PI);	
+	Pose TTA1pos = new Pose(140.0, 25.0, Math.PI);
 	Pose TTA2pos = new Pose(170.0, 25.0, Math.PI);	
 
     												/*		ROUTER THREAD	*/
@@ -146,7 +148,7 @@ public class BaseTest {
 													/*		DRAW AGENT	*/
 	final int[] numDraw = {10001, 10002, 10003};
 	Pose[] drawPoses = { DA1pos, DA2pos, DA3pos };
-	final int[] iter3 = {0};
+	final int[] iter3 = {};
 
 	ReedsSheppCarPlanner mp = new ReedsSheppCarPlanner();
 	mp.setFootprint(footprint1, footprint2, footprint3, footprint4);
@@ -171,7 +173,7 @@ public class BaseTest {
 
 												/*		TRANSPORT AGENT	*/
 	final int[] numTransport = {1, 2};
-	final int[] iter = {0};
+	final int[] iter = {};
 	Pose[] transportPoses = { TA1pos, TA2pos };    
 	
 	for (final int i : iter) {
@@ -203,7 +205,8 @@ public class BaseTest {
 													/*		STORAGE AGENT	*/
 	final int[] numStorages = {5001, 5002};
 	Pose[] storagePoses = { SA1pos, SA2pos };
-	final int[] iter2 = {0};
+	Pose[] storageRightPoses = {SA1RightPos, SA2RightPos};
+	final int[] iter2 = {1};
 
 	for (final int i : iter2) {
 
@@ -217,7 +220,7 @@ public class BaseTest {
 				rsp.setTurningRadius(4.0); 	
 				rsp.setMap(yamlFile);
 
-				StorageAgent SA = new StorageAgent(numStorages[i], router, 100.0, storagePoses[i], startTime, rsp);
+				StorageAgent SA = new StorageAgent(numStorages[i], router, 100.0, storagePoses[i], storageRightPoses[i], startTime, rsp);
 				SA.start();
 			
 			}
@@ -228,9 +231,9 @@ public class BaseTest {
 		catch (InterruptedException e) { e.printStackTrace(); }
 	}
 
-	final int[] numTransportTruck = {15001, 15002};
+	final int[] numTransportTruck = {15001, 15002}; 
 	final int[] iter4 = {0};
-	Pose[] transportTruckPoses = { TTA1pos };    
+	Pose[] transportTruckPoses = {TTA1pos, TTA2pos };    
 	
 	for (final int i : iter4) {
 
@@ -244,7 +247,7 @@ public class BaseTest {
 				//Instantiate a simple motion planner (no map given here, otherwise provide yaml file)
 				ReedsSheppCarPlanner rsp = new ReedsSheppCarPlanner();
 				rsp.setFootprint(footprint1, footprint2, footprint3, footprint4);
-				rsp.setTurningRadius(4.0); 				//default is 1.0
+				rsp.setTurningRadius(2.0); 				//default is 1.0
 				rsp.setMap(yamlFile);
 
 				TransportTruckAgent TTA = new TransportTruckAgent(numTransportTruck[i], tec, rsp, transportTruckPoses[i], router, startTime);

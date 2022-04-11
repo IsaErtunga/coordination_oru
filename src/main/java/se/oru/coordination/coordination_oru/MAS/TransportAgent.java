@@ -431,7 +431,7 @@ public class TransportAgent extends CommunicationAid{
         int offer;
         if (t.pathDist > 0.5) {
             int oreLevel = (int)this.timeSchedule.checkEndStateOreLvl();
-            if (oreLevel >= this.oreCap) {
+            if (oreLevel >= t.ore) {
                 // Step 1: Check if TA can give full amount. Check distance
                 // Must be in tune with lambda
                 int fullOreBonus = 10000; 

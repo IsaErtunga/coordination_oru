@@ -28,6 +28,11 @@ public class Task {
     // SA
     double ore;
 
+    Pose SW = new Pose(95.0, 25.0, Math.PI);	
+	Pose NW = new Pose(95.0, 190.0, Math.PI);	
+	Pose NE = new Pose(235.0, 190.0, Math.PI);		
+	Pose SE = new Pose(235.0, 25.0, Math.PI);	
+    Pose[] corners = {SW, NW, NE, SE};
 
     Task(int taskID, float expiryTime, String status, double ore) {
         // Constructor for SA
@@ -73,8 +78,6 @@ public class Task {
     }
 
 
-
-
     Task(double start, double end){
         this(start, end, 0);
     }
@@ -85,5 +88,20 @@ public class Task {
         this.taskID = taskID;
         this.isActive = true;
     }
-    // Getter & setter.
+
+    public void printTask() {
+        String sep = ", ";
+        String taskID = "taskID: "+this.taskID + sep;
+        String partner = "partner: "+this.partner + sep;
+        String isActive = "isActive: "+this.isActive + sep;
+        String ore = "ore: "+this.ore + sep;
+        String startTime = "startTime: "+this.startTime + sep;
+        String endTime = "endTime: "+this.endTime + sep;
+        String fromPose = "fromPose: "+this.fromPose + sep;
+        String toPose = "toPose: "+this.toPose + sep;
+        String pathDist = "pathDist: "+this.pathDist + sep;
+
+        System.out.println(taskID+partner+isActive+ore+startTime+endTime+fromPose+toPose+pathDist);
+
+    }
 }

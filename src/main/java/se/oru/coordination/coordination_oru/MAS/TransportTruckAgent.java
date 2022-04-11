@@ -28,6 +28,9 @@ public class TransportTruckAgent extends CommunicationAid{
     protected Double holdingOre = 0.0;
     protected final int taskCap = 4;
 
+    // Begins at 4. Will iterate through SW, NW, NE, SE
+    protected int cornerState = 4;
+
     protected TimeSchedule timeSchedule;
     protected long startTime;
 
@@ -75,6 +78,20 @@ public class TransportTruckAgent extends CommunicationAid{
         double STARTUP_ADD = 5.0;
         double nextTime = this.timeSchedule.getNextStartTime();
         return nextTime == -1.0 ? this.getTime()+STARTUP_ADD : nextTime;
+    }
+
+    /**
+     * Updates which corner the TTA is on.
+     */
+    protected int incrementCornerState() {
+        if (this.cornerState == 4) {
+            this.cornerState = 1;
+        } 
+        else {
+            this.cornerState = this.cornerState + 1;
+        }
+        System.out.println("CORNER STATE: "+ this.cornerState);
+        return this.cornerState;
     }
 
 
@@ -144,7 +161,6 @@ public class TransportTruckAgent extends CommunicationAid{
      * TODO Add functionality for knowing if robot managed to complete a task or not. 
      */
     protected void executeTasks () {
-        // this.timeSchedule.add(new Task(1, 2, true, 15, 0.00, 10.00, 0, new Pose(180.0, 25.0, Math.PI), new Pose(140.0, 25.0, Math.PI)));
         while (true) {
             // Execute task while its schedule is not empty
             if (this.timeSchedule.getSize() > 0) {
@@ -160,9 +176,10 @@ public class TransportTruckAgent extends CommunicationAid{
                 while (!isTaskDone(task)) {
                     this.sleep(500);
                 }
-                
-                Message doneMessage = new Message(this.robotID, task.partner, "inform", task.taskID + this.separator + "done" + "," + task.ore);
-                this.sendMessage(doneMessage, false);
+                if (task.partner != -1){
+                    Message doneMessage = new Message(this.robotID, task.partner, "inform", task.taskID + this.separator + "done" + "," + task.ore);
+                    this.sendMessage(doneMessage, false);
+                }
 
                 // if robot didn't manage to complete task
             }
@@ -171,7 +188,7 @@ public class TransportTruckAgent extends CommunicationAid{
     }
 
     protected void initialState() {
-        double oreLevelThreshold = 1.0;
+        double oreLevelThreshold = 5.0;
         while (true) {
             
             if ( false ){} //TODO check if we have an inconsistent schedule ore-wise
@@ -189,16 +206,26 @@ public class TransportTruckAgent extends CommunicationAid{
     
                 if ( this.timeSchedule.add(task) == false ){ // if false then task no longer possible, send abort msg to task partner
                     this.print("TASK ABORTED");
-                    this.sendMessage(new Message(this.robotID, task.partner, "abort", Integer.toString(task.taskID)));
                 }
-                this.timeSchedule.printSchedule();
+                // this.timeSchedule.printSchedule();
             }
 
             else {
                 this.print("WAITING FOR TASK BY STORAGE AGENT");
+                // Deliver ore for export
+                // Change
+                Pose robotPos = this.tec.getRobotReport(this.robotID).getPose();
+                Pose deliveryPos = new Pose(245.0, 105.0, Math.PI);	
+                double distance = this.calcDistance(robotPos, deliveryPos);
+                double endTime = this.calculateDistTime(distance);
+                Task deliverTask = new Task(this.tID(), -1, true, -15.0, startTime, endTime, endTime, robotPos, deliveryPos);
+                if (this.timeSchedule.add(deliverTask) == false) { // if false then task no longer possible, send abort msg to task partner
+                    this.print("TASK ABORTED");
+                    this.sendMessage(new Message(this.robotID, -1, "abort", Integer.toString(deliverTask.taskID)));
+                }
             }
 
-            this.sleep(500);
+            this.sleep(15000);
         }
 
     }
@@ -310,7 +337,7 @@ public class TransportTruckAgent extends CommunicationAid{
         // replace intexes
         
         // Task(int taskID, int partner, boolean isActive, double ore, double startTime, double endTime, double dist, Pose fromPose, Pose toPose) {
-        return new Task(Integer.parseInt(mParts[0]), m.sender, true, Double.parseDouble(mParts[6]), Double.parseDouble(mParts[4]),
+        return new Task(Integer.parseInt(mParts[0]), m.sender, true, 15.0, Double.parseDouble(mParts[4]),
                         Double.parseDouble(mParts[5]), this.posefyString(mParts[2]), this.posefyString(mParts[3]));
     }
 
@@ -322,11 +349,38 @@ public class TransportTruckAgent extends CommunicationAid{
      * @return
      */
     public Mission createMission(Task task) {
+        this.timeSchedule.printSchedule();
         this.mp.setStart(task.fromPose);
-        this.mp.setGoals(task.toPose);
+        //Pose[] goals = {task.NE, task.SE, task.SW, task.toPose};
+        // if ore is positive, it means that it will fetch ore
+        this.mp.setGoals(this.navigateCorrectly(task, task.ore > 0.0));
         if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + task.toPose);
         PoseSteering[] path = this.mp.getPath();
         return new Mission(this.robotID, path);
+    }
+
+    /**
+     * 
+     * @param task
+     * @param toSA
+     * @return
+     */
+    public Pose[] navigateCorrectly(Task task, boolean toSA) {
+        ArrayList<Pose> corners = new ArrayList<Pose>();
+        int lastCorner;
+        if (toSA) {
+            // IF PICKUP ORE
+            lastCorner = 1;
+        } else {
+            lastCorner = 3;
+        }
+
+        while (this.cornerState != lastCorner) {
+            corners.add(task.corners[this.incrementCornerState()-1]);
+        }
+        corners.add(task.toPose);
+        
+        return corners.toArray(new Pose[0]);
     }
 
 
