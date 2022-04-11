@@ -324,21 +324,26 @@ public class TimeSchedule {
     }
     
 
-    public void printSchedule(){
-        System.out.println("_____________________________SCHEDULE__________________");
+    public void printSchedule(String c){
+        String e = "\033[0m";
+        
+        System.out.println(c+"_____________________________SCHEDULE__________________"+e);
         for (Task t : this.schedule){
-            System.out.println("---------------------------------------------------");
-            System.out.println("time: " + t.startTime + " --> " + t.endTime + "\t taskID: "+t.taskID + "\tisActive: "+ t.isActive);
+            System.out.println(c+"---------------------------------------------------"+e);
+            System.out.println(c+"time: " + t.startTime + " --> " + t.endTime + "\t taskID: "+t.taskID + "\twith: "+ t.partner+e);
+            System.out.println(c+"from: " +t.fromPose.toString() + " --> " + t.toPose.toString()+e);
         }
 
-        System.out.println("____________________________RESERVED___________________");
+        System.out.println(c+"____________________________RESERVED___________________"+e);
         for (int key : this.reservedTasks.keySet()) {
             Task t = this.reservedTasks.get(key);
         
-            System.out.println("---------------------------------------------------");
-            System.out.println("time: " + t.startTime + " --> " + t.endTime + "\t taskID: "+t.taskID + "\tisActive: "+ t.isActive);
+            System.out.println(c+"---------------------------------------------------"+e);
+            System.out.println(c+"time: " + t.startTime + " --> " + t.endTime + "\t taskID: "+t.taskID + "\twith: "+ t.partner+e);
+            System.out.println(c+"from: " +t.fromPose.toString() + " --> " + t.toPose.toString()+e);
         }
-        System.out.println("ORESTATE: " + this.oreState);
+        System.out.println(c+"ORESTATE: " + this.oreState+e);
+        
 
     }
 
@@ -449,14 +454,14 @@ public class TimeSchedule {
             // ts.update(1, 31.0);
             // ts.printSchedule();
 
-            ts.printSchedule();
+            ts.printSchedule("");
             ArrayList<Task> ret = ts.update(1, 36.0);
             System.out.println("res "+ret.size());
             for(Task t : ret){
                 System.out.println("start-->"+t.startTime+"\t end-->"+t.endTime+"\t task-->"+t.taskID);
             }
             
-            ts.printSchedule();
+            ts.printSchedule("");
         }
 
         if (testOreState){
@@ -490,16 +495,16 @@ public class TimeSchedule {
             t3.isActive = false;
 
             System.out.println( ts.add(t1) == true ? "t1 success" : "t1 fail");
-            ts.printSchedule();
+            ts.printSchedule("");
             System.out.println( ts.add(t2) == true ? "t2 success" : "t2 fail");
-            ts.printSchedule();
+            ts.printSchedule("");
             System.out.println( ts.add(t3) == true ? "t3 success" : "t3 fail");
-            ts.printSchedule();
+            ts.printSchedule("");
 
 
             System.out.println( ts.setTaskActive(t1.taskID) == true ? "t1 success" : "t1 fail");
 
-            ts.printSchedule();
+            ts.printSchedule("");
         }
 
         if ( testLastToPose ){
