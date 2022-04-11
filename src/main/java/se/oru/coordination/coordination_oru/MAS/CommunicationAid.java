@@ -115,13 +115,13 @@ public class CommunicationAid extends HelpFunctions{
     public ArrayList<Integer> getReceivers(ArrayList<Integer> network, String receiverType) {
         ArrayList<Integer> networkCopy = new ArrayList<Integer>(network);
         if (receiverType.equals("DRAW")) {
-            networkCopy.removeIf(i -> i < 10000);    //draw agents has robotID > 10000
+            networkCopy.removeIf(i -> i < 10000 || i >= 15000);    //draw agents has robotID > 10000
         }
         if (receiverType.equals("STORAGE")) {
-            networkCopy.removeIf(i -> i < 5000 && i >= 10000); //storage agents has robotID > 5000 & < 10000
+            networkCopy.removeIf(i -> i < 5000 || i >= 10000); //storage agents has robotID > 5000 & < 10000
         }
         if (receiverType.equals("TRANSPORT")) {
-            networkCopy.removeIf(i -> i > 5000); //storage agents has robotID > 5000 & < 10000
+            networkCopy.removeIf(i -> i >= 5000); //storage agents has robotID > 5000 & < 10000
         }
         if (receiverType.equals("TRANSPORTTRUCK")) {
             networkCopy.removeIf(i -> i < 15000); //storage agents has robotID > 5000 & < 10000

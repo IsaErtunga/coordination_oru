@@ -213,6 +213,8 @@ public class BaseTest {
 				this.setPriority(Thread.MAX_PRIORITY);
 
 				ReedsSheppCarPlanner rsp = new ReedsSheppCarPlanner();
+				rsp.setFootprint(footprint1, footprint2, footprint3, footprint4);
+				rsp.setTurningRadius(4.0); 	
 				rsp.setMap(yamlFile);
 
 				StorageAgent SA = new StorageAgent(numStorages[i], router, 100.0, storagePoses[i], startTime, rsp);

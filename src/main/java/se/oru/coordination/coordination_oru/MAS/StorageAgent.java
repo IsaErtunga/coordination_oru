@@ -308,8 +308,8 @@ public class StorageAgent extends CommunicationAid{
      * @return true if we send offer = we expect resp.
      */
     public boolean handleService(Message m) { 
-
-        this.print("handleService-START");
+        this.print("SASASASA");
+        this.print("handleService-START"+m.sender);
         
         double availabeOre = this.timeSchedule.checkEndStateOreLvl();
         if (availabeOre <= 0.0) return false;   //if we dont have ore dont act 
