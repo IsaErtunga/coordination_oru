@@ -17,8 +17,6 @@ public class StorageAgent extends CommunicationAid{
     //Control parameters
     protected double TIME_WAITING_FOR_OFFERS = 3.0;
 
-
-
     protected Pose startPose;
     protected Pose startPoseRight;
     protected double capacity;  // capacity of storage = max ore it can store in TONS
@@ -28,6 +26,7 @@ public class StorageAgent extends CommunicationAid{
     protected TimeSchedule timeSchedule;
     protected long startTime;
     protected double oreStateThreshold = 15.0;
+    protected int orderNumber;
 
     public boolean beingUsed = false;
 
@@ -73,6 +72,7 @@ public class StorageAgent extends CommunicationAid{
         this.timeSchedule = new TimeSchedule(startPos, this.amount);
         this.startTime = startTime;
         this.mp = mp;
+        this.orderNumber = this.robotID - 15000;
 
         router.enterNetwork(this);
 
@@ -324,7 +324,7 @@ public class StorageAgent extends CommunicationAid{
         
 
         int offerVal = this.calculateOffer(TTATask);
-        this.print(" OFFER"+offerVal);
+        
         if ( offerVal <= 0 ) return false;
 
         if (! this.timeSchedule.add(TTATask) ){
@@ -371,16 +371,15 @@ public class StorageAgent extends CommunicationAid{
         if (t.pathDist > 0.5) {
             int oreLevel = (int)this.timeSchedule.checkEndStateOreLvl();
             if (oreLevel >= t.ore) {
-                // Step 1: Check if TA can give full amount. Check distance
-                // Must be in tune with lambda
-                int fullOreBonus = 10000; 
-                offer =  this.calcCDF(t.pathDist) + fullOreBonus;
+                // Step 1: Check if SA can give full amount. Check distance
+                // The higher the orderNumber the higher offer
+                offer = 10000 + this.orderNumber;
             }
             else {
                 // play around with scaling
                 int oreScale = 1;
-                int distScale = 1;
-                offer = (oreLevel * oreScale) + (this.calcCDF(t.pathDist * distScale));
+                int distScale = 10;
+                offer = (oreLevel * oreScale) + (this.orderNumber * distScale);
             }
             // If this.getNextTime > startTime för SA. Ge penalty
         }
