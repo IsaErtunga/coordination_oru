@@ -311,22 +311,20 @@ public class StorageAgent extends CommunicationAid{
      * @return true if we send offer = we expect resp.
      */
     public boolean handleService(Message m) { 
-        this.print("SASASASA");
-        this.print("handleService-START"+m.sender);
+        this.print("handleService - start");
         
         double availabeOre = this.timeSchedule.checkEndStateOreLvl();
         
-        if (availabeOre <= 0.0) return false;   //if we dont have ore dont act 
+        if (availabeOre <= 0.01) return false;   //if we dont have ore dont act 
 
         Task TTATask = this.createTaskFromServiceOffer(m, availabeOre, this.startPoseRight);
 
         // Return abort?
         if ( !this.timeSchedule.taskPossible(TTATask) ) return false;    // task doesnt fit in schedule
         
-
         int offerVal = this.calculateOffer(TTATask);
         
-        if ( offerVal <= 0 ) return false;
+        if (offerVal <= 0.01) return false;
 
         if (! this.timeSchedule.add(TTATask) ){
             this.print("not added!");
@@ -403,7 +401,7 @@ public class StorageAgent extends CommunicationAid{
         String startPoseStr = this.stringifyPose(t.fromPose);
         String endPoseStr = this.stringifyPose(t.toPose);
         String body = t.taskID +s+ offer +s+ startPoseStr +s+ 
-                      endPoseStr +s+ startTime +s+ t.endTime +s+ ore;
+                      endPoseStr +s+ t.startTime +s+ t.endTime +s+ ore;
 
         return new Message(this.robotID, t.partner, "offer", body);
     }

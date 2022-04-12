@@ -188,7 +188,7 @@ public class TransportTruckAgent extends CommunicationAid{
     }
 
     protected void initialState() {
-        double oreLevelThreshold = 5.0;
+        double oreLevelThreshold = 1.0;
         while (true) {
             
             if ( false ){} //TODO check if we have an inconsistent schedule ore-wise
@@ -218,7 +218,7 @@ public class TransportTruckAgent extends CommunicationAid{
                 this.timeSchedule.printSchedule("");
             }
 
-            this.sleep(15000);
+            this.sleep(500);
         }
 
     }
