@@ -102,7 +102,7 @@ public class StorageAgent extends CommunicationAid{
             else if ( false ){} //TODO check if we need more or at some point in future
 
 
-            else if (oreLevel < 0.4 * capacity) { // plan future tasks
+            else if (oreLevel < 0.8 * capacity) { // plan future tasks
 
                 Message bestOffer = this.offerService(this.getNextTime());
 
