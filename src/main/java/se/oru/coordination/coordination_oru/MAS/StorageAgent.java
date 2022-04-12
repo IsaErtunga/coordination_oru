@@ -69,7 +69,7 @@ public class StorageAgent extends CommunicationAid{
 
     public void status () {
         while(true) {
-            if ( this.amount < this.oreStateThreshold ){} //TODO request ore fast
+            if ( this.amount < this.oreStateThreshold && false ){} //TODO request ore fast
 
 
             else if ( false ){} //TODO check if we need more or at some point in future
@@ -82,6 +82,7 @@ public class StorageAgent extends CommunicationAid{
                 if (!bestOffer.isNull) {
                     Task task = this.createTaskFromMessage(bestOffer, true);
                     this.timeSchedule.add(task);
+                    this.timeSchedule.printSchedule();
                 }
             }
             this.sleep(2000);

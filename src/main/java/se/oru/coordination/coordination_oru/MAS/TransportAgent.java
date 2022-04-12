@@ -134,11 +134,11 @@ public class TransportAgent extends CommunicationAid{
 
 
     /**
-     * 
+     * Compare robot pose to task end pose to see if Task is finished
      * @param task
      * @return
      */
-    protected Boolean isMissionDone (Task task) {
+    protected Boolean isTaskDone (Task task) {
         // Distance from robots actual position to task goal pose
         return this.tec.getRobotReport(this.robotID).getPose().distanceTo(task.toPose) < 0.5;
     }
@@ -151,10 +151,7 @@ public class TransportAgent extends CommunicationAid{
         while (true) {
             // Execute task while its schedule is not empty
             if (this.timeSchedule.getSize() > 0) {
-                /* SCHEDULE: Only execute task if: 
-                    * It is time to perform task. (if not wait, TODO do not just wait or something..)
-                    * The task is marked as active.
-
+                /* SCHEDULE:
                     * IF we start performing task long after startTime:
                         - update schedule to the delay
                     *   - inform receiving-end of the delay
@@ -170,7 +167,7 @@ public class TransportAgent extends CommunicationAid{
                 
                 // if robot managed to complete task 
                 //String oreChange = task.partner<10000 ? Integer.toString(this.oreCap) : Integer.toString(-this.oreCap);
-                while (!isMissionDone(task)) {
+                while (!isTaskDone(task)) {
                     this.sleep(500);
                 }
                 
@@ -179,15 +176,14 @@ public class TransportAgent extends CommunicationAid{
 
                 // if robot didn't manage to complete task
             }
-            try { Thread.sleep(500); }
-            catch (InterruptedException e) { e.printStackTrace(); }
+            this.sleep(500);
         }
     }
 
     protected void initialState() {
-        double oreLevelThreshold = 0.0;
+        double oreLevelThreshold = 1.0;
         while (true) {
-
+            
             if ( false ){} //TODO check if we have an inconsistent schedule ore-wise
 
             else if ( this.timeSchedule.checkEndStateOreLvl() <= oreLevelThreshold ){ // book task to get ore
@@ -199,9 +195,10 @@ public class TransportAgent extends CommunicationAid{
                     continue;
                 }
     
-                Task task = this.createTaskFromMessage(bestOffer, true);
+                Task task = this.createTaskFromOfferMessage(bestOffer);
     
                 if ( this.timeSchedule.add(task) == false ){ // if false then task no longer possible, send abort msg to task partner
+                    this.print("TASK ABORTED");
                     this.sendMessage(new Message(this.robotID, task.partner, "abort", Integer.toString(task.taskID)));
                 }
 
@@ -353,7 +350,7 @@ public class TransportAgent extends CommunicationAid{
      * @param ore the amount of ore the task is about
      * @return a Task with attributes extracted from m
      */
-    protected Task createTaskFromServiceOffer(Message m, double ore, Pose pos){
+    protected Task createTaskFromServiceOffer(Message m, double ore, Pose startPos){
         String[] mParts = this.parseMessage(m, "", true);
 
         Pose SApos = this.posefyString(mParts[2]);
@@ -371,6 +368,7 @@ public class TransportAgent extends CommunicationAid{
         return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathTime, pos, SApos);
     }
 
+    // -----------------------------ANVÄNDS EJ----------------------------------------
     /**
      * Used to generate a response message from a task. Called from {@link handleService}
      * after creating a task with {@link createTaskFromServiceOffer}.
@@ -391,6 +389,11 @@ public class TransportAgent extends CommunicationAid{
     }
     
     
+    /**
+     * Calculates and returns offer based on distance and ore-level
+     * @param t
+     * @return offer
+     */
     protected int calculateOffer(Task t){
         if (t.pathDist <= 2.0) return 0;
 

@@ -28,7 +28,7 @@ import se.oru.coordination.coordination_oru.MAS.StorageAgent;
 import se.oru.coordination.coordination_oru.MAS.DrawAgent;
 import se.oru.coordination.coordination_oru.MAS.Message;
 
-public class CommunicationDraw {
+public class BaseTest {
 
 	public static void main(String[] args) throws InterruptedException {
 
@@ -82,7 +82,7 @@ public class CommunicationDraw {
 	tec.startInference();
 
 	// viz map file
-	final String yamlFile = "maps/test-map.yaml";
+	final String yamlFile = "maps/test-map_complete.yaml";
 	//yamlFile = "maps/test-map.yaml";	
 
 	//Set up a simple GUI
@@ -123,7 +123,7 @@ public class CommunicationDraw {
 
 	Pose DA1pos = new Pose(36.0, 35.0, Math.PI);
 	Pose DA2pos = new Pose(36.0, 115.0, Math.PI);
-	Pose DA3pos = new Pose(36.0, 165.0, Math.PI);
+	Pose DA3pos = new Pose(36.0, 135.0, Math.PI);
 	Pose TA1pos = new Pose(50.0,20.0, Math.PI/2);	
 	Pose TA2pos = new Pose(50.0,190.0, 3*Math.PI/2);	
 	Pose TA3pos = new Pose(50.0,100.0, 3*Math.PI/2);
@@ -143,7 +143,7 @@ public class CommunicationDraw {
 													/*		DRAW AGENT	*/
 	final int[] numDraw = {10001, 10002, 10003};
 	Pose[] drawPoses = { DA1pos, DA2pos, DA3pos };
-	final int[] iter3 = {0,1};
+	final int[] iter3 = {0};
 
 	ReedsSheppCarPlanner mp = new ReedsSheppCarPlanner();
 	mp.setFootprint(footprint1, footprint2, footprint3, footprint4);
@@ -157,7 +157,7 @@ public class CommunicationDraw {
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);
 
-				DrawAgent DA = new DrawAgent(numDraw[i], router, 100.0, drawPoses[i], mp, startTime);
+				DrawAgent DA = new DrawAgent(numDraw[i], router, 20.0, drawPoses[i], mp, startTime);
 				DA.listener();
 				
 			}
@@ -200,7 +200,7 @@ public class CommunicationDraw {
 													/*		STORAGE AGENT	*/
 	final int[] numStorages = {5001, 5002};
 	Pose[] storagePoses = { SA1pos, SA2pos };
-	final int[] iter2 = {0,1};
+	final int[] iter2 = {0};
 
 	for (final int i : iter2) {
 
@@ -209,7 +209,7 @@ public class CommunicationDraw {
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);
 
-				StorageAgent SA = new StorageAgent(numStorages[i], router, 60.0, storagePoses[i], startTime);
+				StorageAgent SA = new StorageAgent(numStorages[i], router, 100.0, storagePoses[i], startTime);
 				SA.start();
 			
 			}
