@@ -206,12 +206,28 @@ public class DrawAgent extends CommunicationAid{
      * @return an int with the value of this task.
      */
     protected int calculateOffer(Task t){
-        if (t.pathDist <= 2.0) return 0;
+        // if (t.pathDist <= 2.0) return 0;
 
-        double dist = 100.0 * 1.0 / t.pathDist;
-        double evaluatedCapacity = 200.0 * this.amount / this.capacity; 
+        // double dist = 100.0 * 1.0 / t.pathDist;
+        // double evaluatedCapacity = 200.0 * this.amount / this.capacity; 
 
-        return (int)(dist + evaluatedCapacity);
+        // return (int)(dist + evaluatedCapacity);
+        int offer;
+        if (t.pathDist > 0.5) {
+            if (this.amount / this.capacity > 0.9) {
+                // Draw agent is nearly full
+                int fullOreBonus = 1000;
+                offer = this.calcCDF(t.pathDist) + fullOreBonus;
+            }
+            else {
+                double evaluatedCapacity = 100.0 * this.amount / this.capacity; 
+                offer = this.calcCDF(t.pathDist) + (int)evaluatedCapacity;
+            }
+        }
+        else {
+            offer = 0;
+        }
+        return offer;
     }
 
     /**

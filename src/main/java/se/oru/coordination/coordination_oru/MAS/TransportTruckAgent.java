@@ -24,7 +24,7 @@ public class TransportTruckAgent extends CommunicationAid{
 
     protected Coordinate[] rShape;
     protected Pose startPose;
-    protected final Double oreCap = 15.0;
+    protected final Double capacity = 15.0;
     protected Double holdingOre = 0.0;
     protected final int taskCap = 4;
 
@@ -172,7 +172,7 @@ public class TransportTruckAgent extends CommunicationAid{
                 this.tec.addMissions(this.createMission(task));
                 
                 // if robot managed to complete task 
-                //String oreChange = task.partner<10000 ? Integer.toString(this.oreCap) : Integer.toString(-this.oreCap);
+                //String oreChange = task.partner<10000 ? Integer.toString(this.capacity) : Integer.toString(-this.capacity);
                 while (!isTaskDone(task)) {
                     this.sleep(500);
                 }
@@ -295,6 +295,7 @@ public class TransportTruckAgent extends CommunicationAid{
     public Message handleOffers(int taskID) {
         Message bestOffer = new Message();
         int offerVal = 0;
+        int SAOrderVAl = 0;
     
         for (Message m : this.offers) {
             // SCHEDULE: Extract startTime & endTime and see if it fits into schedule
@@ -306,10 +307,34 @@ public class TransportTruckAgent extends CommunicationAid{
 
                 if ( Integer.parseInt(mParts[0]) == taskID ){
                     int val = Integer.parseInt(mParts[1]);
+                    int SAOrderNumber = m.sender - 5000;
 
-                    if (val > offerVal){
-                        offerVal = val;
-                        bestOffer = new Message(m);
+                    if (val > offerVal) {
+                        if (val < offerVal * 1.1) {
+                            // If only 10% larger or less
+                            if (SAOrderNumber > SAOrderVAl) {
+                                // Check precedence
+                                offerVal = val;
+                                SAOrderVAl = SAOrderNumber;
+                                bestOffer = new Message(m);
+                            }
+                        }
+                        else {
+                            offerVal = val;
+                            SAOrderVAl = SAOrderNumber;
+                            bestOffer = new Message(m);
+                        }
+                    }
+                    else {
+                        if (val > offerVal * 0.9) {
+                            // If only 10% smaller or less
+                            if (SAOrderNumber > SAOrderVAl) {
+                                // Check precedence
+                                offerVal = val;
+                                SAOrderVAl = SAOrderNumber;
+                                bestOffer = new Message(m);
+                            }
+                        }
                     }
                 }
             }
@@ -344,7 +369,7 @@ public class TransportTruckAgent extends CommunicationAid{
         double distance = this.calcDistance(robotPos, deliveryPos);
         double taskStartTime = this.getNextTime();
         double endTime = taskStartTime + this.calculateDistTime(distance);
-        Task deliverTask = new Task(this.tID(), -1, true, -15.0, taskStartTime, endTime, endTime, robotPos, deliveryPos);
+        Task deliverTask = new Task(this.tID(), -1, true, this.capacity, taskStartTime, endTime, endTime, robotPos, deliveryPos);
         return deliverTask;
     }
 

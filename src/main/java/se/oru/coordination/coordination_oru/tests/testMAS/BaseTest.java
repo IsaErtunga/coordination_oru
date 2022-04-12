@@ -149,7 +149,7 @@ public class BaseTest {
 													/*		DRAW AGENT	*/
 	final int[] numDraw = {10001, 10002, 10003};
 	Pose[] drawPoses = { DA1pos, DA2pos, DA3pos };
-	final int[] iter3 = {0, 1, 2};
+	final int[] iter3 = {};
 
 	ReedsSheppCarPlanner mp = new ReedsSheppCarPlanner();
 	mp.setFootprint(footprint1, footprint2, footprint3, footprint4);
@@ -174,7 +174,7 @@ public class BaseTest {
 
 												/*		TRANSPORT AGENT	*/
 	final int[] numTransport = {1, 2};
-	final int[] iter = {0, 1};
+	final int[] iter = {};
 	Pose[] transportPoses = { TA1pos, TA2pos };    
 	
 	for (final int i : iter) {
@@ -233,8 +233,8 @@ public class BaseTest {
 	}
 
 	final int[] numTransportTruck = {15001, 15002}; 
-	final int[] iter4 = {};
-	Pose[] transportTruckPoses = {TTA1pos, TTA2pos };    
+	final int[] iter4 = {0};
+	Pose[] transportTruckPoses = {TTA1pos, TTA2pos};    
 	
 	for (final int i : iter4) {
 
@@ -248,7 +248,7 @@ public class BaseTest {
 				//Instantiate a simple motion planner (no map given here, otherwise provide yaml file)
 				ReedsSheppCarPlanner rsp = new ReedsSheppCarPlanner();
 				rsp.setFootprint(footprint1, footprint2, footprint3, footprint4);
-				rsp.setTurningRadius(2.0); 				//default is 1.0
+				rsp.setTurningRadius(1.0); 				//default is 1.0
 				rsp.setMap(yamlFile);
 
 				TransportTruckAgent TTA = new TransportTruckAgent(numTransportTruck[i], tec, rsp, transportTruckPoses[i], router, startTime);

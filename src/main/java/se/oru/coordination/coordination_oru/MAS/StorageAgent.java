@@ -74,7 +74,7 @@ public class StorageAgent extends CommunicationAid{
         this.timeSchedule = new TimeSchedule(startPos, this.amount);
         this.startTime = startTime;
         this.mp = mp;
-        this.orderNumber = this.robotID - 15000;
+        this.orderNumber = this.robotID - 5000;
 
         router.enterNetwork(this);
 
@@ -370,23 +370,27 @@ public class StorageAgent extends CommunicationAid{
     protected int calculateOffer(Task t){
         int offer;
         if (t.pathDist > 0.5) {
-            int oreLevel = (int)this.timeSchedule.checkEndStateOreLvl();
-            if (oreLevel >= t.ore) {
-                // Step 1: Check if SA can give full amount. Check distance
-                // The higher the orderNumber the higher offer
-                offer = 10000 + this.orderNumber;
+            double oreLevel = this.timeSchedule.checkEndStateOreLvl();
+            double oreLevelPercentage = oreLevel/this.capacity;
+            this.print("ORELEVEL%%%%%%%%%%%%%%%%%%" + oreLevelPercentage);
+            if (oreLevelPercentage > 0.8) {
+                this.print("HIGH ORE LEVEL");
+                double tooMuchOreBonus = 1000 * oreLevelPercentage;
+                offer = (int)tooMuchOreBonus + this.calcCDF(t.pathDist);
+            }
+            else if (oreLevelPercentage < 0.05) {
+                this.print("LOW ORE LEVEL");
+                offer = 0;
             }
             else {
-                // play around with scaling
-                int oreScale = 1;
-                int distScale = 10;
-                offer = (oreLevel * oreScale) + (this.orderNumber * distScale);
+                this.print("ELSE");
+                offer = (int)(((oreLevel/this.capacity)*100) + this.calcCDF(t.pathDist));
             }
-            // If this.getNextTime > startTime för SA. Ge penalty
         }
         else {
             offer = 0;
         }
+        this.print("------------OFFER---------->: " + offer);
         return offer;
     }   
 
