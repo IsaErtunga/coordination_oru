@@ -349,7 +349,7 @@ public class TransportTruckAgent extends CommunicationAid{
      * @return
      */
     public Mission createMission(Task task) {
-        this.timeSchedule.printSchedule();
+        this.timeSchedule.printSchedule("");
         this.mp.setStart(task.fromPose);
         //Pose[] goals = {task.NE, task.SE, task.SW, task.toPose};
         // if ore is positive, it means that it will fetch ore

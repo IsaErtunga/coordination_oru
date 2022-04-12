@@ -107,7 +107,7 @@ public class StorageAgent extends CommunicationAid{
                 if (!bestOffer.isNull) {
                     Task task = this.createTaskFromMessage(bestOffer, true);
                     this.timeSchedule.add(task);
-                    this.timeSchedule.printSchedule();
+                    this.timeSchedule.printSchedule(this.COLOR);
                 }
             }
             this.sleep(2000);

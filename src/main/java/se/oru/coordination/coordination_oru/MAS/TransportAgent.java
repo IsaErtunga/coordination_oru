@@ -344,6 +344,20 @@ public class TransportAgent extends CommunicationAid{
         return true;
     }
 
+    /**
+     * 
+     * @param message
+     * @return Task
+     */
+    protected Task createTaskFromOfferMessage(Message m) {
+        String[] mParts = this.parseMessage(m, "", true);
+        // replace intexes
+        
+        // Task(int taskID, int partner, boolean isActive, double ore, double startTime, double endTime, double dist, Pose fromPose, Pose toPose) {
+        return new Task(Integer.parseInt(mParts[0]), m.sender, true, Double.parseDouble(mParts[6]), Double.parseDouble(mParts[4]),
+                        Double.parseDouble(mParts[5]), this.posefyString(mParts[2]), this.posefyString(mParts[3]));
+    }
+
     /** When receiving a cnp-message, this function will create a task from that message.
      * Only used in {@link handleService}.
      * @param m the message from the auctioneer
@@ -357,7 +371,7 @@ public class TransportAgent extends CommunicationAid{
         // PoseSteering[] path = this.calculatePath(pos, TApos);
         // double pathDist = this.calculatePathDist(path);
         // double pathTime = this.calculateDistTime(pathDist);
-        double pathDist = pos.distanceTo(SApos);
+        double pathDist = startPos.distanceTo(SApos);
         double pathTime = this.calculateDistTime(pathDist) + 10.0;
 
         //double startTime = Double.parseDouble(mParts[3]);
@@ -365,7 +379,7 @@ public class TransportAgent extends CommunicationAid{
         
         double endTime = taskStartTime + pathTime;
 
-        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathTime, pos, SApos);
+        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathTime, startPos, SApos);
     }
 
     
