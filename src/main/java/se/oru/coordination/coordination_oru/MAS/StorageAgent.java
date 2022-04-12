@@ -67,7 +67,8 @@ public class StorageAgent extends CommunicationAid{
         this.print("STORAGE AGENT INITIATED");
         this.robotID = r_id;
         this.capacity = capacity;
-        this.amount = capacity / 2.0;
+        // this.amount = capacity / 2.0;
+        this.amount = 0.2 * capacity;
         this.startPose = startPos;
         this.startPoseRight = startPoseRight;
         this.timeSchedule = new TimeSchedule(startPos, this.amount);
@@ -94,13 +95,14 @@ public class StorageAgent extends CommunicationAid{
 
     public void status () {
         while(true) {
-            if ( this.amount < this.oreStateThreshold && false ){} //TODO request ore fast
+            double oreLevel = this.timeSchedule.checkEndStateOreLvl();
+            if ( this.amount < oreLevel && false ){} //TODO request ore fast
 
 
             else if ( false ){} //TODO check if we need more or at some point in future
 
 
-            else if ( this.timeSchedule.checkEndStateOreLvl() < 0.9*capacity ){ // plan future tasks
+            else if (oreLevel < 0.4 * capacity) { // plan future tasks
 
                 Message bestOffer = this.offerService(this.getNextTime());
 

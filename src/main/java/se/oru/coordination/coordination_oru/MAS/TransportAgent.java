@@ -411,8 +411,8 @@ public class TransportAgent extends CommunicationAid{
     protected int calculateOffer(Task t){
         int offer;
         if (t.pathDist > 0.5) {
-            int oreLevel = (int)this.timeSchedule.checkEndStateOreLvl();
-            if (oreLevel >= t.ore) {
+            double oreLevel = this.timeSchedule.checkEndStateOreLvl();
+            if (oreLevel >= t.ore - 0.01) {
                 // Step 1: Check if TA can give full amount. Check distance
                 // Must be in tune with lambda
                 int fullOreBonus = 10000; 
@@ -422,7 +422,7 @@ public class TransportAgent extends CommunicationAid{
                 // play around with scaling
                 int oreScale = 1;
                 int distScale = 1;
-                offer = (oreLevel * oreScale) + (this.calcCDF(t.pathDist * distScale));
+                offer = ((int)oreLevel * oreScale) + (this.calcCDF(t.pathDist) * distScale);
             }
             // If this.getNextTime > startTime för SA. Ge penalty
         }
