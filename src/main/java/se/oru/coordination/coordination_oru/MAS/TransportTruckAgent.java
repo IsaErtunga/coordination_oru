@@ -211,18 +211,11 @@ public class TransportTruckAgent extends CommunicationAid{
             }
 
             else {
-                this.print("WAITING FOR TASK BY STORAGE AGENT");
-                // Deliver ore for export
-                // Change
-                Pose robotPos = this.tec.getRobotReport(this.robotID).getPose();
-                Pose deliveryPos = new Pose(245.0, 105.0, Math.PI);	
-                double distance = this.calcDistance(robotPos, deliveryPos);
-                double endTime = this.calculateDistTime(distance);
-                Task deliverTask = new Task(this.tID(), -1, true, -15.0, startTime, endTime, endTime, robotPos, deliveryPos);
-                if (this.timeSchedule.add(deliverTask) == false) { // if false then task no longer possible, send abort msg to task partner
+                // Deliver ore 
+                if (this.timeSchedule.add(createDeliverTask()) == false) { // if false then task no longer possible, send abort msg to task partner
                     this.print("TASK ABORTED");
-                    this.sendMessage(new Message(this.robotID, -1, "abort", Integer.toString(deliverTask.taskID)));
                 }
+                this.timeSchedule.printSchedule("");
             }
 
             this.sleep(15000);
@@ -234,7 +227,7 @@ public class TransportTruckAgent extends CommunicationAid{
      * 
      * @param robotID id of robot{@link TransportTruckAgent} calling this
      */
-    public Message offerService(double startTime) {
+    public Message offerService(double taskStartTime) {
 
         // Get correct receivers
         ArrayList<Integer> receivers = this.getReceivers(this.robotsInNetwork, "STORAGE");
@@ -243,7 +236,7 @@ public class TransportTruckAgent extends CommunicationAid{
         
         this.offers.clear();
         String startPos = this.stringifyPose(this.timeSchedule.getLastToPose());
-        int taskID = this.sendCNPmessage(startTime, startPos, receivers);
+        int taskID = this.sendCNPmessage(taskStartTime, startPos, receivers);
     
 
         double time = this.waitForAllOffersToCome(receivers.size());
@@ -286,9 +279,9 @@ public class TransportTruckAgent extends CommunicationAid{
      * @param receivers
      * @return taskID
      */
-    public int sendCNPmessage(double startTime, String startPos, ArrayList<Integer> receivers) {
+    public int sendCNPmessage(double taskStartTime, String startPos, ArrayList<Integer> receivers) {
         // taskID & agentID & pos & startTime 
-        String startTimeStr = Double.toString(startTime);
+        String startTimeStr = Double.toString(taskStartTime);
         String body = this.robotID + this.separator + startPos + this.separator + startTimeStr;
         Message m = new Message(this.robotID, receivers, "cnp-service", body);
         return this.sendMessage(m, true);
@@ -305,10 +298,10 @@ public class TransportTruckAgent extends CommunicationAid{
     
         for (Message m : this.offers) {
             // SCHEDULE: Extract startTime & endTime and see if it fits into schedule
-            double startTime = Double.parseDouble(parseMessage(m, "startTime")[0]);
+            double taskStartTime = Double.parseDouble(parseMessage(m, "startTime")[0]);
             double endTime = Double.parseDouble(parseMessage(m, "endTime")[0]);
   
-            if( this.timeSchedule.taskPossible(startTime, endTime) ) {
+            if( this.timeSchedule.taskPossible(taskStartTime, endTime) ) {
                 String[] mParts = this.parseMessage( m, "", true); // sort out offer not part of current auction(taskID)
 
                 if ( Integer.parseInt(mParts[0]) == taskID ){
@@ -341,6 +334,19 @@ public class TransportTruckAgent extends CommunicationAid{
                         Double.parseDouble(mParts[5]), this.posefyString(mParts[2]), this.posefyString(mParts[3]));
     }
 
+    /**
+     * Function that creates a task for the TTA to deliver ore out of mine. 
+     * @return Task deliverTask
+     */
+    protected Task createDeliverTask() {
+        Pose robotPos = this.timeSchedule.getLastToPose();
+        Pose deliveryPos = new Pose(245.0, 105.0, Math.PI);	
+        double distance = this.calcDistance(robotPos, deliveryPos);
+        double taskStartTime = this.getNextTime();
+        double endTime = taskStartTime + this.calculateDistTime(distance);
+        Task deliverTask = new Task(this.tID(), -1, true, -15.0, taskStartTime, endTime, endTime, robotPos, deliveryPos);
+        return deliverTask;
+    }
 
     /**
      * 

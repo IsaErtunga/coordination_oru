@@ -83,9 +83,9 @@ public class BaseTest {
 	tec.startInference();
 
 	// viz map file
-	//final String yamlFile = "maps/map_2_blocks.yaml";
-	final String yamlFile = "maps/test-map_complete.yaml";
-	//yamlFile = "maps/test-map.yaml";	
+	final String yamlFile = "maps/map_2_blocks.yaml";
+	// final String yamlFile = "maps/test-map_complete.yaml";
+	// yamlFile = "maps/test-map.yaml";	
 
 	//Set up a simple GUI
 	BrowserVisualization viz = new BrowserVisualization();
@@ -149,7 +149,7 @@ public class BaseTest {
 													/*		DRAW AGENT	*/
 	final int[] numDraw = {10001, 10002, 10003};
 	Pose[] drawPoses = { DA1pos, DA2pos, DA3pos };
-	final int[] iter3 = {0};
+	final int[] iter3 = {};
 
 	ReedsSheppCarPlanner mp = new ReedsSheppCarPlanner();
 	mp.setFootprint(footprint1, footprint2, footprint3, footprint4);
@@ -174,7 +174,7 @@ public class BaseTest {
 
 												/*		TRANSPORT AGENT	*/
 	final int[] numTransport = {1, 2};
-	final int[] iter = {0};
+	final int[] iter = {};
 	Pose[] transportPoses = { TA1pos, TA2pos };    
 	
 	for (final int i : iter) {
@@ -207,7 +207,7 @@ public class BaseTest {
 	final int[] numStorages = {5001, 5002};
 	Pose[] storagePoses = { SA1pos, SA2pos };
 	Pose[] storageRightPoses = {SA1RightPos, SA2RightPos};
-	final int[] iter2 = {0};
+	final int[] iter2 = {0, 1};
 
 	for (final int i : iter2) {
 
@@ -233,7 +233,7 @@ public class BaseTest {
 	}
 
 	final int[] numTransportTruck = {15001, 15002}; 
-	final int[] iter4 = {};
+	final int[] iter4 = {0};
 	Pose[] transportTruckPoses = {TTA1pos, TTA2pos };    
 	
 	for (final int i : iter4) {
