@@ -64,6 +64,11 @@ public class TimeScheduleNew {
         return null;
     }
 
+    public ArrayList<Task> getInconsistencies(){
+        if ( this.schedule.size() <= 1 ) return null;
+        return null;
+    }
+
     public ArrayList<Task> updateSchedule(){
         ArrayList<Task> fixes = new ArrayList<Task>();  // add {Task t} if task updated with diff> 5s
 
@@ -86,11 +91,13 @@ public class TimeScheduleNew {
 
     public void changeTaskEndTime(int taskID, double newEndTime){
         Task t = this.getEvent(taskID);
-
-        
+        t.endTime = newEndTime;
+        this.updateSchedule();
     }
 
     public boolean removeEvent(int taskID){
+        if ( this.reserved.remove(taskID) != null) return true;
+
         for (Task t : this.schedule){
             if ( t.taskID == taskID ){
                 this.schedule.remove(t);
@@ -98,10 +105,7 @@ public class TimeScheduleNew {
                 return true;
             }
         }
-        return true;
-    }
-    public boolean removeEvent(Task t){
-        return true;
+        return false;
     }
 
     public Task fetchNextTask(){
