@@ -15,6 +15,8 @@ import se.oru.coordination.coordination_oru.util.Missions;
 import se.oru.coordination.coordination_oru.Mission;
 
 public class DrawAgent extends CommunicationAid{
+    // control parameters
+    protected String COLOR = "\033[0;36m";
 
     private final static double finalXPos = 4.0;
     protected double initalXPos;
@@ -56,8 +58,6 @@ public class DrawAgent extends CommunicationAid{
 
         double x = this.finalXPos + (this.initalXPos - this.finalXPos) * this.amount / this.capacity;
         this.pos = new Pose( x, pos.getY(), pos.getYaw() );
-
-        this.print("position updated"+this.pos.toString());
     }
 
 
@@ -122,53 +122,38 @@ public class DrawAgent extends CommunicationAid{
         else if (informVal.equals(new String("abort"))) {} //TODO remove task from schedule 
     }
 
-
-    public PoseSteering[] calculatePath(Pose from, Pose to){
-        this.mp.setGoals(from);
-        this.mp.setStart(to);
-        if (!this.mp.plan()) throw new Error ("No path between " + from + " and " + to);
-
-        return this.mp.getPath();
-    }
-
     /**
      * DA responds to TA with offer that is calculated in this function. 
      * SCHEDULE:
      * - Will receive a time from TA of when it can come and fetch ore. 
      */
     public boolean handleService(Message m){ 
-
-        this.print("handleService-START");
-
         double availabeOre = this.timeSchedule.checkEndStateOreLvl();
         if (availabeOre <= 0.0) return false;   //if we dont have ore dont act 
-
         else availabeOre = availabeOre >= 15.0 ? 15.0 : availabeOre; // only give what ore we have available
 
         Task DAtask = createTaskFromServiceOffer(m, availabeOre);
-
         if ( !this.timeSchedule.taskPossible(DAtask) ) return false;    // task doesnt fit in schedule
-
         int offerVal = this.calculateOffer(DAtask);
 
-
         if ( offerVal <= 0 ) return false;
-
-        if (! this.timeSchedule.add(DAtask) ){
-            this.print("not added!");
-            return false;
-        }
-
-        this.timeSchedule.printSchedule();
-
-        this.print("handleService-SENDING OFFER");
+        if (! this.timeSchedule.add(DAtask) ) return false;
+        
+        this.print("--- schedule ---");
+        this.timeSchedule.printSchedule(this.COLOR);
 
         this.sendMessage(this.createOfferMsgFromTask(DAtask, offerVal, availabeOre));
-
         return true;
     }
 
-    /** When receiving a cnp-message, this function will create a task from that message.
+    protected Pose calculateFuturePos(double time){
+        double oreAtTime = this.timeSchedule.checkEndStateOreLvl(); //TODO this doesnt take ore into account. fix!
+        double x = this.finalXPos + (this.initalXPos - this.finalXPos) * oreAtTime / this.capacity;
+        return new Pose( x, pos.getY(), pos.getYaw() );
+    }
+
+    /**
+     * When receiving a cnp-message, this function will create a task from that message.
      * Only used in {@link handleService}.
      * @param m the message from the auctioneer
      * @param ore the amount of ore the task is about
@@ -178,17 +163,24 @@ public class DrawAgent extends CommunicationAid{
         String[] mParts = this.parseMessage(m, "", true);
 
         Pose TApos = this.posefyString(mParts[2]);
-        PoseSteering[] path = this.calculatePath(this.pos, TApos);
-        double pathDist = this.calculatePathDist(path);
-        double pathTime = this.calculateDistTime(pathDist);
 
-        double startTime = Double.parseDouble(mParts[3]);
-        double endTime = startTime + pathTime;
+        // removed for easier debug
+        //PoseSteering[] path = this.calculatePath(this.pos, TApos);
+        //double pathDist = this.calculatePathDist(path);
+        //double pathTime = this.calculateDistTime(pathDist);
+        double pathDist = this.pos.distanceTo(TApos);
+        double pathTime = this.calculateDistTime(pathDist) + 10.0;
 
-        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, startTime, endTime, pathTime, TApos, this.pos);
+        double taskStartTime = Double.parseDouble(mParts[3]);
+        double endTime = taskStartTime + pathTime;
+
+        Pose DApos = this.calculateFuturePos(taskStartTime);
+
+        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathTime, TApos, DApos);
     }
 
-    /** Used to generate a response message from a task. Called from {@link handleService}
+    /**
+     * Used to generate a response message from a task. Called from {@link handleService}
      * after creating a task with {@link createTaskFromServiceOffer}.
      * @param t a Task that is unactive = t.isActive = false
      * @param offer an int that is the calculated evaluation of the service related to t
@@ -198,15 +190,16 @@ public class DrawAgent extends CommunicationAid{
     protected Message createOfferMsgFromTask(Task t, int offer, double ore){
         String s = this.separator;
 
-        String startPoseStr = this.stringifyPose(t.fromPose);
-        String endPoseStr = this.stringifyPose(t.toPose);
-        String body = t.taskID +s+ offer +s+ startPoseStr +s+ 
-                      endPoseStr +s+ startTime +s+ t.endTime +s+ ore;
+        String TAposStr = this.stringifyPose(t.fromPose);
+        String DAposStr = this.stringifyPose(t.toPose);
+        String body = t.taskID +s+ offer +s+ TAposStr +s+ 
+                      DAposStr +s+ t.startTime +s+ t.endTime +s+ ore;
 
         return new Message(this.robotID, t.partner, "offer", body);
     }
 
-    /** this function evaluates a task and calculates how good this task fits for this agent.
+    /**
+     * this function evaluates a task and calculates how good this task fits for this agent.
      * If this function determins that we dont want to participate in the auction this function
      * will return 0.
      * @param t the task to be evaluated how well it fits for this agent
@@ -216,16 +209,17 @@ public class DrawAgent extends CommunicationAid{
         if (t.pathDist <= 2.0) return 0;
 
         double dist = 100.0 * 1.0 / t.pathDist;
-        double evaluatedCapacity = 50.0 * this.amount / this.capacity; 
+        double evaluatedCapacity = 200.0 * this.amount / this.capacity; 
 
         return (int)(dist + evaluatedCapacity);
     }
 
-    /**simlpe print func with color and robotID included
+    /**
+     * simlpe print func with color and robotID included
      * @param s string to be printed
      */
     protected void print(String s){
-        System.out.println("\033[0;36m"+this.robotID+"\t" + s + "\033[0m");
+        System.out.println(this.COLOR+this.robotID+"\t" + s + "\033[0m");
     }
     
 }

@@ -79,25 +79,26 @@ public class Router {
     }
 
     private void print(){
-        System.out.println("\033[0;32m"+ "###ROUTER###"+ "\033[0m");
+        
+        System.out.println("\033[0;35m"+ "###ROUTER###"+ "\033[0m");
 
         synchronized(this.outboxes){
                 
             for (Map.Entry<Integer, ArrayList<Message>> t : this.outboxes.entrySet()) {
-                System.out.println("\033[0;32m"+"outbox r" + t.getKey() +":"+ "\033[0m");
+                System.out.println("\033[0;35m"+"outbox r" + t.getKey() +":"+ "\033[0m");
 
                 for (Message m : t.getValue()){
-                    System.out.println("\033[0;32m"+" - " + m.type + ": " + m.body + ":: to r" + m.receiver+ "\033[0m");
+                    System.out.println("\033[0;35m"+" - " + m.type + ": " + m.body + ":: to r" + m.receiver+ "\033[0m");
                 }
             }
         }
         synchronized(this.inboxes){
                 
             for (Map.Entry<Integer, ArrayList<Message>> t : this.inboxes.entrySet()) {
-                System.out.println("\033[0;32m"+"inbox r" + t.getKey() +":"+ "\033[0m");
+                System.out.println("\033[0;35m"+"inbox r" + t.getKey() +":"+ "\033[0m");
 
                 for (Message m : t.getValue()){
-                    System.out.println("\033[0;32m"+" - " + m.type + ": " + m.body+ "\033[0m");
+                    System.out.println("\033[0;35m"+" - " + m.type + ": " + m.body+ "\033[0m");
                 }
             }
         }

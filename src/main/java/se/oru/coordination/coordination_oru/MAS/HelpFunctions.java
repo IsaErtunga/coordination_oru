@@ -3,11 +3,21 @@ package se.oru.coordination.coordination_oru.MAS;
 import org.metacsp.multi.spatioTemporal.paths.PoseSteering;
 import org.sat4j.minisat.orders.VarOrderHeap;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
+import se.oru.coordination.coordination_oru.motionplanning.ompl.ReedsSheppCarPlanner;
+
 import java.util.Arrays;
 import java.lang.Math;
 
 public class HelpFunctions {
 
+
+    public PoseSteering[] calculatePath(ReedsSheppCarPlanner mp, Pose from, Pose to){
+        mp.setStart(from);
+        mp.setGoals(to);
+        if (!mp.plan()) throw new Error ("No path between " + from + " and " + to);
+
+        return mp.getPath();
+    } 
 
     public double calculatePathDist(PoseSteering[] path) {
         double accumulatedDist = 0.0;

@@ -16,6 +16,7 @@ import se.oru.coordination.coordination_oru.MAS.Router;
 public class StorageAgent extends CommunicationAid{
     //Control parameters
     protected double TIME_WAITING_FOR_OFFERS = 3.0;
+    protected String COLOR = "\033[1;33m";
 
     protected Pose startPose;
     protected Pose startPoseRight;
@@ -426,7 +427,7 @@ public class StorageAgent extends CommunicationAid{
      * @param s string to be printed
      */
     protected void print(String s){
-        System.out.println("\033[1;33m"+this.robotID+"\t" + s + "\033[0m");
+        System.out.println(this.COLOR+this.robotID+"\t" + s + "\033[0m");
     }
 
 }
