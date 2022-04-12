@@ -1,5 +1,6 @@
 package se.oru.coordination.coordination_oru.MAS;
 
+
 import java.io.File;
 import java.io.IOException; 
 import java.io.FileWriter;   // Import the FileWriter class
@@ -22,7 +23,7 @@ public class FilePrinter {
     public void write(Double timeStamp, double ore) {
         try {
             this.fileWriter.write(Double.toString(timeStamp) + this.separator + Double.toString(ore));
-            
+            this.fileWriter.close();
         } catch (IOException e) {
             System.out.println("An error occurred.");
             e.printStackTrace();
@@ -31,7 +32,6 @@ public class FilePrinter {
 
     public static void main(String[] args) {
         FilePrinter fp = new FilePrinter();
-        fp.write(0.05, 20);
-     
+        fp.write(0.05, 20);   
     }
 }

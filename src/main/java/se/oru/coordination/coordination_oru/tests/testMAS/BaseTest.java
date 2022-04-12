@@ -206,7 +206,7 @@ public class BaseTest {
 	final int[] numStorages = {5001, 5002};
 	Pose[] storagePoses = { SA1pos, SA2pos };
 	Pose[] storageRightPoses = {SA1RightPos, SA2RightPos};
-	final int[] iter2 = {1};
+	final int[] iter2 = {0, 1};
 
 	for (final int i : iter2) {
 
