@@ -357,7 +357,7 @@ public class TransportAgent extends CommunicationAid{
         // PoseSteering[] path = this.calculatePath(pos, TApos);
         // double pathDist = this.calculatePathDist(path);
         // double pathTime = this.calculateDistTime(pathDist);
-        double pathDist = pos.distanceTo(SApos);
+        double pathDist = startPos.distanceTo(SApos);
         double pathTime = this.calculateDistTime(pathDist) + 10.0;
 
         //double startTime = Double.parseDouble(mParts[3]);
@@ -365,7 +365,7 @@ public class TransportAgent extends CommunicationAid{
         
         double endTime = taskStartTime + pathTime;
 
-        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathTime, pos, SApos);
+        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathTime, startPos, SApos);
     }
 
     // -----------------------------ANVÄNDS EJ----------------------------------------
