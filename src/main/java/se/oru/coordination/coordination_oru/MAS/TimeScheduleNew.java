@@ -133,11 +133,10 @@ public class TimeScheduleNew {
         for (Task t : this.schedule){
             if ( t.taskID == taskID ){
                 this.schedule.remove(t);
-                synchronized(this.oreState){ this.oreState.removeState(t.endTime, t.ore); }
-                this.updateSchedule();
                 return true;
             }
         }
+        if ( this.reserved.remove(taskID) != null ) return true;
         return false;
     }
     public boolean removeEvent(Task t){

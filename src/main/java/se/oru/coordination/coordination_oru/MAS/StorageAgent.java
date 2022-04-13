@@ -95,7 +95,7 @@ public class StorageAgent extends CommunicationAid{
 
     public void status () {
         while(true) {
-            double oreLevel = this.timeSchedule.checkEndStateOreLvl();
+            double oreLevel = this.timeSchedule.getLastOreState();
             if ( this.amount < oreLevel && false ){} //TODO request ore fast
 
 
@@ -175,6 +175,10 @@ public class StorageAgent extends CommunicationAid{
                 }
 
                 else if (m.type == "accept"){} //TODO does nothing in our Scenario atm
+
+                else if (m.type == "decline"){
+                    this.timeSchedule.removeEvent(taskID);
+                } //TODO does nothing in our Scenario atm
 
                 else if (m.type == "cnp-service"){
                     this.handleService(m);
@@ -370,7 +374,7 @@ public class StorageAgent extends CommunicationAid{
     protected int calculateOffer(Task t){
         int offer;
         if (t.pathDist > 0.5) {
-            double oreLevel = this.timeSchedule.checkEndStateOreLvl();
+            double oreLevel = this.timeSchedule.getLastOreState();
             double oreLevelPercentage = oreLevel/this.capacity;
             this.print("ORELEVEL%%%%%%%%%%%%%%%%%%" + oreLevelPercentage);
             if (oreLevelPercentage > 0.8) {

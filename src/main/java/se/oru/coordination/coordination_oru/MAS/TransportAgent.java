@@ -52,7 +52,7 @@ public class TransportAgent extends CommunicationAid{
         this.startPose = startPos;
         this.startTime = startTime;
 
-        this.timeSchedule = new TimeScheduleNew(startPos, this.oreCap, 0.0);
+        this.timeSchedule = new TimeScheduleNew(startPos, this.capacity, 0.0);
 
         // enter network and broadcast our id to others.
         router.enterNetwork(this);
@@ -409,6 +409,7 @@ public class TransportAgent extends CommunicationAid{
      * @return offer
      */
     protected int calculateOffer(Task t){
+        /*
         int offer;
         if (t.pathDist > 0.5) {
             // double oreLevel = this.timeSchedule.checkEndStateOreLvl();
@@ -427,6 +428,12 @@ public class TransportAgent extends CommunicationAid{
             offer = 0;
         }
         return offer;
+        */
+        if (t.pathDist <= 2.0) return 0;
+
+        double dist = 100.0 * 1.0 / t.pathDist;
+
+        return (int)(dist);
     }   
 
     /**
@@ -473,13 +480,16 @@ public class TransportAgent extends CommunicationAid{
                 }
 
                 else if (m.type == "accept"){
-                    this.timeSchedule.setEventActive(taskID);
+                    if ( this.timeSchedule.setEventActive(taskID) == false ){
+                        //TODO send abortMsg to m.sender with taskID
+                    }
                 }
 
                 else if (m.type == "decline"){
                     //remove task from activeTasks
                     //SCHEDULE: remove reserved task from schedule
-                    this.timeSchedule.removeEvent(taskID);
+                    boolean successfulRemove = this.timeSchedule.removeEvent(taskID);
+                    this.print("got decline taskID-->"+taskID+"\tremoved-->"+successfulRemove);
                 }
 
                 else if (m.type == "cnp-service"){

@@ -91,7 +91,9 @@ public class DrawAgent extends CommunicationAid{
                     else{} //TODO task not added, need to send abort to taskProvider.
                 }
 
-                else if (m.type == "decline"){} //TODO remove task from reservedTasks in schedule
+                else if (m.type == "decline"){
+                    this.timeSchedule.removeEvent(taskID);
+                } //TODO remove task from reservedTasks in schedule
 
                 else if (m.type == "cnp-service"){
                     this.handleService(m);
@@ -129,6 +131,7 @@ public class DrawAgent extends CommunicationAid{
      */
     public boolean handleService(Message m){ 
         double availabeOre = this.timeSchedule.getLastOreState();
+        this.print("availableOre-->"+availabeOre);
         if (availabeOre <= 0.0) return false;   //if we dont have ore dont act 
         else availabeOre = availabeOre >= 15.0 ? 15.0 : availabeOre; // only give what ore we have available
 
@@ -206,30 +209,30 @@ public class DrawAgent extends CommunicationAid{
      * @return an int with the value of this task.
      */
     protected int calculateOffer(Task t){
-        // if (t.pathDist <= 2.0) return 0;
+        if (t.pathDist <= 2.0) return 0;
 
-        // double dist = 100.0 * 1.0 / t.pathDist;
-        // double evaluatedCapacity = 200.0 * this.amount / this.capacity; 
+        double dist = 100.0 * 1.0 / t.pathDist;
+        double evaluatedCapacity = 200.0 * this.amount / this.capacity; 
 
-        // return (int)(dist + evaluatedCapacity);
+        return (int)(dist + evaluatedCapacity);
         
-        int offer;
-        if (t.pathDist > 0.5) {
-            double evaluatedCapacity = 100.0 * this.amount / this.capacity; 
-            if (this.amount / this.capacity > 0.9) {
-                // Ändra med t.ore. If t.ore < -15
-                // Draw agent is nearly full
-                int fullOreBonus = 1000;
-                offer = this.calcCDF(t.pathDist) + fullOreBonus;
-            }
-            else {
-                offer = this.calcCDF(t.pathDist) + (int)evaluatedCapacity;
-            }
-        }
-        else {
-            offer = 0;
-        }
-        return offer;
+        // int offer;
+        // if (t.pathDist > 0.5) {
+        //     double evaluatedCapacity = 100.0 * this.amount / this.capacity; 
+        //     if (this.amount / this.capacity > 0.9) {
+        //         // Ändra med t.ore. If t.ore < -15
+        //         // Draw agent is nearly full
+        //         int fullOreBonus = 1000;
+        //         offer = this.calcCDF(t.pathDist) + fullOreBonus;
+        //     }
+        //     else {
+        //         offer = this.calcCDF(t.pathDist) + (int)evaluatedCapacity;
+        //     }
+        // }
+        // else {
+        //     offer = 0;
+        // }
+        // return offer;
     }
 
     /**
