@@ -122,11 +122,16 @@ public class TimeScheduleNew {
         return fixes;
     }
 
-    public ArrayList<Task> setNewEndTime(int taskID, double newEndTime){
+    public void setNewEndTime(int taskID, double newEndTime){
         Task t = this.getEvent(taskID);
         synchronized(this.oreState){ this.oreState.changeState(t.endTime, t.ore, newEndTime); }
         t.endTime = newEndTime;
-        return this.updateSchedule();
+        //return this.updateSchedule();
+    }
+
+    public boolean isNewEndTimePossible(int taskID, double newEndTime){
+        Task t = this.getEvent(taskID);
+        return isTaskPossible(t.startTime, newEndTime);
     }
 
     public boolean removeEvent(int taskID){
@@ -219,17 +224,17 @@ public class TimeScheduleNew {
     public static void main(String[] args){
         Pose startp = new Pose(0.0, 0.0, 0.0);
         double startOre = 0.0;
-        double capacity = 100.0;
-        TimeScheduleNew ts = new TimeScheduleNew(startp, startOre, capacity);
+        double capacity = 30.0;
+        TimeScheduleNew ts = new TimeScheduleNew(startp, capacity, capacity);
 
 
         //overlap test
         boolean testOverlap = false;
         boolean testAddFunc = false;
         boolean testSmallFuncs = false;
-        boolean testUpdate = false;
+        boolean testUpdate = true;
         boolean testSetActive = false;
-        boolean testLastToPose = true;
+        boolean testLastToPose = false;
 
         if (testOverlap){
             System.out.println("######### testing tasksOverlapping(Task t, Task t) #########");
@@ -307,7 +312,7 @@ public class TimeScheduleNew {
                 Task t2 = new Task(40.0, 50.0, 3);
                 t2.ore = -15.0;
                 Task t3 = new Task(52.0, 100.0, 4);
-                t3.ore = -15.0;
+                t3.ore = 15.0;
                 ts.addEvent(t0);
                 ts.addEvent(t1);
                 ts.addEvent(t2);
@@ -323,13 +328,17 @@ public class TimeScheduleNew {
             System.out.println("\nnow with conflict::");
             ts.setNewEndTime(1, 36.0);
             ts.printSchedule("");
-            ArrayList<Task> aa = ts.setNewEndTime(2, 55.0);
-            ts.printSchedule("");
+            //ts.setNewEndTime(2, 55.0);
+            //ts.printSchedule("");
+
+            ArrayList<Task> aa = ts.updateSchedule();
 
             for ( Task t : aa ){
                 System.out.println("taskid-->"+t.taskID +"\tsTime-->"+t.startTime+"\teTime-->"+t.endTime);
             }
             ts.printSchedule("");
+
+            System.out.println(ts.getOreStateInconsistencies());
                     
         }
 

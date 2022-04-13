@@ -1,6 +1,7 @@
 package se.oru.coordination.coordination_oru.MAS;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Arrays;
 import java.lang.Math;
 
@@ -94,9 +95,6 @@ public class TransportAgent extends CommunicationAid{
         };
         listenerThread.start();
 
-        // Changed sleep from 2000
-        this.sleep(500);
-
         Thread stateThread = new Thread() {
             public void run() {
                 This.initialState();
@@ -162,6 +160,22 @@ public class TransportAgent extends CommunicationAid{
                     continue;
                 }
 
+                //TODO kolla när vi börjar med task. om de är väldigt off schemat så uppdaterar vi schemat.
+
+                // double now = this.getTime();
+                // if ( now - 5.0 > task.startTime  ){
+                //     double newEndTime = (task.endTime - task.startTime) + now;
+                //     this.timeSchedule.setNewEndTime(task.taskID, newEndTime);
+                // }
+
+                //TODO check if we start mission late, if true= send inform msg with new endTime, if false: all good
+                // double now = this.getTime();
+                // if ( now - 5.0 > task.startTime  ){
+                //     double newEndTime = (task.endTime - task.startTime) + now;
+                //     String body = task.taskID+this.separator+"status"+this.separator+newEndTime;
+                //     this.sendMessage(new Message(this.robotID, task.partner, "inform", body));
+                // }
+
                 this.print("starting mission with -->" +task.partner);
                 this.tec.addMissions(this.createMission(task));
                 
@@ -184,9 +198,19 @@ public class TransportAgent extends CommunicationAid{
         double oreLevelThreshold = 1.0;
         while (true) {
             
-            if ( false ){} //TODO check if we have an inconsistent schedule ore-wise
+            ArrayList<Task> fixes = this.timeSchedule.updateSchedule();
+            if ( fixes.size() > 0 ){ //TODO check if we have an inconsistent schedule ore-wise
+                for ( Task fix : fixes ){
+                    String body = fix.taskID+this.separator+fix.endTime;
+                    this.sendMessage(new Message(this.robotID, fix.partner, "inform", body));
+                }
+                continue;
+            }
+            //====================================================
+            HashMap<Double, Double> oreInconsistecies = this.timeSchedule.getOreStateInconsistencies();
+            //====================================================
 
-            else if ( this.timeSchedule.getLastOreState() <= oreLevelThreshold ){ // book task to get ore
+            if ( this.timeSchedule.getLastOreState() <= oreLevelThreshold ){ // book task to get ore
 
                 Message bestOffer = this.offerService(this.getNextTime()); // hold auction with DA's
 

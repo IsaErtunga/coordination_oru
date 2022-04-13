@@ -164,7 +164,11 @@ public class OreState {
         HashMap<Double, Double> fixes = new HashMap<Double, Double>();
 
         for (State s : this.oreStateArray){
-            if ( s.currOre < 0.0 || s.currOre > this.oreCapacity) fixes.put(s.t, s.currOre);
+            System.out.println("s.currOre-->"+s.currOre);
+            System.out.println("this.oreCap-->"+this.oreCapacity);
+            System.out.println("s.currOre < 0.01-->"+(s.currOre < 0.01));
+            System.out.println("s.currOre > this.oreCapacity+0.01-->"+(s.currOre > this.oreCapacity+0.01));
+            if ( s.currOre < 0.0 || s.currOre > this.oreCapacity+0.01) fixes.put(s.t, s.currOre);
         }
         return fixes;
     }

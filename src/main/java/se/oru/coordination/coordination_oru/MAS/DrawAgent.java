@@ -88,7 +88,9 @@ public class DrawAgent extends CommunicationAid{
                     if ( this.timeSchedule.setEventActive(taskID) ){ 
                         this.print("task added to schedule, taskID-->"+taskID);
                     }
-                    else{} //TODO task not added, need to send abort to taskProvider.
+                    else{ //TODO task not added, need to send abort to taskProvider.
+                        this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
+                    } 
                 }
 
                 else if (m.type == "decline"){
@@ -119,9 +121,20 @@ public class DrawAgent extends CommunicationAid{
             this.takeOre(oreChange);
         }
 
-        else if (informVal.equals(new String("status"))) {} //TODO change so schedule gets updated: newEndTime = Double.parseDouble(messageParts[2])                    
+        else if (informVal.equals(new String("status"))) { //TODO change so schedule gets updated: newEndTime = Double.parseDouble(messageParts[2])
+            double newEndTime = Double.parseDouble(this.parseMessage(m, "", true)[2]);
+            if ( this.timeSchedule.isNewEndTimePossible(taskID, newEndTime) ){
+                this.timeSchedule.setNewEndTime(taskID, newEndTime);
+            }
+            else{
+                this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
+                this.timeSchedule.abortEvent(taskID);
+            }
+        }                     
 
-        else if (informVal.equals(new String("abort"))) {} //TODO remove task from schedule 
+        else if (informVal.equals(new String("abort"))) { //TODO remove task from schedule 
+            this.timeSchedule.abortEvent(taskID);
+        } 
     }
 
     /**
@@ -131,7 +144,6 @@ public class DrawAgent extends CommunicationAid{
      */
     public boolean handleService(Message m){ 
         double availabeOre = this.timeSchedule.getLastOreState();
-        this.print("availableOre-->"+availabeOre);
         if (availabeOre <= 0.0) return false;   //if we dont have ore dont act 
         else availabeOre = availabeOre >= 15.0 ? 15.0 : availabeOre; // only give what ore we have available
 
