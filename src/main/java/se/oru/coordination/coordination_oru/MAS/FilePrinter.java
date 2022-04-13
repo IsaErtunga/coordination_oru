@@ -1,37 +1,54 @@
 package se.oru.coordination.coordination_oru.MAS;
 
 
-import java.io.File;
-import java.io.IOException; 
-import java.io.FileWriter;   // Import the FileWriter class
-
+// Java Program to Write Into a File
+// using writeString() Method
+ 
+// Importing required classes
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+ 
+// Main class
 public class FilePrinter {
-    private String path = "/home/parallels/";
-    private String fileName = "MAS_output.txt";
-    private String separator = ",";
-    private FileWriter fileWriter; 
+    protected String fileName;
+    protected Path path;
+    protected String separator = ",";
 
     public FilePrinter() {
-        try {
-            this.fileWriter = new FileWriter(this.path+this.fileName);
-        } catch (IOException e) {
-            System.out.println("An error occurred.");
-            e.printStackTrace();
-          }
-    };
-
-    public void write(Double timeStamp, double ore) {
-        try {
-            this.fileWriter.write(Double.toString(timeStamp) + this.separator + Double.toString(ore));
-            this.fileWriter.close();
-        } catch (IOException e) {
-            System.out.println("An error occurred.");
-            e.printStackTrace();
-          }
+        this.fileName = "hej.csv";
+        this.path = Path.of("/home/parallels/" + this.fileName);
     }
 
+    public FilePrinter(String path, String fileName) {
+        this.path = Path.of(path + this.fileName);
+    }
+
+    /**
+     * For writing storage state into file
+     * @param time
+     * @param ore
+     * @throws IOException
+     */
+    protected void write(double time, double ore) throws IOException {
+        String content = time + this.separator + ore + "\n";
+        if (Files.exists(this.path)) {
+            Files.write(this.path, content.getBytes(), StandardOpenOption.APPEND);
+        } else {
+            Files.write(this.path, content.getBytes(), StandardOpenOption.CREATE);
+        }
+    }
+ 
     public static void main(String[] args) {
         FilePrinter fp = new FilePrinter();
-        fp.write(0.05, 20);   
+        try {
+            fp.write(0.5, 20.0);
+            fp.write(0.5, 30.0);
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
     }
 }
