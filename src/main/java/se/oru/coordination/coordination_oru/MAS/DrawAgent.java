@@ -26,7 +26,7 @@ public class DrawAgent extends CommunicationAid{
     protected double capacity; 
     protected ReedsSheppCarPlanner mp;
 
-    protected TimeSchedule timeSchedule;
+    protected TimeScheduleNew timeSchedule;
     protected long startTime;
 
     public DrawAgent(int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp){}
@@ -39,7 +39,7 @@ public class DrawAgent extends CommunicationAid{
         this.pos = pos;
         this.initalXPos = pos.getX();
 
-        this.timeSchedule = new TimeSchedule(pos, capacity);
+        this.timeSchedule = new TimeScheduleNew(pos, capacity, this.amount);
         this.startTime = startTime;
 
         router.enterNetwork(this.robotID, this.inbox, this.outbox);
@@ -85,7 +85,7 @@ public class DrawAgent extends CommunicationAid{
                 }
 
                 else if (m.type == "accept"){
-                    if ( this.timeSchedule.setTaskActive(taskID) ){ 
+                    if ( this.timeSchedule.setEventActive(taskID) ){ 
                         this.print("task added to schedule, taskID-->"+taskID);
                     }
                     else{} //TODO task not added, need to send abort to taskProvider.
@@ -113,7 +113,7 @@ public class DrawAgent extends CommunicationAid{
         
         if (informVal.equals(new String("done"))) {
             double oreChange = Double.parseDouble(this.parseMessage(m, "", true)[2]);
-            this.timeSchedule.remove(taskID);
+            this.timeSchedule.removeEvent(taskID);
             this.takeOre(oreChange);
         }
 
@@ -128,16 +128,16 @@ public class DrawAgent extends CommunicationAid{
      * - Will receive a time from TA of when it can come and fetch ore. 
      */
     public boolean handleService(Message m){ 
-        double availabeOre = this.timeSchedule.checkEndStateOreLvl();
+        double availabeOre = this.timeSchedule.getLastOreState();
         if (availabeOre <= 0.0) return false;   //if we dont have ore dont act 
         else availabeOre = availabeOre >= 15.0 ? 15.0 : availabeOre; // only give what ore we have available
 
         Task DAtask = createTaskFromServiceOffer(m, availabeOre);
-        if ( !this.timeSchedule.taskPossible(DAtask) ) return false;    // task doesnt fit in schedule
+        if ( !this.timeSchedule.isTaskPossible(DAtask) ) return false;    // task doesnt fit in schedule
         int offerVal = this.calculateOffer(DAtask);
 
         if ( offerVal <= 0 ) return false;
-        if (! this.timeSchedule.add(DAtask) ) return false;
+        if (! this.timeSchedule.addEvent(DAtask) ) return false;
         
         this.print("--- schedule ---");
         this.timeSchedule.printSchedule(this.COLOR);
@@ -147,7 +147,7 @@ public class DrawAgent extends CommunicationAid{
     }
 
     protected Pose calculateFuturePos(double time){
-        double oreAtTime = this.timeSchedule.checkEndStateOreLvl(); //TODO this doesnt take ore into account. fix!
+        double oreAtTime = this.timeSchedule.getLastOreState(); //TODO this doesnt take ore into account. fix!
         double x = this.finalXPos + (this.initalXPos - this.finalXPos) * oreAtTime / this.capacity;
         return new Pose( x, pos.getY(), pos.getYaw() );
     }

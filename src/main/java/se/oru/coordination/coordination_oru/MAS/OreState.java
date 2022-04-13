@@ -169,10 +169,12 @@ public class OreState {
         return fixes;
     }
 
-    public void print(){
+    public void print(String c){
+        String e = "\033[0m";
+
         System.out.println("");
         for ( State s : this.oreStateArray ){
-            System.out.println("time--> "+ String.format("%.2f",s.t) +"\tore at state--> "+s.currOre+"\tdeltaOre--> "+s.deltaOre);
+            System.out.println(c+"time--> "+ String.format("%.2f",s.t) +"\tore at state--> "+s.currOre+"\tdeltaOre--> "+s.deltaOre+e);
         }
     }
 
@@ -185,7 +187,7 @@ public class OreState {
         os.addState( os.createState(5.0, 10.0) );
         os.addState( os.createState(9.0, 16.0) );
         os.addState( os.createState(10.0, 40.0) );
-        os.print();
+        os.print("");
 
         System.out.println(os.getStateAtTime(7.0));
 

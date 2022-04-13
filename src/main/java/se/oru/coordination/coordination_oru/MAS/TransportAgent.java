@@ -26,10 +26,9 @@ public class TransportAgent extends CommunicationAid{
     protected Coordinate[] rShape;
     protected Pose startPose;
     protected final Double oreCap = 15.0;
-    protected Double holdingOre = 0.0;
     protected final int taskCap = 4;
 
-    protected TimeSchedule timeSchedule;
+    protected TimeScheduleNew timeSchedule;
     protected long startTime;
 
     public ArrayList<Message> missionList = new ArrayList<Message>();
@@ -52,7 +51,7 @@ public class TransportAgent extends CommunicationAid{
         this.startPose = startPos;
         this.startTime = startTime;
 
-        this.timeSchedule = new TimeSchedule(startPos, 0.0);
+        this.timeSchedule = new TimeScheduleNew(startPos, this.oreCap, 0.0);
 
         // enter network and broadcast our id to others.
         router.enterNetwork(this);
@@ -157,7 +156,7 @@ public class TransportAgent extends CommunicationAid{
                     *   - inform receiving-end of the delay
                     * TODO: Calculate if we go over endTime.
                 */
-                Task task = this.timeSchedule.pop();
+                Task task = this.timeSchedule.getNextEvent();
                 if (task == null) {
                     continue;
                 }
@@ -186,7 +185,7 @@ public class TransportAgent extends CommunicationAid{
             
             if ( false ){} //TODO check if we have an inconsistent schedule ore-wise
 
-            else if ( this.timeSchedule.checkEndStateOreLvl() <= oreLevelThreshold ){ // book task to get ore
+            else if ( this.timeSchedule.getLastOreState() <= oreLevelThreshold ){ // book task to get ore
 
                 Message bestOffer = this.offerService(this.getNextTime()); // hold auction with DA's
 
@@ -197,7 +196,7 @@ public class TransportAgent extends CommunicationAid{
     
                 Task task = this.createTaskFromOfferMessage(bestOffer);
     
-                if ( this.timeSchedule.add(task) == false ){ // if false then task no longer possible, send abort msg to task partner
+                if ( this.timeSchedule.addEvent(task) == false ){ // if false then task no longer possible, send abort msg to task partner
                     this.print("TASK ABORTED");
                     this.sendMessage(new Message(this.robotID, task.partner, "abort", Integer.toString(task.taskID)));
                 }
@@ -227,7 +226,7 @@ public class TransportAgent extends CommunicationAid{
         if (receivers.size() <= 0) return new Message();
         
         this.offers.clear();
-        String startPos = this.stringifyPose(this.timeSchedule.getLastToPose());
+        String startPos = this.stringifyPose(this.timeSchedule.getNextPose());
         int taskID = this.sendCNPmessage(taskStartTime, startPos, receivers);
     
 
@@ -293,7 +292,7 @@ public class TransportAgent extends CommunicationAid{
             double taskStartTime = Double.parseDouble(parseMessage(m, "startTime")[0]);
             double endTime = Double.parseDouble(parseMessage(m, "endTime")[0]);
   
-            if( this.timeSchedule.taskPossible(taskStartTime, endTime) ) {
+            if( this.timeSchedule.isTaskPossible(taskStartTime, endTime) ) {
                 String[] mParts = this.parseMessage( m, "", true); // sort out offer not part of current auction(taskID)
 
                 if ( Integer.parseInt(mParts[0]) == taskID ){
@@ -317,20 +316,20 @@ public class TransportAgent extends CommunicationAid{
     public boolean handleService(Message m) { 
         this.print("handleService - start");
         
-        double availabeOre = this.timeSchedule.checkEndStateOreLvl();
+        double availabeOre = this.timeSchedule.getLastOreState();
         if (availabeOre <= 0.01) return false;   //if we dont have ore dont act 
 
-        Pose pos = this.timeSchedule.getLastToPose();
+        Pose pos = this.timeSchedule.getNextPose();
 
         Task SATask = this.createTaskFromServiceOffer(m, availabeOre, pos);
 
-        if ( !this.timeSchedule.taskPossible(SATask) ) return false;    // task doesnt fit in schedule
+        if ( !this.timeSchedule.isTaskPossible(SATask) ) return false;    // task doesnt fit in schedule
 
         int offerVal = this.calculateOffer(SATask);
         
         if ( offerVal <= 0.01 ) return false;
 
-        if (! this.timeSchedule.add(SATask) ){
+        if (! this.timeSchedule.addEvent(SATask) ){
             this.print("not added!");
             return false;
         }
@@ -411,7 +410,7 @@ public class TransportAgent extends CommunicationAid{
     protected int calculateOffer(Task t){
         int offer;
         if (t.pathDist > 0.5) {
-            int oreLevel = (int)this.timeSchedule.checkEndStateOreLvl();
+            int oreLevel = (int)this.timeSchedule.getLastOreState();
             if (oreLevel >= t.ore) {
                 // Step 1: Check if TA can give full amount. Check distance
                 // Must be in tune with lambda
@@ -476,13 +475,13 @@ public class TransportAgent extends CommunicationAid{
                 }
 
                 else if (m.type == "accept"){
-                    this.timeSchedule.setTaskActive(taskID);
+                    this.timeSchedule.setEventActive(taskID);
                 }
 
                 else if (m.type == "decline"){
                     //remove task from activeTasks
                     //SCHEDULE: remove reserved task from schedule
-                    this.timeSchedule.remove(taskID);
+                    this.timeSchedule.removeEvent(taskID);
                 }
 
                 else if (m.type == "cnp-service"){
@@ -500,7 +499,7 @@ public class TransportAgent extends CommunicationAid{
                     if (informVal.equals(new String("done"))) {
                         // current solution does not receive 'done'-msg
                         //TODO add code if implementing it that way
-                        this.timeSchedule.remove(taskID);
+                        this.timeSchedule.removeEvent(taskID);
 
                     }
                     else if (informVal.equals(new String("status"))) {
@@ -511,8 +510,8 @@ public class TransportAgent extends CommunicationAid{
                             * else all is good.
                         */ 
                         double newEndTime = Double.parseDouble(this.parseMessage(m, "ore")[0]); //TODO ore is 3rd element NOT ore in this case
-                        if (newEndTime > this.timeSchedule.get(taskID).endTime) {
-                            this.timeSchedule.update(taskID, newEndTime);
+                        if (newEndTime > this.timeSchedule.getEvent(taskID).endTime) {
+                            this.timeSchedule.setNewEndTime(taskID, newEndTime);
                         }
                     }
 
@@ -520,7 +519,7 @@ public class TransportAgent extends CommunicationAid{
                         /* SCHEDULE:
                             * remove task from schedule
                         */
-                        this.timeSchedule.remove(taskID);
+                        this.timeSchedule.abortEvent(taskID);
                     } 
                 }
                 

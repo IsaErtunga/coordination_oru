@@ -24,7 +24,7 @@ public class StorageAgent extends CommunicationAid{
     protected double amount;    // the current amount it has stored in TONS
 
     protected ReedsSheppCarPlanner mp;
-    protected TimeSchedule timeSchedule;
+    protected TimeScheduleNew timeSchedule;
     protected long startTime;
     protected double oreStateThreshold = 15.0;
     protected int orderNumber;
@@ -48,7 +48,7 @@ public class StorageAgent extends CommunicationAid{
         this.capacity = capacity;
         this.amount = capacity / 2.0;
         this.startPose = startPos;
-        this.timeSchedule = new TimeSchedule(startPos, this.amount);
+        this.timeSchedule = new TimeScheduleNew(startPos, this.capacity, this.amount);
         this.startTime = startTime;
 
         router.enterNetwork(this);
@@ -70,7 +70,7 @@ public class StorageAgent extends CommunicationAid{
         this.amount = capacity / 2.0;
         this.startPose = startPos;
         this.startPoseRight = startPoseRight;
-        this.timeSchedule = new TimeSchedule(startPos, this.amount);
+        this.timeSchedule = new TimeScheduleNew(startPos, this.capacity, this.amount);
         this.startTime = startTime;
         this.mp = mp;
         this.orderNumber = this.robotID - 15000;
@@ -100,13 +100,13 @@ public class StorageAgent extends CommunicationAid{
             else if ( false ){} //TODO check if we need more or at some point in future
 
 
-            else if ( this.timeSchedule.checkEndStateOreLvl() < 0.9*capacity ){ // plan future tasks
+            else if ( this.timeSchedule.getLastOreState() < 0.9*capacity ){ // plan future tasks
 
                 Message bestOffer = this.offerService(this.getNextTime());
 
                 if (!bestOffer.isNull) {
                     Task task = this.createTaskFromMessage(bestOffer, true);
-                    this.timeSchedule.add(task);
+                    this.timeSchedule.addEvent(task);
                     this.timeSchedule.printSchedule(this.COLOR);
                 }
             }
@@ -200,7 +200,7 @@ public class StorageAgent extends CommunicationAid{
         
         if (informVal.equals(new String("done"))) {
             double oreChange = Double.parseDouble(this.parseMessage(m, "", true)[2]);
-            this.timeSchedule.remove(taskID);
+            this.timeSchedule.removeEvent(taskID);
 
             if (oreChange > 0) this.addOre(oreChange);
                 
@@ -289,7 +289,7 @@ public class StorageAgent extends CommunicationAid{
             double startTime = Double.parseDouble(parseMessage(m, "startTime")[0]);
             double endTime = Double.parseDouble(parseMessage(m, "endTime")[0]);
   
-            if( this.timeSchedule.taskPossible(startTime, endTime) ) {
+            if( this.timeSchedule.isTaskPossible(startTime, endTime) ) {
                 String[] mParts = this.parseMessage( m, "", true); // sort out offer not part of current auction(taskID)
 
                 if ( Integer.parseInt(mParts[0]) == taskID ){
@@ -314,21 +314,21 @@ public class StorageAgent extends CommunicationAid{
         this.print("SASASASA");
         this.print("handleService-START"+m.sender);
         
-        double availabeOre = this.timeSchedule.checkEndStateOreLvl();
+        double availabeOre = this.timeSchedule.getLastOreState();
         
         if (availabeOre <= 0.0) return false;   //if we dont have ore dont act 
 
         Task TTATask = this.createTaskFromServiceOffer(m, availabeOre, this.startPoseRight);
 
         // Return abort?
-        if ( !this.timeSchedule.taskPossible(TTATask) ) return false;    // task doesnt fit in schedule
+        if ( !this.timeSchedule.isTaskPossible(TTATask) ) return false;    // task doesnt fit in schedule
         
 
         int offerVal = this.calculateOffer(TTATask);
         
         if ( offerVal <= 0 ) return false;
 
-        if (! this.timeSchedule.add(TTATask) ){
+        if (! this.timeSchedule.addEvent(TTATask) ){
             this.print("not added!");
             return false;
         }
@@ -370,7 +370,7 @@ public class StorageAgent extends CommunicationAid{
     protected int calculateOffer(Task t){
         int offer;
         if (t.pathDist > 0.5) {
-            int oreLevel = (int)this.timeSchedule.checkEndStateOreLvl();
+            int oreLevel = (int)this.timeSchedule.getLastOreState();
             if (oreLevel >= t.ore) {
                 // Step 1: Check if SA can give full amount. Check distance
                 // The higher the orderNumber the higher offer
