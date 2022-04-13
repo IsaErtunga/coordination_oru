@@ -212,15 +212,17 @@ public class DrawAgent extends CommunicationAid{
         // double evaluatedCapacity = 200.0 * this.amount / this.capacity; 
 
         // return (int)(dist + evaluatedCapacity);
+        
         int offer;
         if (t.pathDist > 0.5) {
+            double evaluatedCapacity = 100.0 * this.amount / this.capacity; 
             if (this.amount / this.capacity > 0.9) {
+                // Ändra med t.ore. If t.ore < -15
                 // Draw agent is nearly full
                 int fullOreBonus = 1000;
                 offer = this.calcCDF(t.pathDist) + fullOreBonus;
             }
             else {
-                double evaluatedCapacity = 100.0 * this.amount / this.capacity; 
                 offer = this.calcCDF(t.pathDist) + (int)evaluatedCapacity;
             }
         }

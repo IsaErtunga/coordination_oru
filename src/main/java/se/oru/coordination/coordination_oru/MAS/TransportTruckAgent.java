@@ -190,9 +190,10 @@ public class TransportTruckAgent extends CommunicationAid{
     protected void initialState() {
         double oreLevelThreshold = 1.0;
         while (true) {
-            
+            System.out.println("ORELEVLE: : : " + this.timeSchedule.checkEndStateOreLvl());
             if ( false ){} //TODO check if we have an inconsistent schedule ore-wise
 
+            
             else if ( this.timeSchedule.checkEndStateOreLvl() <= oreLevelThreshold ){ // book task to get ore
 
                 Message bestOffer = this.offerService(this.getNextTime()); // hold auction with DA's
@@ -369,7 +370,7 @@ public class TransportTruckAgent extends CommunicationAid{
         double distance = this.calcDistance(robotPos, deliveryPos);
         double taskStartTime = this.getNextTime();
         double endTime = taskStartTime + this.calculateDistTime(distance);
-        Task deliverTask = new Task(this.tID(), -1, true, this.capacity, taskStartTime, endTime, endTime, robotPos, deliveryPos);
+        Task deliverTask = new Task(this.tID(), -1, true, -this.capacity, taskStartTime, endTime, endTime, robotPos, deliveryPos);
         return deliverTask;
     }
 
