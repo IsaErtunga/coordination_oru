@@ -2,6 +2,7 @@ package se.oru.coordination.coordination_oru.MAS;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.lang.Math;
 
 import com.vividsolutions.jts.geom.Coordinate;
 
@@ -25,7 +26,7 @@ public class TransportAgent extends CommunicationAid{
 
     protected Coordinate[] rShape;
     protected Pose startPose;
-    protected final Double oreCap = 15.0;
+    protected final Double capacity = 15.0;
     protected final int taskCap = 4;
 
     protected TimeScheduleNew timeSchedule;
@@ -410,18 +411,15 @@ public class TransportAgent extends CommunicationAid{
     protected int calculateOffer(Task t){
         int offer;
         if (t.pathDist > 0.5) {
-            int oreLevel = (int)this.timeSchedule.getLastOreState();
-            if (oreLevel >= t.ore) {
+            // double oreLevel = this.timeSchedule.checkEndStateOreLvl();
+            if (this.capacity <= Math.abs(t.ore)) {
                 // Step 1: Check if TA can give full amount. Check distance
                 // Must be in tune with lambda
-                int fullOreBonus = 10000; 
+                int fullOreBonus = 1000; 
                 offer =  this.calcCDF(t.pathDist) + fullOreBonus;
             }
             else {
-                // play around with scaling
-                int oreScale = 1;
-                int distScale = 1;
-                offer = (oreLevel * oreScale) + (this.calcCDF(t.pathDist * distScale));
+                offer = (int)((t.ore/this.capacity) * 100) + (this.calcCDF(t.pathDist));
             }
             // If this.getNextTime > startTime för SA. Ge penalty
         }

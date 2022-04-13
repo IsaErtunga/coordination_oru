@@ -91,7 +91,8 @@ public class HelpFunctions {
             return 0;
         }
 
-        int res = (int) (101 - Math.pow(e, lambda*value));
+        //int res = (int) (101 - Math.pow(e, lambda*value));
+        int res = (int) (100 - value);
 
         if (res < 0) {
             res = 0;

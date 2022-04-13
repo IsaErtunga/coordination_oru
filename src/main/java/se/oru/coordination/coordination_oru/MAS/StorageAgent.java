@@ -67,13 +67,14 @@ public class StorageAgent extends CommunicationAid{
         this.print("STORAGE AGENT INITIATED");
         this.robotID = r_id;
         this.capacity = capacity;
-        this.amount = capacity / 2.0;
+        // this.amount = capacity / 2.0;
+        this.amount = 0.2 * capacity;
         this.startPose = startPos;
         this.startPoseRight = startPoseRight;
         this.timeSchedule = new TimeScheduleNew(startPos, this.capacity, this.amount);
         this.startTime = startTime;
         this.mp = mp;
-        this.orderNumber = this.robotID - 15000;
+        this.orderNumber = this.robotID - 5000;
 
         router.enterNetwork(this);
 
@@ -94,13 +95,14 @@ public class StorageAgent extends CommunicationAid{
 
     public void status () {
         while(true) {
-            if ( this.amount < this.oreStateThreshold && false ){} //TODO request ore fast
+            double oreLevel = this.timeSchedule.checkEndStateOreLvl();
+            if ( this.amount < oreLevel && false ){} //TODO request ore fast
 
 
             else if ( false ){} //TODO check if we need more or at some point in future
 
 
-            else if ( this.timeSchedule.getLastOreState() < 0.9*capacity ){ // plan future tasks
+            else if (oreLevel < 0.8 * capacity) { // plan future tasks
 
                 Message bestOffer = this.offerService(this.getNextTime());
 
@@ -311,22 +313,20 @@ public class StorageAgent extends CommunicationAid{
      * @return true if we send offer = we expect resp.
      */
     public boolean handleService(Message m) { 
-        this.print("SASASASA");
-        this.print("handleService-START"+m.sender);
+        this.print("handleService - start");
         
         double availabeOre = this.timeSchedule.getLastOreState();
         
-        if (availabeOre <= 0.0) return false;   //if we dont have ore dont act 
+        if (availabeOre <= 0.01) return false;   //if we dont have ore dont act 
 
         Task TTATask = this.createTaskFromServiceOffer(m, availabeOre, this.startPoseRight);
 
         // Return abort?
         if ( !this.timeSchedule.isTaskPossible(TTATask) ) return false;    // task doesnt fit in schedule
         
-
         int offerVal = this.calculateOffer(TTATask);
         
-        if ( offerVal <= 0 ) return false;
+        if (offerVal <= 0.01) return false;
 
         if (! this.timeSchedule.addEvent(TTATask) ){
             this.print("not added!");
@@ -370,23 +370,27 @@ public class StorageAgent extends CommunicationAid{
     protected int calculateOffer(Task t){
         int offer;
         if (t.pathDist > 0.5) {
-            int oreLevel = (int)this.timeSchedule.getLastOreState();
-            if (oreLevel >= t.ore) {
-                // Step 1: Check if SA can give full amount. Check distance
-                // The higher the orderNumber the higher offer
-                offer = 10000 + this.orderNumber;
+            double oreLevel = this.timeSchedule.checkEndStateOreLvl();
+            double oreLevelPercentage = oreLevel/this.capacity;
+            this.print("ORELEVEL%%%%%%%%%%%%%%%%%%" + oreLevelPercentage);
+            if (oreLevelPercentage > 0.8) {
+                this.print("HIGH ORE LEVEL");
+                double tooMuchOreBonus = 1000 * oreLevelPercentage;
+                offer = (int)tooMuchOreBonus + this.calcCDF(t.pathDist);
+            }
+            else if (oreLevelPercentage < 0.05) {
+                this.print("LOW ORE LEVEL");
+                offer = 0;
             }
             else {
-                // play around with scaling
-                int oreScale = 1;
-                int distScale = 10;
-                offer = (oreLevel * oreScale) + (this.orderNumber * distScale);
+                this.print("ELSE");
+                offer = (int)(((oreLevel/this.capacity)*100) + this.calcCDF(t.pathDist));
             }
-            // If this.getNextTime > startTime för SA. Ge penalty
         }
         else {
             offer = 0;
         }
+        this.print("------------OFFER---------->: " + offer);
         return offer;
     }   
 
@@ -403,7 +407,7 @@ public class StorageAgent extends CommunicationAid{
         String startPoseStr = this.stringifyPose(t.fromPose);
         String endPoseStr = this.stringifyPose(t.toPose);
         String body = t.taskID +s+ offer +s+ startPoseStr +s+ 
-                      endPoseStr +s+ startTime +s+ t.endTime +s+ ore;
+                      endPoseStr +s+ t.startTime +s+ t.endTime +s+ ore;
 
         return new Message(this.robotID, t.partner, "offer", body);
     }
