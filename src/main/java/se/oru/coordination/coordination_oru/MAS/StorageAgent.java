@@ -24,7 +24,7 @@ public class StorageAgent extends CommunicationAid{
     protected double amount;    // the current amount it has stored in TONS
 
     protected ReedsSheppCarPlanner mp;
-    protected TimeSchedule timeSchedule;
+    protected TimeScheduleNew timeSchedule;
     protected long startTime;
     protected double oreStateThreshold = 15.0;
     protected int orderNumber;
@@ -48,7 +48,7 @@ public class StorageAgent extends CommunicationAid{
         this.capacity = capacity;
         this.amount = capacity / 2.0;
         this.startPose = startPos;
-        this.timeSchedule = new TimeSchedule(startPos, this.amount);
+        this.timeSchedule = new TimeScheduleNew(startPos, this.capacity, this.amount);
         this.startTime = startTime;
 
         router.enterNetwork(this);
@@ -71,10 +71,33 @@ public class StorageAgent extends CommunicationAid{
         this.amount = 0.2 * capacity;
         this.startPose = startPos;
         this.startPoseRight = startPoseRight;
-        this.timeSchedule = new TimeSchedule(startPos, this.amount);
+        this.timeSchedule = new TimeScheduleNew(startPos, this.capacity, this.amount);
         this.startTime = startTime;
         this.mp = mp;
-        this.orderNumber = this.robotID - 5000;
+        this.orderNumber = 1;
+
+        router.enterNetwork(this);
+
+        this.sendMessage(new Message(this.robotID, "hello-world", ""), true);
+    }
+
+    /**
+     * Constructor with MP and oreState
+     * @param r_id
+     * @param router
+     * @param capacity
+     * @param startPos
+     */
+    public StorageAgent(int r_id, Router router, double capacity, double startOre, Pose startPos, long startTime, ReedsSheppCarPlanner mp, OreState oreState){
+        this.print("STORAGE AGENT INITIATED");
+        this.robotID = r_id;
+        this.capacity = capacity;
+        this.amount = startOre;
+        this.startPose = startPos;
+        this.timeSchedule = new TimeScheduleNew(oreState, startPos, this.capacity, this.amount);
+        this.startTime = startTime;
+        this.mp = mp;
+        this.orderNumber = 1;
 
         router.enterNetwork(this);
 
@@ -95,7 +118,7 @@ public class StorageAgent extends CommunicationAid{
 
     public void status () {
         while(true) {
-            double oreLevel = this.timeSchedule.checkEndStateOreLvl();
+            double oreLevel = this.timeSchedule.getLastOreState();
             if ( this.amount < oreLevel && false ){} //TODO request ore fast
 
 
@@ -108,7 +131,7 @@ public class StorageAgent extends CommunicationAid{
 
                 if (!bestOffer.isNull) {
                     Task task = this.createTaskFromMessage(bestOffer, true);
-                    this.timeSchedule.add(task);
+                    this.timeSchedule.addEvent(task);
                     this.timeSchedule.printSchedule(this.COLOR);
                 }
             }
@@ -153,7 +176,7 @@ public class StorageAgent extends CommunicationAid{
         ArrayList<Message> inbox_copy;
 
         while(true){
-            synchronized(inbox){
+            synchronized(this.inbox){
                 inbox_copy = new ArrayList<Message>(this.inbox);
                 this.inbox.clear();
             }
@@ -175,6 +198,10 @@ public class StorageAgent extends CommunicationAid{
                 }
 
                 else if (m.type == "accept"){} //TODO does nothing in our Scenario atm
+
+                else if (m.type == "decline"){
+                    this.timeSchedule.removeEvent(taskID);
+                } //TODO does nothing in our Scenario atm
 
                 else if (m.type == "cnp-service"){
                     this.handleService(m);
@@ -202,16 +229,32 @@ public class StorageAgent extends CommunicationAid{
         
         if (informVal.equals(new String("done"))) {
             double oreChange = Double.parseDouble(this.parseMessage(m, "", true)[2]);
-            this.timeSchedule.remove(taskID);
+            this.timeSchedule.removeEvent(taskID);
 
             if (oreChange > 0) this.addOre(oreChange);
                 
             else this.dumpOre(oreChange);
+
+            this.print("RECEIVED ORE ___-_________________________");
+            this.timeSchedule.printSchedule(this.COLOR);
         }
 
-        else if (informVal.equals(new String("status"))) {} //TODO change so schedule gets updated: newEndTime = Double.parseDouble(messageParts[2])                    
+        else if (informVal.equals(new String("status"))) { //TODO change so schedule gets updated: newEndTime = Double.parseDouble(messageParts[2])  
+            double newEndTime = Double.parseDouble(this.parseMessage(m, "", true)[2]);
+            if ( this.timeSchedule.isNewEndTimePossible(taskID, newEndTime) ){
+                this.timeSchedule.setNewEndTime(taskID, newEndTime);
+            }
+            else{
+                this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
+                this.timeSchedule.abortEvent(taskID);
+            }
+        }                   
 
-        else if (informVal.equals(new String("abort"))) {} //TODO remove task from schedule 
+        else if (informVal.equals(new String("abort"))) { //TODO remove task from schedule 
+            this.timeSchedule.abortEvent(taskID);
+            this.print("---SCHEDULE---");
+            this.timeSchedule.printSchedule(this.COLOR);
+        } 
     }
 
     /** offerService is called when a robot want to plan in a new task to execute.
@@ -219,7 +262,7 @@ public class StorageAgent extends CommunicationAid{
      * @param robotID id of robot{@link TransportAgent} calling this
      */
     public Message offerService(double startTime){
-        ArrayList<Integer> receivers = this.getReceivers(this.robotsInNetwork, "TRANSPORT");
+        ArrayList<Integer> receivers = this.getReceivers(this.robotID, this.robotsInNetwork, "TRANSPORT");
 
         if ( receivers.size() <= 0 ) return new Message();
         
@@ -291,7 +334,7 @@ public class StorageAgent extends CommunicationAid{
             double startTime = Double.parseDouble(parseMessage(m, "startTime")[0]);
             double endTime = Double.parseDouble(parseMessage(m, "endTime")[0]);
   
-            if( this.timeSchedule.taskPossible(startTime, endTime) ) {
+            if( this.timeSchedule.isTaskPossible(taskID, startTime, endTime) ) {
                 String[] mParts = this.parseMessage( m, "", true); // sort out offer not part of current auction(taskID)
 
                 if ( Integer.parseInt(mParts[0]) == taskID ){
@@ -315,20 +358,20 @@ public class StorageAgent extends CommunicationAid{
     public boolean handleService(Message m) { 
         this.print("handleService - start");
         
-        double availabeOre = this.timeSchedule.checkEndStateOreLvl();
+        double availabeOre = this.timeSchedule.getLastOreState();
         
         if (availabeOre <= 0.01) return false;   //if we dont have ore dont act 
 
         Task TTATask = this.createTaskFromServiceOffer(m, availabeOre, this.startPoseRight);
 
         // Return abort?
-        if ( !this.timeSchedule.taskPossible(TTATask) ) return false;    // task doesnt fit in schedule
+        if ( !this.timeSchedule.isTaskPossible(TTATask) ) return false;    // task doesnt fit in schedule
         
         int offerVal = this.calculateOffer(TTATask);
         
         if (offerVal <= 0.01) return false;
 
-        if (! this.timeSchedule.add(TTATask) ){
+        if (! this.timeSchedule.addEvent(TTATask) ){
             this.print("not added!");
             return false;
         }
@@ -370,7 +413,7 @@ public class StorageAgent extends CommunicationAid{
     protected int calculateOffer(Task t){
         int offer;
         if (t.pathDist > 0.5) {
-            double oreLevel = this.timeSchedule.checkEndStateOreLvl();
+            double oreLevel = this.timeSchedule.getLastOreState();
             double oreLevelPercentage = oreLevel/this.capacity;
             this.print("ORELEVEL%%%%%%%%%%%%%%%%%%" + oreLevelPercentage);
             if (oreLevelPercentage > 0.8) {

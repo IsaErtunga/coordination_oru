@@ -1,6 +1,7 @@
 package se.oru.coordination.coordination_oru.MAS;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Arrays;
 import java.lang.Math;
 
@@ -27,10 +28,9 @@ public class TransportAgent extends CommunicationAid{
     protected Coordinate[] rShape;
     protected Pose startPose;
     protected final Double capacity = 15.0;
-    protected Double holdingOre = 0.0;
     protected final int taskCap = 4;
 
-    protected TimeSchedule timeSchedule;
+    protected TimeScheduleNew timeSchedule;
     protected long startTime;
 
     public ArrayList<Message> missionList = new ArrayList<Message>();
@@ -53,14 +53,14 @@ public class TransportAgent extends CommunicationAid{
         this.startPose = startPos;
         this.startTime = startTime;
 
-        this.timeSchedule = new TimeSchedule(startPos, 0.0);
+        this.timeSchedule = new TimeScheduleNew(startPos, this.capacity, 0.0);
 
         // enter network and broadcast our id to others.
         router.enterNetwork(this);
         this.sendMessage(new Message(this.robotID, "hello-world", ""), true);
                 
-        double xl = 5.0;
-	    double yl = 3.7;
+        double xl = 4.0;
+	    double yl = 2.8;
         this.rShape = new Coordinate[] {new Coordinate(-xl,yl),new Coordinate(xl,yl),
                                         new Coordinate(xl,-yl),new Coordinate(-xl,-yl)};
 
@@ -75,8 +75,10 @@ public class TransportAgent extends CommunicationAid{
 
     protected double getNextTime(){
         double STARTUP_ADD = 5.0;
-        double nextTime = this.timeSchedule.getNextStartTime();
-        return nextTime == -1.0 ? this.getTime()+STARTUP_ADD : nextTime;
+        synchronized(this.timeSchedule){
+            double nextTime = this.timeSchedule.getNextStartTime();
+            return nextTime == -1.0 ? this.getTime()+STARTUP_ADD : nextTime;
+        }
     }
 
 
@@ -94,9 +96,6 @@ public class TransportAgent extends CommunicationAid{
             }
         };
         listenerThread.start();
-
-        // Changed sleep from 2000
-        this.sleep(500);
 
         Thread stateThread = new Thread() {
             public void run() {
@@ -151,17 +150,50 @@ public class TransportAgent extends CommunicationAid{
     protected void executeTasks () {
         while (true) {
             // Execute task while its schedule is not empty
-            if (this.timeSchedule.getSize() > 0) {
+            int size;
+            synchronized(this.timeSchedule){ size = this.timeSchedule.getSize(); }
+
+            if (size > 0) {
                 /* SCHEDULE:
                     * IF we start performing task long after startTime:
                         - update schedule to the delay
                     *   - inform receiving-end of the delay
                     * TODO: Calculate if we go over endTime.
                 */
-                Task task = this.timeSchedule.pop();
+                Task task = null;
+                synchronized(this.timeSchedule){ task = this.timeSchedule.getNextEvent(); }
                 if (task == null) {
                     continue;
                 }
+
+                //TODO kolla när vi börjar med task. om de är väldigt off schemat så uppdaterar vi schemat.
+
+                double now = this.getTime();
+                if ( now - 5.0 > task.startTime || now < task.startTime - 5.0 ){
+                    this.print("## NOT CORRECT TASK START ##\tactual startTime-->"+String.format("%.2f",task.startTime)+"\treal startTime-->"+String.format("%.2f",now));
+
+                    double newEndTime = (task.endTime - task.startTime) + now;
+
+                    Task taskToFix = null;
+                    synchronized(this.timeSchedule){
+                        taskToFix = this.timeSchedule.setNewEndTime(task.taskID, newEndTime);
+                    }
+             
+                    if (taskToFix != null){
+                        String body = taskToFix.taskID+this.separator+"status"+this.separator+taskToFix.endTime;
+                        this.sendMessage(new Message(this.robotID, taskToFix.partner, "inform", body));
+                    } 
+                    this.print("--- SCHEDULE ---");
+                    this.timeSchedule.printSchedule(this.COLOR);                   
+                }
+
+                //TODO check if we start mission late, if true= send inform msg with new endTime, if false: all good
+                // double now = this.getTime();
+                // if ( now - 5.0 > task.startTime  ){
+                //     double newEndTime = (task.endTime - task.startTime) + now;
+                //     String body = task.taskID+this.separator+"status"+this.separator+newEndTime;
+                //     this.sendMessage(new Message(this.robotID, task.partner, "inform", body));
+                // }
 
                 this.print("starting mission with -->" +task.partner);
                 this.tec.addMissions(this.createMission(task));
@@ -184,11 +216,30 @@ public class TransportAgent extends CommunicationAid{
     protected void initialState() {
         double oreLevelThreshold = 1.0;
         while (true) {
-            
-            if ( false ){} //TODO check if we have an inconsistent schedule ore-wise
+            ArrayList<Task> newEndTimes = new ArrayList<Task>();
+            ArrayList<Task> abortTasks = new ArrayList<Task>();
+            double lastOreState;
 
-            else if ( this.timeSchedule.checkEndStateOreLvl() <= oreLevelThreshold ){ // book task to get ore
+            synchronized(this.timeSchedule){
+                newEndTimes = this.timeSchedule.updateSchedule();
+                abortTasks = this.timeSchedule.fixBrokenSchedule();
+                lastOreState = this.timeSchedule.getLastOreState();
+            }
 
+            if ( newEndTimes.size() > 0 ){ //TODO check if we have an inconsistent schedule ore-wise
+                for ( Task fix : newEndTimes ){
+                    String body = fix.taskID+this.separator+"status"+this.separator+fix.endTime;
+                    this.sendMessage(new Message(this.robotID, fix.partner, "inform", body));
+                }
+                continue;
+            }
+
+            for ( Task t : abortTasks ){
+                this.sendMessage(new Message(this.robotID, t.partner, "inform", t.taskID+this.separator+"abort"));
+            }
+
+
+            if ( lastOreState <= oreLevelThreshold ){ // book task to get ore
                 Message bestOffer = this.offerService(this.getNextTime()); // hold auction with DA's
 
                 if (bestOffer.isNull){ 
@@ -197,14 +248,17 @@ public class TransportAgent extends CommunicationAid{
                 }
     
                 Task task = this.createTaskFromOfferMessage(bestOffer);
-    
-                if ( this.timeSchedule.add(task) == false ){ // if false then task no longer possible, send abort msg to task partner
+
+                boolean taskAdded;
+                synchronized(this.timeSchedule){ taskAdded = this.timeSchedule.addEvent(task); }
+
+                if ( taskAdded == false ){ // if false then task no longer possible, send abort msg to task partner
                     this.print("TASK ABORTED");
-                    this.sendMessage(new Message(this.robotID, task.partner, "abort", Integer.toString(task.taskID)));
+                    this.sendMessage(new Message(this.robotID, task.partner, "inform", Integer.toString(task.taskID)+this.separator+"abort"));
                 }
 
-                this.print("--- schedule ---");
-                this.timeSchedule.printSchedule(this.COLOR);
+                // this.print("--- schedule ---");
+                // this.timeSchedule.printSchedule(this.COLOR);
             }
 
             else {
@@ -223,12 +277,16 @@ public class TransportAgent extends CommunicationAid{
     public Message offerService(double taskStartTime) {
 
         // Get correct receivers
-        ArrayList<Integer> receivers = this.getReceivers(this.robotsInNetwork, "DRAW");
+        ArrayList<Integer> receivers = this.getReceivers(this.robotID, this.robotsInNetwork, "DRAW");
 
         if (receivers.size() <= 0) return new Message();
         
         this.offers.clear();
-        String startPos = this.stringifyPose(this.timeSchedule.getLastToPose());
+
+        Pose nextPose;
+        synchronized(this.timeSchedule){ nextPose = this.timeSchedule.getNextPose(); }
+        
+        String startPos = this.stringifyPose(nextPose);
         int taskID = this.sendCNPmessage(taskStartTime, startPos, receivers);
     
 
@@ -293,8 +351,11 @@ public class TransportAgent extends CommunicationAid{
             // SCHEDULE: Extract startTime & endTime and see if it fits into schedule
             double taskStartTime = Double.parseDouble(parseMessage(m, "startTime")[0]);
             double endTime = Double.parseDouble(parseMessage(m, "endTime")[0]);
-  
-            if( this.timeSchedule.taskPossible(taskStartTime, endTime) ) {
+            
+            boolean taskPossible;
+            synchronized(this.timeSchedule){ taskPossible = this.timeSchedule.isTaskPossible(taskID, taskStartTime, endTime); }
+
+            if( taskPossible) {
                 String[] mParts = this.parseMessage( m, "", true); // sort out offer not part of current auction(taskID)
 
                 if ( Integer.parseInt(mParts[0]) == taskID ){
@@ -316,29 +377,28 @@ public class TransportAgent extends CommunicationAid{
      * @return true if we send offer = we expect resp.
      */
     public boolean handleService(Message m) { 
-        this.print("handleService - start");
-        
-        double availabeOre = this.timeSchedule.checkEndStateOreLvl();
+        double availabeOre;
+        synchronized(this.timeSchedule){
+            availabeOre = this.timeSchedule.getLastOreState();
+        }
         if (availabeOre <= 0.01) return false;   //if we dont have ore dont act 
 
-        Pose pos = this.timeSchedule.getLastToPose();
+        Pose pos = this.timeSchedule.getNextPose();
 
         Task SATask = this.createTaskFromServiceOffer(m, availabeOre, pos);
 
-        if ( !this.timeSchedule.taskPossible(SATask) ) return false;    // task doesnt fit in schedule
+        boolean taskPossible;
+        synchronized(this.timeSchedule){ taskPossible = this.timeSchedule.isTaskPossible(SATask); }
+        if ( !taskPossible ) return false;    // task doesnt fit in schedule
 
         int offerVal = this.calculateOffer(SATask);
         
         if ( offerVal <= 0.01 ) return false;
 
-        if (! this.timeSchedule.add(SATask) ){
-            this.print("not added!");
-            return false;
-        }
-        this.print("--- schedule ---");
-        this.timeSchedule.printSchedule(this.COLOR);
+        synchronized(this.timeSchedule){ this.timeSchedule.addEvent(SATask); }
 
-        this.print("handleService-SENDING OFFER");
+        // this.print("--- schedule ---");
+        // this.timeSchedule.printSchedule(this.COLOR);
 
         this.sendMessage(this.createOfferMsgFromTask(SATask, offerVal, availabeOre));
 
@@ -365,22 +425,23 @@ public class TransportAgent extends CommunicationAid{
      * @param ore the amount of ore the task is about
      * @return a Task with attributes extracted from m
      */
-    protected Task createTaskFromServiceOffer(Message m, double ore, Pose startPos){
+    protected Task createTaskFromServiceOffer(Message m, double ore, Pose taskStartPos){
         String[] mParts = this.parseMessage(m, "", true);
 
         Pose SApos = this.posefyString(mParts[2]);
-        // PoseSteering[] path = this.calculatePath(pos, TApos);
-        // double pathDist = this.calculatePathDist(path);
-        // double pathTime = this.calculateDistTime(pathDist);
-        double pathDist = startPos.distanceTo(SApos);
-        double pathTime = this.calculateDistTime(pathDist) + 10.0;
+        PoseSteering[] path = this.calculatePath(this.mp, taskStartPos, SApos);
+        double pathDist = this.calculatePathDist(path);
+        double pathTime = this.calculateDistTime(pathDist);
+        // double pathDist = startPos.distanceTo(SApos);
+        // double pathTime = this.calculateDistTime(pathDist) + 10.0;
 
         //double startTime = Double.parseDouble(mParts[3]);
-        double taskStartTime = this.timeSchedule.getNextStartTime();
+        double taskStartTime;
+        synchronized(this.timeSchedule){ taskStartTime = this.timeSchedule.getNextStartTime(); }
         
         double endTime = taskStartTime + pathTime;
 
-        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathTime, startPos, SApos);
+        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathTime, taskStartPos, SApos);
     }
 
     
@@ -410,6 +471,7 @@ public class TransportAgent extends CommunicationAid{
      * @return offer
      */
     protected int calculateOffer(Task t){
+        /*
         int offer;
         if (t.pathDist > 0.5) {
             // double oreLevel = this.timeSchedule.checkEndStateOreLvl();
@@ -428,6 +490,12 @@ public class TransportAgent extends CommunicationAid{
             offer = 0;
         }
         return offer;
+        */
+        if (t.pathDist <= 2.0) return 0;
+
+        double dist = 100.0 * 1.0 / t.pathDist;
+
+        return (int)(dist);
     }   
 
     /**
@@ -454,7 +522,7 @@ public class TransportAgent extends CommunicationAid{
 
         while(true){
         
-            synchronized(inbox){
+            synchronized(this.inbox){
                 inbox_copy = new ArrayList<Message>(this.inbox);
                 this.inbox.clear();
             }
@@ -474,13 +542,21 @@ public class TransportAgent extends CommunicationAid{
                 }
 
                 else if (m.type == "accept"){
-                    this.timeSchedule.setTaskActive(taskID);
+                    boolean eventAdded;
+                    synchronized(this.timeSchedule){ eventAdded = this.timeSchedule.setEventActive(taskID); }
+
+                    if ( eventAdded == false ) {
+                        this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
+                    }
                 }
 
                 else if (m.type == "decline"){
                     //remove task from activeTasks
                     //SCHEDULE: remove reserved task from schedule
-                    this.timeSchedule.remove(taskID);
+                    synchronized(this.timeSchedule){
+                        boolean successfulRemove = this.timeSchedule.removeEvent(taskID);
+                        this.print("got decline taskID-->"+taskID+"\tremoved-->"+successfulRemove);
+                    }
                 }
 
                 else if (m.type == "cnp-service"){
@@ -498,27 +574,26 @@ public class TransportAgent extends CommunicationAid{
                     if (informVal.equals(new String("done"))) {
                         // current solution does not receive 'done'-msg
                         //TODO add code if implementing it that way
-                        this.timeSchedule.remove(taskID);
+                        synchronized(this.timeSchedule){ this.timeSchedule.removeEvent(taskID); }
+                        
 
                     }
                     else if (informVal.equals(new String("status"))) {
-                        /* SCHEDULE: 
-                            * if TA notice it will not be done in time, we get inform->status msg
-                            * update schedule with new time and check if problem
-                            * if 2 mission have big overlap then send ABORT msg to later mission.
-                            * else all is good.
-                        */ 
-                        double newEndTime = Double.parseDouble(this.parseMessage(m, "ore")[0]); //TODO ore is 3rd element NOT ore in this case
-                        if (newEndTime > this.timeSchedule.get(taskID).endTime) {
-                            this.timeSchedule.update(taskID, newEndTime);
+                        double newEndTime = Double.parseDouble(this.parseMessage(m, "", true)[2]);
+
+                        synchronized(this.timeSchedule){
+                            if ( this.timeSchedule.isNewEndTimePossible(taskID, newEndTime) ){
+                                this.timeSchedule.setNewEndTime(taskID, newEndTime);
+                            }
+                            else{
+                                this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
+                                this.timeSchedule.abortEvent(taskID);
+                            }
                         }
                     }
 
                     else if (informVal.equals(new String("abort"))) {
-                        /* SCHEDULE:
-                            * remove task from schedule
-                        */
-                        this.timeSchedule.remove(taskID);
+                        synchronized(this.timeSchedule){ this.timeSchedule.abortEvent(taskID); }
                     } 
                 }
                 

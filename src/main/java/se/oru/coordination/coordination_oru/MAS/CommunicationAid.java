@@ -112,19 +112,32 @@ public class CommunicationAid extends HelpFunctions{
      * @param receiverType TRANSPORT, STORAGE, DRAW
      * @return
      */
-    public ArrayList<Integer> getReceivers(ArrayList<Integer> network, String receiverType) {
+    public ArrayList<Integer> getReceivers(int robotID, ArrayList<Integer> network, String receiverType) {
+        /* ex: 1110:  first 1 = block 1, second 1 = transportAgent, third 1 = unique id
+
+        agentType: 1=DA, 2=TA, 3=SA, 4TTA
+
+        2310, block2, SA, id=10
+        */
+        int block = robotID / 1000;
+
         ArrayList<Integer> networkCopy = new ArrayList<Integer>(network);
+
+        networkCopy.removeIf(i -> i/1000 != block);
+
+
         if (receiverType.equals("DRAW")) {
-            networkCopy.removeIf(i -> i < 10000 || i >= 15000);    //draw agents has robotID > 10000
+            networkCopy.removeIf(i -> (i%1000)/100 != 1);
+
         }
-        if (receiverType.equals("STORAGE")) {
-            networkCopy.removeIf(i -> i < 5000 || i >= 10000); //storage agents has robotID > 5000 & < 10000
+        else if (receiverType.equals("STORAGE")) {
+            networkCopy.removeIf(i -> (i%1000)/100 != 3);
         }
-        if (receiverType.equals("TRANSPORT")) {
-            networkCopy.removeIf(i -> i >= 5000); //storage agents has robotID > 5000 & < 10000
+        else if (receiverType.equals("TRANSPORT")) {
+            networkCopy.removeIf(i -> (i%1000)/100 != 2);
         }
-        if (receiverType.equals("TRANSPORTTRUCK")) {
-            networkCopy.removeIf(i -> i < 15000); //storage agents has robotID > 5000 & < 10000
+        else if (receiverType.equals("TRANSPORTTRUCK")) {
+            networkCopy.removeIf(i -> (i%1000)/100 != 4);
         }
         return networkCopy;
     }
@@ -146,6 +159,12 @@ public class CommunicationAid extends HelpFunctions{
 
 
     public static void main(String[] args){
+        int robotID = 3210;
+        int block = robotID / 1000;
+        //int rest = robotID % 100;
+        int agentType = (robotID % 1000) / 100;
+
+        System.out.println("id-->"+robotID+"\tblock-->"+block+"\tagentType-->"+agentType );
         /*
         RobotAgent r1 = new RobotAgent(0);
         RobotAgent r2 = new RobotAgent(1);

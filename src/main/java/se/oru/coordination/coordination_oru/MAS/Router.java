@@ -44,7 +44,7 @@ public class Router {
         while(true){
             this.print();
 
-            synchronized(this.outboxes){
+            synchronized(this.outboxes){ 
                 
                 for (Map.Entry<Integer, ArrayList<Message>> t : this.outboxes.entrySet()) {
                     outputMessages.addAll(t.getValue());
@@ -81,27 +81,36 @@ public class Router {
     private void print(){
         
         System.out.println("\033[0;35m"+ "###ROUTER###"+ "\033[0m");
+        HashMap<Integer, ArrayList<Message>> msgs2Print;
+         
 
         synchronized(this.outboxes){
+            msgs2Print = new HashMap<Integer, ArrayList<Message>>(this.outboxes);
+        }
                 
-            for (Map.Entry<Integer, ArrayList<Message>> t : this.outboxes.entrySet()) {
-                System.out.println("\033[0;35m"+"outbox r" + t.getKey() +":"+ "\033[0m");
+        for (Map.Entry<Integer, ArrayList<Message>> t : msgs2Print.entrySet()) {
+            if ( t.getValue().size() < 1 ) continue;
+            System.out.println("\033[0;35m"+"outbox r" + t.getKey() +":"+ "\033[0m");
 
-                for (Message m : t.getValue()){
-                    System.out.println("\033[0;35m"+" - " + m.type + ": " + m.body + ":: to r" + m.receiver+ "\033[0m");
-                }
+            for (Message m : t.getValue()){
+                System.out.println("\033[0;35m"+" - " + m.type + ": " + m.body + ":: to r" + m.receiver+ "\033[0m");
             }
         }
+
         synchronized(this.inboxes){
-                
-            for (Map.Entry<Integer, ArrayList<Message>> t : this.inboxes.entrySet()) {
-                System.out.println("\033[0;35m"+"inbox r" + t.getKey() +":"+ "\033[0m");
+            msgs2Print = new HashMap<Integer, ArrayList<Message>>(this.inboxes);
+        }
+          
+        for (Map.Entry<Integer, ArrayList<Message>> t : msgs2Print.entrySet()) {
+            if ( t.getValue().size() < 1 ) continue;
 
-                for (Message m : t.getValue()){
-                    System.out.println("\033[0;35m"+" - " + m.type + ": " + m.body+ "\033[0m");
-                }
+            System.out.println("\033[0;35m"+"inbox r" + t.getKey() +":"+ "\033[0m");
+
+            for (Message m : t.getValue()){
+                System.out.println("\033[0;35m"+" - " + m.type + ": " + m.body+ "\033[0m");
             }
         }
+        
     }
 
     /* ####################### TEST ####################### */

@@ -231,7 +231,7 @@ public class TransportTruckAgent extends CommunicationAid{
     public Message offerService(double taskStartTime) {
 
         // Get correct receivers
-        ArrayList<Integer> receivers = this.getReceivers(this.robotsInNetwork, "STORAGE");
+        ArrayList<Integer> receivers = this.getReceivers(this.robotID, this.robotsInNetwork, "STORAGE");
 
         if (receivers.size() <= 0) return new Message();
         

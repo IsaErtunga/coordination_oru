@@ -28,13 +28,13 @@ import se.oru.coordination.coordination_oru.MAS.Router;
 import se.oru.coordination.coordination_oru.MAS.StorageAgent;
 import se.oru.coordination.coordination_oru.MAS.DrawAgent;
 import se.oru.coordination.coordination_oru.MAS.Message;
+import se.oru.coordination.coordination_oru.MAS.OreState;
 
-public class BaseTest {
+public class OreStateTest {
 
 	public static void main(String[] args) throws InterruptedException {
-
-    final int numTransportAgents = 2;
-
+ 
+	
 	// Max acceleration and velocity
 	double MAX_ACCEL = 10.0;
 	double MAX_VEL = 20.0;
@@ -69,8 +69,8 @@ public class BaseTest {
 
 	//Define robot geometries (here, the same for all robots)
 
-	double xl = 5.0;
-	double yl = 3.7;
+	double xl = 4.0;
+	double yl = 2.8;
 	Coordinate footprint1 = new Coordinate(-xl,yl);
 	Coordinate footprint2 = new Coordinate(xl,yl);
 	Coordinate footprint3 = new Coordinate(xl,-yl);
@@ -108,8 +108,6 @@ public class BaseTest {
 	// rsp.setMap(yamlFile);
 
     // Define robots with poses
-    final int[] robotIDs = new int[numTransportAgents];
-    for (int i = 0; i < numTransportAgents; i++) robotIDs[i] = i+1;
 
 
 
@@ -123,20 +121,41 @@ public class BaseTest {
 
     final long startTime = System.currentTimeMillis();
 
-	Pose DA1pos = new Pose(36.0, 35.0, Math.PI);
-	Pose DA2pos = new Pose(36.0, 55.0, Math.PI);
-	Pose DA3pos = new Pose(36.0, 75.0, Math.PI);
-	Pose DA4pos = new Pose(36.0, 95.0, Math.PI);
-	Pose DA5pos = new Pose(36.0, 115.0, Math.PI);
-	Pose TA1pos = new Pose(50.0,20.0, Math.PI/2);	
-	Pose TA2pos = new Pose(50.0,190.0, 3*Math.PI/2);	
-	Pose TA3pos = new Pose(50.0,100.0, 3*Math.PI/2);
-	Pose SA1pos = new Pose(63.0,68.0, 0.0);	
-	Pose SA2pos = new Pose(63.0,142.0, 0.0);
-	Pose SA1RightPos = new Pose(85.0, 68.0, Math.PI);	
-	Pose SA2RightPos = new Pose(85.0, 142.0, Math.PI);	
+	Pose DA1posLeft = new Pose(36.0, 35.0, Math.PI);
+	Pose DA2posLeft = new Pose(36.0, 55.0, Math.PI);
+	Pose DA3posLeft = new Pose(36.0, 75.0, Math.PI);
+	Pose DA4posLeft = new Pose(36.0, 95.0, Math.PI);
+	Pose DA5posLeft = new Pose(36.0, 115.0, Math.PI);
+
+	Pose DA1posRight = new Pose(310.0, 35.0, 0.0);	
+	Pose DA2posRight = new Pose(310.0, 55.0, 0.0);
+	Pose DA3posRight = new Pose(310.0, 75.0, 0.0);
+	Pose DA4posRight = new Pose(310.0, 95.0, 0.0);
+	Pose DA5posRight = new Pose(310.0, 115.0, 0.0);
+
+	Pose TA1posLeft = new Pose(50.0,20.0, Math.PI/2);
+	Pose TA2posLeft = new Pose(50.0,190.0, 3*Math.PI/2);	
+	Pose TA3posLeft = new Pose(50.0,100.0, 3*Math.PI/2);
+
+	// Pose TA1posRight = new Pose(292.0,20.0, Math.PI/2);
+	Pose TA1posRight = new Pose(292.0,20.0, Math.PI/2);
+	Pose TA2posRight = new Pose(292.0,190.0, 3*Math.PI/2);	
+	Pose TA3posRight = new Pose(292.0,100.0, 3*Math.PI/2);
+
+	Pose SA1posLeft = new Pose(63.0,68.0, 0.0);	
+	Pose SA2posLeft = new Pose(63.0,142.0, 0.0);
+
+	Pose SA1posRight = new Pose(280.0, 68.0, Math.PI);	
+	Pose SA2posRight = new Pose(280.0, 142.0, Math.PI);	
+
+	Pose SA1posTTA = new Pose(85.0, 68.0, Math.PI);	
+	Pose SA2posTTA = new Pose(85.0, 142.0, Math.PI);	
+
 	Pose TTA1pos = new Pose(140.0, 25.0, Math.PI);
 	Pose TTA2pos = new Pose(170.0, 25.0, Math.PI);	
+
+	double SAOreCapacity = 200.0;
+	double SAStartOre = SAOreCapacity/4;
 
     												/*		ROUTER THREAD	*/
 	Router router = new Router();
@@ -149,9 +168,10 @@ public class BaseTest {
 
 
 													/*		DRAW AGENT	*/
-	final int[] numDraw = {1101, 1102, 1103, 1104, 1105};
-	Pose[] drawPoses = { DA1pos, DA2pos, DA3pos, DA4pos, DA5pos };
-	final int[] iter3 = {0,1,2,3,4};
+	final int[] numDraw = {1101, 1102, 1103, 1104, 1105, 2101, 2102, 2103, 2104, 2105};
+	Pose[] drawPoses = { DA1posLeft, DA2posLeft, DA3posLeft, DA4posLeft, DA5posLeft,
+						 DA1posRight, DA2posRight, DA3posRight, DA4posRight, DA5posRight };
+	final int[] iter3 = {0, 1, 5, 6};
 
 	ReedsSheppCarPlanner mp = new ReedsSheppCarPlanner();
 	mp.setFootprint(footprint1, footprint2, footprint3, footprint4);
@@ -164,8 +184,7 @@ public class BaseTest {
 			@Override
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);
-
-				DrawAgent DA = new DrawAgent(numDraw[i], router, 55.0, drawPoses[i], mp, startTime, true);
+				DrawAgent DA = new DrawAgent(numDraw[i], router, 55.0, drawPoses[i], mp, startTime, numDraw[i] < 2000);
 				DA.listener();
 				
 			}
@@ -175,10 +194,9 @@ public class BaseTest {
 	}
 
 												/*		TRANSPORT AGENT	*/
-	final int[] numTransport = {1201, 1202};
-	final int[] iter = {0,1};
-	Pose[] transportPoses = { TA1pos, TA2pos };    
-	
+	final int[] numTransport = {1201, 1202, 1203, 2201, 2202, 2203};
+	final int[] iter = {0, 3};
+	Pose[] transportPoses = { TA1posLeft, TA2posLeft, TA3posLeft, TA1posRight, TA2posRight, TA3posRight };    
 	for (final int i : iter) {
 
 		// Thread for each robot object
@@ -191,7 +209,7 @@ public class BaseTest {
 				//Instantiate a simple motion planner (no map given here, otherwise provide yaml file)
 				ReedsSheppCarPlanner rsp = new ReedsSheppCarPlanner();
 				rsp.setFootprint(footprint1, footprint2, footprint3, footprint4);
-				rsp.setTurningRadius(4.0); 				//default is 1.0
+				rsp.setTurningRadius(2.0); 				//default is 1.0
 				rsp.setMap(yamlFile);
 
 				TransportAgent r = new TransportAgent(numTransport[i], tec, rsp, transportPoses[i], router, startTime);
@@ -206,29 +224,51 @@ public class BaseTest {
     }
 
 													/*		STORAGE AGENT	*/
-	final int[] numStorages = {1301, 1302};
-	Pose[] storagePoses = { SA1pos, SA2pos };
-	Pose[] storageRightPoses = {SA1RightPos, SA2RightPos};
-	final int[] iter2 = {0,1};
+	final int[] leftNumStorages = {1301, 1302};
+	final int[] rightNumStorages = {2301, 2302};
+	final int[] TTANumStorages = {9301, 9302};
+
+	Pose[] LeftStoragePoses = { SA1posLeft, SA2posLeft };
+	Pose[] RightStoragePoses = {SA1posRight, SA2posRight};
+	Pose[] TTAStoragePoses = {SA1posTTA, SA2posTTA};
+
+	final int[] iter2 = {0, 1};
 
 	for (final int i : iter2) {
-
-		Thread storageThread = new Thread() {
+		OreState oreState = new OreState(SAOreCapacity, SAStartOre);
+		Thread storageThreadLeft = new Thread() {
 			@Override
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);
-
+				
 				ReedsSheppCarPlanner rsp = new ReedsSheppCarPlanner();
 				rsp.setFootprint(footprint1, footprint2, footprint3, footprint4);
 				rsp.setTurningRadius(4.0); 	
 				rsp.setMap(yamlFile);
 
-				StorageAgent SA = new StorageAgent(numStorages[i], router, 100.0, storagePoses[i], storageRightPoses[i], startTime, rsp);
+				StorageAgent SA = new StorageAgent(leftNumStorages[i], router, SAOreCapacity, SAStartOre, LeftStoragePoses[i], startTime, rsp, oreState);
 				SA.start();
 			
 			}
 		};
-		storageThread.start();
+		storageThreadLeft.start();
+
+		Thread storageThreadRight = new Thread() {
+			@Override
+			public void run() {
+				this.setPriority(Thread.MAX_PRIORITY);
+				
+				ReedsSheppCarPlanner rsp = new ReedsSheppCarPlanner();
+				rsp.setFootprint(footprint1, footprint2, footprint3, footprint4);
+				rsp.setTurningRadius(4.0); 	
+				rsp.setMap(yamlFile);
+
+				StorageAgent SA = new StorageAgent(rightNumStorages[i], router, SAOreCapacity, SAStartOre, RightStoragePoses[i], startTime, rsp, oreState);
+				SA.start();
+			
+			}
+		};
+		storageThreadRight.start();
 
 		try { Thread.sleep(3000); }
 		catch (InterruptedException e) { e.printStackTrace(); }

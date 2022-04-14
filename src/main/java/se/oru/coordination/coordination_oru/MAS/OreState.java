@@ -33,7 +33,7 @@ public class OreState {
      */
     public State getState(double time, double ore){
         for ( State s : this.oreStateArray ){
-            if (s.t == time && s.deltaOre == ore) return s;
+            if ( s.t-0.1 < time && s.t+0.1 > time && s.deltaOre-0.1 < ore && s.deltaOre+0.1 > ore) return s;
         }
         return null; // no state found
     }
@@ -164,15 +164,29 @@ public class OreState {
         HashMap<Double, Double> fixes = new HashMap<Double, Double>();
 
         for (State s : this.oreStateArray){
-            if ( s.currOre < 0.0 || s.currOre > this.oreCapacity) fixes.put(s.t, s.currOre);
+            if ( s.currOre < 0.0 || s.currOre > this.oreCapacity+0.01) fixes.put(s.t, s.currOre);
         }
         return fixes;
     }
 
-    public void print(){
+    /**
+     * this function will retrive inconsistencies in the oreStateArray. If we have a 
+     * negative currOre at any state, it will need to be fixed.
+     * @return
+     */
+    public double getFirstFail(){
+        for (State s : this.oreStateArray){
+            if ( s.currOre < 0.0 || s.currOre > this.oreCapacity+0.01) return s.t;
+        }
+        return -1.0;
+    }
+
+    public void print(String c){
+        String e = "\033[0m";
+
         System.out.println("");
         for ( State s : this.oreStateArray ){
-            System.out.println("time--> "+ String.format("%.2f",s.t) +"\tore at state--> "+s.currOre+"\tdeltaOre--> "+s.deltaOre);
+            System.out.println(c+"time--> "+ String.format("%.2f",s.t) +"\tore at state--> "+s.currOre+"\tdeltaOre--> "+s.deltaOre+e);
         }
     }
 
@@ -185,7 +199,7 @@ public class OreState {
         os.addState( os.createState(5.0, 10.0) );
         os.addState( os.createState(9.0, 16.0) );
         os.addState( os.createState(10.0, 40.0) );
-        os.print();
+        os.print("");
 
         System.out.println(os.getStateAtTime(7.0));
 

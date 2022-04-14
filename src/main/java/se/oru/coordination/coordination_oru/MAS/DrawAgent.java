@@ -18,20 +18,21 @@ public class DrawAgent extends CommunicationAid{
     // control parameters
     protected String COLOR = "\033[0;36m";
 
-    private final static double finalXPos = 4.0;
+    private double finalXPos;
     protected double initalXPos;
 
     protected Pose pos;
     protected double amount;
     protected double capacity; 
     protected ReedsSheppCarPlanner mp;
+    protected boolean shiftLeft;
 
-    protected TimeSchedule timeSchedule;
+    protected TimeScheduleNew timeSchedule;
     protected long startTime;
 
     public DrawAgent(int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp){}
 
-    public DrawAgent(int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp, long startTime){
+    public DrawAgent(int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp, long startTime, boolean shiftLeft){
         this.robotID = robotID; // drawID >10'000
         this.capacity = capacity;
         this.amount = capacity; // 100% full in beginning
@@ -39,11 +40,18 @@ public class DrawAgent extends CommunicationAid{
         this.pos = pos;
         this.initalXPos = pos.getX();
 
-        this.timeSchedule = new TimeSchedule(pos, capacity);
+        this.timeSchedule = new TimeScheduleNew(pos, capacity, this.amount);
         this.startTime = startTime;
 
         router.enterNetwork(this.robotID, this.inbox, this.outbox);
         this.sendMessage(new Message(this.robotID, "hello-world", ""), true);
+
+        this.shiftLeft = shiftLeft;
+        if (shiftLeft) {
+            this.finalXPos = this.initalXPos - 32.0;
+        } else {
+            this.finalXPos = this.initalXPos + 32.0;
+        }
 
     }
 
@@ -56,7 +64,10 @@ public class DrawAgent extends CommunicationAid{
         oreChange = oreChange < 0.0 ? oreChange : -oreChange; // make sure sign is negative
         this.amount += oreChange;
 
-        double x = this.finalXPos + (this.initalXPos - this.finalXPos) * this.amount / this.capacity;
+        double x;
+        if (this.shiftLeft) x = this.finalXPos + 32.0 * (this.amount / this.capacity);
+        else x = this.finalXPos - 32.0 * (this.amount / this.capacity);
+
         this.pos = new Pose( x, pos.getY(), pos.getYaw() );
     }
 
@@ -66,7 +77,7 @@ public class DrawAgent extends CommunicationAid{
 
         while(true){
         
-            synchronized(inbox){
+            synchronized(this.inbox){
                 inbox_copy = new ArrayList<Message>(this.inbox);
                 this.inbox.clear();
             }
@@ -85,13 +96,17 @@ public class DrawAgent extends CommunicationAid{
                 }
 
                 else if (m.type == "accept"){
-                    if ( this.timeSchedule.setTaskActive(taskID) ){ 
+                    if ( this.timeSchedule.setEventActive(taskID) ){ 
                         this.print("task added to schedule, taskID-->"+taskID);
                     }
-                    else{} //TODO task not added, need to send abort to taskProvider.
+                    else{ //TODO task not added, need to send abort to taskProvider.
+                        this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
+                    } 
                 }
 
-                else if (m.type == "decline"){} //TODO remove task from reservedTasks in schedule
+                else if (m.type == "decline"){
+                    this.timeSchedule.removeEvent(taskID);
+                } //TODO remove task from reservedTasks in schedule
 
                 else if (m.type == "cnp-service"){
                     this.handleService(m);
@@ -113,13 +128,26 @@ public class DrawAgent extends CommunicationAid{
         
         if (informVal.equals(new String("done"))) {
             double oreChange = Double.parseDouble(this.parseMessage(m, "", true)[2]);
-            this.timeSchedule.remove(taskID);
+            this.timeSchedule.removeEvent(taskID);
             this.takeOre(oreChange);
         }
 
-        else if (informVal.equals(new String("status"))) {} //TODO change so schedule gets updated: newEndTime = Double.parseDouble(messageParts[2])                    
+        else if (informVal.equals(new String("status"))) { //TODO change so schedule gets updated: newEndTime = Double.parseDouble(messageParts[2])
+            double newEndTime = Double.parseDouble(this.parseMessage(m, "", true)[2]);
+            if ( this.timeSchedule.isNewEndTimePossible(taskID, newEndTime) ){
+                this.timeSchedule.setNewEndTime(taskID, newEndTime);
+            }
+            else{
+                this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
+                this.timeSchedule.abortEvent(taskID);
+            }
+            this.print("--- schedule ---AFTER INFORM MSG");
+            this.timeSchedule.printSchedule(this.COLOR);
+        }                     
 
-        else if (informVal.equals(new String("abort"))) {} //TODO remove task from schedule 
+        else if (informVal.equals(new String("abort"))) { //TODO remove task from schedule 
+            this.timeSchedule.abortEvent(taskID);
+        } 
     }
 
     /**
@@ -128,27 +156,35 @@ public class DrawAgent extends CommunicationAid{
      * - Will receive a time from TA of when it can come and fetch ore. 
      */
     public boolean handleService(Message m){ 
-        double availabeOre = this.timeSchedule.checkEndStateOreLvl();
+        double availabeOre = this.timeSchedule.getLastOreState();
         if (availabeOre <= 0.0) return false;   //if we dont have ore dont act 
         else availabeOre = availabeOre >= 15.0 ? 15.0 : availabeOre; // only give what ore we have available
 
         Task DAtask = createTaskFromServiceOffer(m, availabeOre);
-        if ( !this.timeSchedule.taskPossible(DAtask) ) return false;    // task doesnt fit in schedule
+        if ( !this.timeSchedule.isTaskPossible(DAtask) ) return false;    // task doesnt fit in schedule
         int offerVal = this.calculateOffer(DAtask);
 
         if ( offerVal <= 0 ) return false;
-        if (! this.timeSchedule.add(DAtask) ) return false;
+        if (! this.timeSchedule.addEvent(DAtask) ) return false;
         
-        this.print("--- schedule ---");
-        this.timeSchedule.printSchedule(this.COLOR);
+        // this.print("--- schedule ---");
+        // this.timeSchedule.printSchedule(this.COLOR);
 
         this.sendMessage(this.createOfferMsgFromTask(DAtask, offerVal, availabeOre));
         return true;
     }
 
+    /**
+     * Function that determines if DrawAgent moves right or left
+     * And how much.
+     * @param time
+     * @return
+     */
     protected Pose calculateFuturePos(double time){
-        double oreAtTime = this.timeSchedule.checkEndStateOreLvl(); //TODO this doesnt take ore into account. fix!
-        double x = this.finalXPos + (this.initalXPos - this.finalXPos) * oreAtTime / this.capacity;
+        double oreAtTime = this.timeSchedule.getLastOreState(); //TODO this doesnt take ore into account. fix!
+        double x;
+        if (this.shiftLeft) x = this.finalXPos + 32.0 * (oreAtTime / this.capacity);
+        else x = this.finalXPos - 32.0 * (oreAtTime / this.capacity);
         return new Pose( x, pos.getY(), pos.getYaw() );
     }
 
@@ -206,30 +242,30 @@ public class DrawAgent extends CommunicationAid{
      * @return an int with the value of this task.
      */
     protected int calculateOffer(Task t){
-        // if (t.pathDist <= 2.0) return 0;
+        if (t.pathDist <= 2.0) return 0;
 
-        // double dist = 100.0 * 1.0 / t.pathDist;
-        // double evaluatedCapacity = 200.0 * this.amount / this.capacity; 
+        double dist = 100.0 * 1.0 / t.pathDist;
+        double evaluatedCapacity = 200.0 * this.amount / this.capacity; 
 
-        // return (int)(dist + evaluatedCapacity);
+        return (int)(dist + evaluatedCapacity);
         
-        int offer;
-        if (t.pathDist > 0.5) {
-            double evaluatedCapacity = 100.0 * this.amount / this.capacity; 
-            if (this.amount / this.capacity > 0.9) {
-                // Ändra med t.ore. If t.ore < -15
-                // Draw agent is nearly full
-                int fullOreBonus = 1000;
-                offer = this.calcCDF(t.pathDist) + fullOreBonus;
-            }
-            else {
-                offer = this.calcCDF(t.pathDist) + (int)evaluatedCapacity;
-            }
-        }
-        else {
-            offer = 0;
-        }
-        return offer;
+        // int offer;
+        // if (t.pathDist > 0.5) {
+        //     double evaluatedCapacity = 100.0 * this.amount / this.capacity; 
+        //     if (this.amount / this.capacity > 0.9) {
+        //         // Ändra med t.ore. If t.ore < -15
+        //         // Draw agent is nearly full
+        //         int fullOreBonus = 1000;
+        //         offer = this.calcCDF(t.pathDist) + fullOreBonus;
+        //     }
+        //     else {
+        //         offer = this.calcCDF(t.pathDist) + (int)evaluatedCapacity;
+        //     }
+        // }
+        // else {
+        //     offer = 0;
+        // }
+        // return offer;
     }
 
     /**
