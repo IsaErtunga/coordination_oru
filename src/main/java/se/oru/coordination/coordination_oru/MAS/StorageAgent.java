@@ -74,7 +74,30 @@ public class StorageAgent extends CommunicationAid{
         this.timeSchedule = new TimeScheduleNew(startPos, this.capacity, this.amount);
         this.startTime = startTime;
         this.mp = mp;
-        this.orderNumber = this.robotID - 5000;
+        this.orderNumber = 1;
+
+        router.enterNetwork(this);
+
+        this.sendMessage(new Message(this.robotID, "hello-world", ""), true);
+    }
+
+    /**
+     * Constructor with MP and oreState
+     * @param r_id
+     * @param router
+     * @param capacity
+     * @param startPos
+     */
+    public StorageAgent(int r_id, Router router, double capacity, double startOre, Pose startPos, long startTime, ReedsSheppCarPlanner mp, OreState oreState){
+        this.print("STORAGE AGENT INITIATED");
+        this.robotID = r_id;
+        this.capacity = capacity;
+        this.amount = startOre;
+        this.startPose = startPos;
+        this.timeSchedule = new TimeScheduleNew(oreState, startPos, this.capacity, this.amount);
+        this.startTime = startTime;
+        this.mp = mp;
+        this.orderNumber = 1;
 
         router.enterNetwork(this);
 
@@ -211,6 +234,9 @@ public class StorageAgent extends CommunicationAid{
             if (oreChange > 0) this.addOre(oreChange);
                 
             else this.dumpOre(oreChange);
+
+            this.print("RECEIVED ORE ___-_________________________");
+            this.timeSchedule.printSchedule(this.COLOR);
         }
 
         else if (informVal.equals(new String("status"))) { //TODO change so schedule gets updated: newEndTime = Double.parseDouble(messageParts[2])  

@@ -18,20 +18,21 @@ public class DrawAgent extends CommunicationAid{
     // control parameters
     protected String COLOR = "\033[0;36m";
 
-    private final static double finalXPos = 4.0;
+    private double finalXPos;
     protected double initalXPos;
 
     protected Pose pos;
     protected double amount;
     protected double capacity; 
     protected ReedsSheppCarPlanner mp;
+    protected boolean shiftLeft;
 
     protected TimeScheduleNew timeSchedule;
     protected long startTime;
 
     public DrawAgent(int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp){}
 
-    public DrawAgent(int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp, long startTime){
+    public DrawAgent(int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp, long startTime, boolean shiftLeft){
         this.robotID = robotID; // drawID >10'000
         this.capacity = capacity;
         this.amount = capacity; // 100% full in beginning
@@ -45,6 +46,13 @@ public class DrawAgent extends CommunicationAid{
         router.enterNetwork(this.robotID, this.inbox, this.outbox);
         this.sendMessage(new Message(this.robotID, "hello-world", ""), true);
 
+        this.shiftLeft = shiftLeft;
+        if (shiftLeft) {
+            this.finalXPos = this.initalXPos - 32.0;
+        } else {
+            this.finalXPos = this.initalXPos + 32.0;
+        }
+
     }
 
     protected double getTime(){
@@ -56,7 +64,10 @@ public class DrawAgent extends CommunicationAid{
         oreChange = oreChange < 0.0 ? oreChange : -oreChange; // make sure sign is negative
         this.amount += oreChange;
 
-        double x = this.finalXPos + (this.initalXPos - this.finalXPos) * this.amount / this.capacity;
+        double x;
+        if (this.shiftLeft) x = this.finalXPos + 32.0 * (this.amount / this.capacity);
+        else x = this.finalXPos - 32.0 * (this.amount / this.capacity);
+
         this.pos = new Pose( x, pos.getY(), pos.getYaw() );
     }
 
@@ -163,9 +174,17 @@ public class DrawAgent extends CommunicationAid{
         return true;
     }
 
+    /**
+     * Function that determines if DrawAgent moves right or left
+     * And how much.
+     * @param time
+     * @return
+     */
     protected Pose calculateFuturePos(double time){
         double oreAtTime = this.timeSchedule.getLastOreState(); //TODO this doesnt take ore into account. fix!
-        double x = this.finalXPos + (this.initalXPos - this.finalXPos) * oreAtTime / this.capacity;
+        double x;
+        if (this.shiftLeft) x = this.finalXPos + 32.0 * (oreAtTime / this.capacity);
+        else x = this.finalXPos - 32.0 * (oreAtTime / this.capacity);
         return new Pose( x, pos.getY(), pos.getYaw() );
     }
 

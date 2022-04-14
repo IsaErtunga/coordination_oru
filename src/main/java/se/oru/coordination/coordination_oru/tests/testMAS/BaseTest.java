@@ -165,7 +165,7 @@ public class BaseTest {
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);
 
-				DrawAgent DA = new DrawAgent(numDraw[i], router, 55.0, drawPoses[i], mp, startTime);
+				DrawAgent DA = new DrawAgent(numDraw[i], router, 55.0, drawPoses[i], mp, startTime, true);
 				DA.listener();
 				
 			}

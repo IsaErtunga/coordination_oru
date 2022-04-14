@@ -59,8 +59,8 @@ public class TransportAgent extends CommunicationAid{
         router.enterNetwork(this);
         this.sendMessage(new Message(this.robotID, "hello-world", ""), true);
                 
-        double xl = 5.0;
-	    double yl = 3.7;
+        double xl = 4.0;
+	    double yl = 2.8;
         this.rShape = new Coordinate[] {new Coordinate(-xl,yl),new Coordinate(xl,yl),
                                         new Coordinate(xl,-yl),new Coordinate(-xl,-yl)};
 
@@ -425,15 +425,15 @@ public class TransportAgent extends CommunicationAid{
      * @param ore the amount of ore the task is about
      * @return a Task with attributes extracted from m
      */
-    protected Task createTaskFromServiceOffer(Message m, double ore, Pose startPos){
+    protected Task createTaskFromServiceOffer(Message m, double ore, Pose taskStartPos){
         String[] mParts = this.parseMessage(m, "", true);
 
         Pose SApos = this.posefyString(mParts[2]);
-        // PoseSteering[] path = this.calculatePath(pos, TApos);
-        // double pathDist = this.calculatePathDist(path);
-        // double pathTime = this.calculateDistTime(pathDist);
-        double pathDist = startPos.distanceTo(SApos);
-        double pathTime = this.calculateDistTime(pathDist) + 10.0;
+        PoseSteering[] path = this.calculatePath(this.mp, taskStartPos, SApos);
+        double pathDist = this.calculatePathDist(path);
+        double pathTime = this.calculateDistTime(pathDist);
+        // double pathDist = startPos.distanceTo(SApos);
+        // double pathTime = this.calculateDistTime(pathDist) + 10.0;
 
         //double startTime = Double.parseDouble(mParts[3]);
         double taskStartTime;
@@ -441,7 +441,7 @@ public class TransportAgent extends CommunicationAid{
         
         double endTime = taskStartTime + pathTime;
 
-        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathTime, startPos, SApos);
+        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathTime, taskStartPos, SApos);
     }
 
     
