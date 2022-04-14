@@ -236,7 +236,7 @@ public class StorageAgent extends CommunicationAid{
      * @param robotID id of robot{@link TransportAgent} calling this
      */
     public Message offerService(double startTime){
-        ArrayList<Integer> receivers = this.getReceivers(this.robotsInNetwork, "TRANSPORT");
+        ArrayList<Integer> receivers = this.getReceivers(this.robotID, this.robotsInNetwork, "TRANSPORT");
 
         if ( receivers.size() <= 0 ) return new Message();
         

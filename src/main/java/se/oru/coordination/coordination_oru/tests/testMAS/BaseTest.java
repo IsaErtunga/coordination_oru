@@ -149,7 +149,7 @@ public class BaseTest {
 
 
 													/*		DRAW AGENT	*/
-	final int[] numDraw = {10001, 10002, 10003, 10004, 10005};
+	final int[] numDraw = {1101, 1102, 1103, 1104, 1105};
 	Pose[] drawPoses = { DA1pos, DA2pos, DA3pos, DA4pos, DA5pos };
 	final int[] iter3 = {0,1,2,3,4};
 
@@ -175,7 +175,7 @@ public class BaseTest {
 	}
 
 												/*		TRANSPORT AGENT	*/
-	final int[] numTransport = {1, 2};
+	final int[] numTransport = {1201, 1202};
 	final int[] iter = {0,1};
 	Pose[] transportPoses = { TA1pos, TA2pos };    
 	
@@ -206,7 +206,7 @@ public class BaseTest {
     }
 
 													/*		STORAGE AGENT	*/
-	final int[] numStorages = {5001, 5002};
+	final int[] numStorages = {1301, 1302};
 	Pose[] storagePoses = { SA1pos, SA2pos };
 	Pose[] storageRightPoses = {SA1RightPos, SA2RightPos};
 	final int[] iter2 = {0,1};

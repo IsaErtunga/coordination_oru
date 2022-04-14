@@ -277,7 +277,7 @@ public class TransportAgent extends CommunicationAid{
     public Message offerService(double taskStartTime) {
 
         // Get correct receivers
-        ArrayList<Integer> receivers = this.getReceivers(this.robotsInNetwork, "DRAW");
+        ArrayList<Integer> receivers = this.getReceivers(this.robotID, this.robotsInNetwork, "DRAW");
 
         if (receivers.size() <= 0) return new Message();
         
