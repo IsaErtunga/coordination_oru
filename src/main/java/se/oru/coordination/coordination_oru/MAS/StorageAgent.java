@@ -153,7 +153,7 @@ public class StorageAgent extends CommunicationAid{
         ArrayList<Message> inbox_copy;
 
         while(true){
-            synchronized(inbox){
+            synchronized(this.inbox){
                 inbox_copy = new ArrayList<Message>(this.inbox);
                 this.inbox.clear();
             }
@@ -213,9 +213,22 @@ public class StorageAgent extends CommunicationAid{
             else this.dumpOre(oreChange);
         }
 
-        else if (informVal.equals(new String("status"))) {} //TODO change so schedule gets updated: newEndTime = Double.parseDouble(messageParts[2])                    
+        else if (informVal.equals(new String("status"))) { //TODO change so schedule gets updated: newEndTime = Double.parseDouble(messageParts[2])  
+            double newEndTime = Double.parseDouble(this.parseMessage(m, "", true)[2]);
+            if ( this.timeSchedule.isNewEndTimePossible(taskID, newEndTime) ){
+                this.timeSchedule.setNewEndTime(taskID, newEndTime);
+            }
+            else{
+                this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
+                this.timeSchedule.abortEvent(taskID);
+            }
+        }                   
 
-        else if (informVal.equals(new String("abort"))) {} //TODO remove task from schedule 
+        else if (informVal.equals(new String("abort"))) { //TODO remove task from schedule 
+            this.timeSchedule.abortEvent(taskID);
+            this.print("---SCHEDULE---");
+            this.timeSchedule.printSchedule(this.COLOR);
+        } 
     }
 
     /** offerService is called when a robot want to plan in a new task to execute.
@@ -295,7 +308,7 @@ public class StorageAgent extends CommunicationAid{
             double startTime = Double.parseDouble(parseMessage(m, "startTime")[0]);
             double endTime = Double.parseDouble(parseMessage(m, "endTime")[0]);
   
-            if( this.timeSchedule.isTaskPossible(startTime, endTime) ) {
+            if( this.timeSchedule.isTaskPossible(taskID, startTime, endTime) ) {
                 String[] mParts = this.parseMessage( m, "", true); // sort out offer not part of current auction(taskID)
 
                 if ( Integer.parseInt(mParts[0]) == taskID ){

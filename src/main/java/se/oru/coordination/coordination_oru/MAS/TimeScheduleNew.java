@@ -11,6 +11,7 @@ public class TimeScheduleNew {
     private static int unchangeableTaskCount = 0;
 
     private Pose startPos = null; 
+    private double capacity; 
     protected Task currentTask = null;    
     private ArrayList<Task> schedule = new ArrayList<Task>();
     private HashMap<Integer, Task> reserved = new HashMap<Integer, Task>();
@@ -18,6 +19,7 @@ public class TimeScheduleNew {
 
     public TimeScheduleNew(Pose startPos, double oreCapacity, double startOre){
         this.oreState = new OreState(oreCapacity, startOre);
+        this.capacity = oreCapacity;
         this.startPos = startPos;
     }
     public TimeScheduleNew(OreState os, Pose startPos, double oreCapacity, double startOre){
@@ -48,7 +50,18 @@ public class TimeScheduleNew {
         if( t == null ) return false;
         t.isActive = true;
 
-        return this.addEvent(t);
+        boolean taskAdded = this.addEvent(t);
+        double lastOreState;
+        synchronized(this.oreState){
+            lastOreState = this.oreState.getLastOreState();
+        }
+
+        if ( (lastOreState <= -0.1 || lastOreState > this.capacity+0.1) && taskAdded ){
+            System.out.println("-------------- in setEventActive, lastOreState-->"+lastOreState);
+            this.abortEvent(taskID);
+            return false;
+        }
+        return true;
     }
 
     public boolean addEvent(Task task){
@@ -122,16 +135,35 @@ public class TimeScheduleNew {
         return fixes;
     }
 
-    public void setNewEndTime(int taskID, double newEndTime){
+    public Task setNewEndTime(int taskID, double newEndTime){
+        Task returnFix = null;
         Task t = this.getEvent(taskID);
-        synchronized(this.oreState){ this.oreState.changeState(t.endTime, t.ore, newEndTime); }
-        t.endTime = newEndTime;
-        //return this.updateSchedule();
+        if ( t != null ){
+            t.endTime = newEndTime;
+            synchronized(this.oreState){ this.oreState.changeState(t.endTime, t.ore, newEndTime); }
+        }
+        
+        else if ( this.currentTask != null && this.currentTask.taskID == taskID){
+            this.currentTask.endTime = newEndTime;
+            if ( this.schedule.size() > 0 ){
+                Task nextTask = this.schedule.get(0);
+                if ( this.currentTask.endTime - this.tSensitivity > nextTask.startTime || this.currentTask.endTime + this.tSensitivity < nextTask.startTime){
+                    //System.out.println("\toverlapp for taskID-->"+taskID+"\tcurrTask.endTime-->"+this.currentTask.endTime+"\tnextTaskStartTime-->"+nextTask.startTime);
+                    double nextTaskNewEndTime = (nextTask.endTime - nextTask.startTime) + currentTask.endTime;
+
+                    synchronized(this.oreState){ this.oreState.changeState(nextTask.endTime, nextTask.ore, nextTaskNewEndTime); }
+                    nextTask.endTime = nextTaskNewEndTime;
+                    nextTask.startTime = this.currentTask.endTime;
+                    returnFix = nextTask;
+                }
+            }
+        }
+        return returnFix;
     }
 
     public boolean isNewEndTimePossible(int taskID, double newEndTime){
         Task t = this.getEvent(taskID);
-        return isTaskPossible(t.startTime, newEndTime);
+        return isTaskPossible(taskID, t.startTime, newEndTime);
     }
 
     public boolean removeEvent(int taskID){
@@ -159,6 +191,25 @@ public class TimeScheduleNew {
         Task t = this.schedule.remove(0);
         this.currentTask = t;
         return t;
+    }
+
+    public ArrayList<Task> fixBrokenSchedule(){
+        ArrayList<Task> fixes = new ArrayList<Task>();
+        double scheduleFailTime;
+
+        synchronized(this.oreState){
+            scheduleFailTime = this.oreState.getFirstFail();
+        }
+        if ( scheduleFailTime == -1.0 ) return fixes;
+
+        ArrayList<Task> scheduleCopy = new ArrayList<Task>(this.schedule);
+        for (Task t : scheduleCopy){
+            if ( t.endTime >= scheduleFailTime ){
+                this.abortEvent(t.taskID);
+                fixes.add(t);
+            } 
+        }
+        return fixes;
     }
 
     //-----------oreState retrives from timeSchedule-----------
@@ -205,14 +256,15 @@ public class TimeScheduleNew {
         return tasksOverlapping(t1, t2.startTime, t2.endTime);
     }
 
-    public boolean isTaskPossible(double tStartTime, double tEndTime){
+    public boolean isTaskPossible(int taskID, double tStartTime, double tEndTime){
         for ( Task t : this.schedule ){
+            if (t.taskID == taskID) continue;
             if (this.tasksOverlapping(t, tStartTime, tEndTime) ) return false;
         }
         return true;
     }
     public boolean isTaskPossible(Task t){
-        return this.isTaskPossible(t.startTime, t.endTime);
+        return this.isTaskPossible(t.taskID, t.startTime, t.endTime);
     }
 
 
@@ -298,9 +350,9 @@ public class TimeScheduleNew {
             }
 
             System.out.println("######### taskPossible(double start, double end) #########");
-            System.out.println( ts.isTaskPossible(0.0, 5.0) == true ? "success" : "fail");
-            System.out.println( ts.isTaskPossible(20.0, 30.0) == false ? "success" : "fail");
-            System.out.println( ts.isTaskPossible(45.0, 80.0) == false ? "success" : "fail");
+            System.out.println( ts.isTaskPossible(999, 0.0, 5.0) == true ? "success" : "fail");
+            System.out.println( ts.isTaskPossible(999, 20.0, 30.0) == false ? "success" : "fail");
+            System.out.println( ts.isTaskPossible(999, 45.0, 80.0) == false ? "success" : "fail");
         }
 
         if (testUpdate){

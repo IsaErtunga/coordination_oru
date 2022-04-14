@@ -66,7 +66,7 @@ public class DrawAgent extends CommunicationAid{
 
         while(true){
         
-            synchronized(inbox){
+            synchronized(this.inbox){
                 inbox_copy = new ArrayList<Message>(this.inbox);
                 this.inbox.clear();
             }
@@ -130,6 +130,8 @@ public class DrawAgent extends CommunicationAid{
                 this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
                 this.timeSchedule.abortEvent(taskID);
             }
+            this.print("--- schedule ---AFTER INFORM MSG");
+            this.timeSchedule.printSchedule(this.COLOR);
         }                     
 
         else if (informVal.equals(new String("abort"))) { //TODO remove task from schedule 
@@ -154,8 +156,8 @@ public class DrawAgent extends CommunicationAid{
         if ( offerVal <= 0 ) return false;
         if (! this.timeSchedule.addEvent(DAtask) ) return false;
         
-        this.print("--- schedule ---");
-        this.timeSchedule.printSchedule(this.COLOR);
+        // this.print("--- schedule ---");
+        // this.timeSchedule.printSchedule(this.COLOR);
 
         this.sendMessage(this.createOfferMsgFromTask(DAtask, offerVal, availabeOre));
         return true;

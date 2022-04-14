@@ -124,8 +124,10 @@ public class BaseTest {
     final long startTime = System.currentTimeMillis();
 
 	Pose DA1pos = new Pose(36.0, 35.0, Math.PI);
-	Pose DA2pos = new Pose(36.0, 115.0, Math.PI);
-	Pose DA3pos = new Pose(36.0, 135.0, Math.PI);
+	Pose DA2pos = new Pose(36.0, 55.0, Math.PI);
+	Pose DA3pos = new Pose(36.0, 75.0, Math.PI);
+	Pose DA4pos = new Pose(36.0, 95.0, Math.PI);
+	Pose DA5pos = new Pose(36.0, 115.0, Math.PI);
 	Pose TA1pos = new Pose(50.0,20.0, Math.PI/2);	
 	Pose TA2pos = new Pose(50.0,190.0, 3*Math.PI/2);	
 	Pose TA3pos = new Pose(50.0,100.0, 3*Math.PI/2);
@@ -147,9 +149,9 @@ public class BaseTest {
 
 
 													/*		DRAW AGENT	*/
-	final int[] numDraw = {10001, 10002, 10003};
-	Pose[] drawPoses = { DA1pos, DA2pos, DA3pos };
-	final int[] iter3 = {0,1};
+	final int[] numDraw = {10001, 10002, 10003, 10004, 10005};
+	Pose[] drawPoses = { DA1pos, DA2pos, DA3pos, DA4pos, DA5pos };
+	final int[] iter3 = {0,1,2,3,4};
 
 	ReedsSheppCarPlanner mp = new ReedsSheppCarPlanner();
 	mp.setFootprint(footprint1, footprint2, footprint3, footprint4);
@@ -163,7 +165,7 @@ public class BaseTest {
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);
 
-				DrawAgent DA = new DrawAgent(numDraw[i], router, 20.0, drawPoses[i], mp, startTime);
+				DrawAgent DA = new DrawAgent(numDraw[i], router, 55.0, drawPoses[i], mp, startTime);
 				DA.listener();
 				
 			}

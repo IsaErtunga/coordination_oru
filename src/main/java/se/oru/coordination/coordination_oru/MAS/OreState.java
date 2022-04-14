@@ -33,7 +33,7 @@ public class OreState {
      */
     public State getState(double time, double ore){
         for ( State s : this.oreStateArray ){
-            if (s.t == time && s.deltaOre == ore) return s;
+            if ( s.t-0.1 < time && s.t+0.1 > time && s.deltaOre-0.1 < ore && s.deltaOre+0.1 > ore) return s;
         }
         return null; // no state found
     }
@@ -164,13 +164,21 @@ public class OreState {
         HashMap<Double, Double> fixes = new HashMap<Double, Double>();
 
         for (State s : this.oreStateArray){
-            System.out.println("s.currOre-->"+s.currOre);
-            System.out.println("this.oreCap-->"+this.oreCapacity);
-            System.out.println("s.currOre < 0.01-->"+(s.currOre < 0.01));
-            System.out.println("s.currOre > this.oreCapacity+0.01-->"+(s.currOre > this.oreCapacity+0.01));
             if ( s.currOre < 0.0 || s.currOre > this.oreCapacity+0.01) fixes.put(s.t, s.currOre);
         }
         return fixes;
+    }
+
+    /**
+     * this function will retrive inconsistencies in the oreStateArray. If we have a 
+     * negative currOre at any state, it will need to be fixed.
+     * @return
+     */
+    public double getFirstFail(){
+        for (State s : this.oreStateArray){
+            if ( s.currOre < 0.0 || s.currOre > this.oreCapacity+0.01) return s.t;
+        }
+        return -1.0;
     }
 
     public void print(String c){
