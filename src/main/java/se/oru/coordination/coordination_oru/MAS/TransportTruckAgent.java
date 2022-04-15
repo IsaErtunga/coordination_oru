@@ -172,9 +172,7 @@ public class TransportTruckAgent extends CommunicationAid{
                 }
 
                 this.tec.addMissions(this.createMission(task));
-                
-                // if robot managed to complete task 
-                //String oreChange = task.partner<10000 ? Integer.toString(this.capacity) : Integer.toString(-this.capacity);
+ 
                 while (!isTaskDone(task)) {
                     this.sleep(100);
                 }
@@ -211,7 +209,7 @@ public class TransportTruckAgent extends CommunicationAid{
                 boolean taskAdded;
                 synchronized(this.timeSchedule){ taskAdded = this.timeSchedule.addEvent(task); }
 
-                if ( taskAdded == false ){ // if false then task no longer possible, send abort msg to task partner
+                if ( taskAdded != true ){ // if false then task no longer possible, send abort msg to task partner
                     this.print("TASK ABORTED");
                     this.sendMessage(new Message(this.robotID, task.partner, "inform", Integer.toString(task.taskID)+this.separator+"abort"));
                 }
@@ -224,7 +222,7 @@ public class TransportTruckAgent extends CommunicationAid{
                 boolean taskAdded;
                 synchronized(this.timeSchedule){ taskAdded = this.timeSchedule.addEvent(deliverTask); }
 
-                if ( taskAdded == false ){ // if false then task no longer possible, send abort msg to task partner
+                if ( taskAdded != true ){ // if false then task no longer possible, send abort msg to task partner
                     this.print("TASK ABORTED");
                     this.sendMessage(new Message(this.robotID, deliverTask.partner, "inform", deliverTask.taskID+this.separator+"abort"));
                 }
@@ -362,9 +360,7 @@ public class TransportTruckAgent extends CommunicationAid{
         return bestOffer;
     }
 
-   
 
-    // -----------------------------ANVÄNDS EJ----------------------------------------
     /**
      * 
      * @param message
@@ -375,7 +371,7 @@ public class TransportTruckAgent extends CommunicationAid{
         // replace intexes
         
         // Task(int taskID, int partner, boolean isActive, double ore, double startTime, double endTime, double dist, Pose fromPose, Pose toPose) {
-        return new Task(Integer.parseInt(mParts[0]), m.sender, true, 15.0, Double.parseDouble(mParts[4]),
+        return new Task(Integer.parseInt(mParts[0]), m.sender, true, this.capacity, Double.parseDouble(mParts[4]),
                         Double.parseDouble(mParts[5]), this.posefyString(mParts[2]), this.posefyString(mParts[3]));
     }
 
@@ -389,9 +385,11 @@ public class TransportTruckAgent extends CommunicationAid{
             robotPos = this.timeSchedule.getNextPose();
         }
         Pose deliveryPos = new Pose(245.0, 105.0, Math.PI);	
-        double distance = this.calcDistance(robotPos, deliveryPos);
+        PoseSteering[] path = this.calculatePath(this.mp, robotPos, deliveryPos);
+        double pathDist = this.calculatePathDist(path);
+        double pathTime = this.calculateDistTime(pathDist);
         double taskStartTime = this.getNextTime();
-        double endTime = taskStartTime + this.calculateDistTime(distance);
+        double endTime = taskStartTime + pathTime;
         Task deliverTask = new Task(this.tID(), -1, true, -this.capacity, taskStartTime, endTime, endTime, robotPos, deliveryPos);
         return deliverTask;
     }

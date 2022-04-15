@@ -1,4 +1,5 @@
 package se.oru.coordination.coordination_oru.MAS;
+import java.io.IOException;
 import java.util.ArrayList;
 
 import com.vividsolutions.jts.geom.Coordinate;
@@ -200,6 +201,12 @@ public class StorageAgent extends CommunicationAid{
                 else if (m.type == "accept"){
                     boolean eventAdded;
                     synchronized(this.timeSchedule){ eventAdded = this.timeSchedule.setEventActive(taskID); }
+                    if (eventAdded) { 
+                        this.print("task added to schedule, taskID-->"+taskID);
+                    }
+                    else{ //TODO task not added, need to send abort to taskProvider.
+                        this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
+                    } 
                 } //TODO does nothing in our Scenario atm
 
                 else if (m.type == "decline"){
@@ -210,6 +217,7 @@ public class StorageAgent extends CommunicationAid{
                 }
 
                 else if (m.type == "cnp-service"){
+                    this.print("CNP SERVICE______________----______________________--");
                     this.handleService(m);
                 }
 
@@ -235,14 +243,22 @@ public class StorageAgent extends CommunicationAid{
         
         if (informVal.equals(new String("done"))) {
             double oreChange = Double.parseDouble(this.parseMessage(m, "", true)[2]);
+            
+            try {
+                this.fp.write(this.getTime(), this.timeSchedule.getOreStateAtTime(this.getTime()));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            this.print("ORESTATE: " + this.timeSchedule.getOreStateAtTime(this.getTime()) + " AT TIME: "+ this.getTime());
             synchronized(this.timeSchedule){ this.timeSchedule.removeEvent(taskID); }
 
             if (oreChange > 0) this.addOre(oreChange);
-                
             else this.dumpOre(oreChange);
 
             this.print("RECEIVED ORE ___-_________________________");
             this.timeSchedule.printSchedule(this.COLOR);
+
         }
 
         else if (informVal.equals(new String("status"))) {
@@ -371,6 +387,7 @@ public class StorageAgent extends CommunicationAid{
         }
         
         if (availabeOre <= 0.01) return false;   //if we dont have ore dont act 
+        else availabeOre = availabeOre >= 15.0 ? 15.0 : availabeOre;
 
         Task TTATask = this.createTaskFromServiceOffer(m, availabeOre, this.startPose);
 
@@ -401,7 +418,6 @@ public class StorageAgent extends CommunicationAid{
      */
     protected Task createTaskFromServiceOffer(Message m, double ore, Pose startPos){
         String[] mParts = this.parseMessage(m, "", true);
-        this.print(mParts[2]);
         Pose TTAPos = this.posefyString(mParts[2]);
         PoseSteering[] path = this.calculatePath(this.mp, TTAPos, startPos);
         double pathDist = this.calculatePathDist(path);

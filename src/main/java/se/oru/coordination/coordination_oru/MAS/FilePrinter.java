@@ -18,7 +18,7 @@ public class FilePrinter {
     protected String separator = ",";
 
     public FilePrinter() {
-        this.fileName = "hej.csv";
+        this.fileName = "StorageAgentState.csv";
         this.path = Path.of("/home/parallels/" + this.fileName);
     }
 

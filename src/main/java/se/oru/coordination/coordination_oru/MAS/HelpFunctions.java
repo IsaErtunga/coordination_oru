@@ -10,6 +10,7 @@ import java.lang.Math;
 
 public class HelpFunctions {
 
+    FilePrinter fp = new FilePrinter();
 
     public PoseSteering[] calculatePath(ReedsSheppCarPlanner mp, Pose from, Pose to){
         mp.setStart(from);
