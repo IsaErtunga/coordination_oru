@@ -197,11 +197,17 @@ public class StorageAgent extends CommunicationAid{
                     this.offers.add(m);
                 }
 
-                else if (m.type == "accept"){} //TODO does nothing in our Scenario atm
+                else if (m.type == "accept"){
+                    boolean eventAdded;
+                    synchronized(this.timeSchedule){ eventAdded = this.timeSchedule.setEventActive(taskID); }
+                } //TODO does nothing in our Scenario atm
 
                 else if (m.type == "decline"){
-                    this.timeSchedule.removeEvent(taskID);
-                } //TODO does nothing in our Scenario atm
+                    synchronized(this.timeSchedule){
+                        boolean successfulRemove = this.timeSchedule.removeEvent(taskID);
+                        this.print("got decline taskID-->"+taskID+"\tremoved-->"+successfulRemove);
+                    }
+                }
 
                 else if (m.type == "cnp-service"){
                     this.handleService(m);
@@ -229,7 +235,7 @@ public class StorageAgent extends CommunicationAid{
         
         if (informVal.equals(new String("done"))) {
             double oreChange = Double.parseDouble(this.parseMessage(m, "", true)[2]);
-            this.timeSchedule.removeEvent(taskID);
+            synchronized(this.timeSchedule){ this.timeSchedule.removeEvent(taskID); }
 
             if (oreChange > 0) this.addOre(oreChange);
                 
@@ -239,21 +245,22 @@ public class StorageAgent extends CommunicationAid{
             this.timeSchedule.printSchedule(this.COLOR);
         }
 
-        else if (informVal.equals(new String("status"))) { //TODO change so schedule gets updated: newEndTime = Double.parseDouble(messageParts[2])  
+        else if (informVal.equals(new String("status"))) {
             double newEndTime = Double.parseDouble(this.parseMessage(m, "", true)[2]);
-            if ( this.timeSchedule.isNewEndTimePossible(taskID, newEndTime) ){
-                this.timeSchedule.setNewEndTime(taskID, newEndTime);
-            }
-            else{
-                this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
-                this.timeSchedule.abortEvent(taskID);
-            }
-        }                   
 
-        else if (informVal.equals(new String("abort"))) { //TODO remove task from schedule 
-            this.timeSchedule.abortEvent(taskID);
-            this.print("---SCHEDULE---");
-            this.timeSchedule.printSchedule(this.COLOR);
+            synchronized(this.timeSchedule){
+                if ( this.timeSchedule.isNewEndTimePossible(taskID, newEndTime) ){
+                    this.timeSchedule.setNewEndTime(taskID, newEndTime);
+                }
+                else{
+                    this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
+                    this.timeSchedule.abortEvent(taskID);
+                }
+            }
+        }                  
+
+        else if (informVal.equals(new String("abort"))) {
+            synchronized(this.timeSchedule){ this.timeSchedule.abortEvent(taskID); }
         } 
     }
 
@@ -358,23 +365,24 @@ public class StorageAgent extends CommunicationAid{
     public boolean handleService(Message m) { 
         this.print("handleService - start");
         
-        double availabeOre = this.timeSchedule.getLastOreState();
+        double availabeOre;
+        synchronized(this.timeSchedule){
+            availabeOre = this.timeSchedule.getLastOreState();
+        }
         
         if (availabeOre <= 0.01) return false;   //if we dont have ore dont act 
 
-        Task TTATask = this.createTaskFromServiceOffer(m, availabeOre, this.startPoseRight);
+        Task TTATask = this.createTaskFromServiceOffer(m, availabeOre, this.startPose);
 
-        // Return abort?
-        if ( !this.timeSchedule.isTaskPossible(TTATask) ) return false;    // task doesnt fit in schedule
+        boolean taskPossible;
+        synchronized(this.timeSchedule){ taskPossible = this.timeSchedule.isTaskPossible(TTATask); }
+        if ( !taskPossible ) return false;    // task doesnt fit in schedule
         
         int offerVal = this.calculateOffer(TTATask);
         
         if (offerVal <= 0.01) return false;
 
-        if (! this.timeSchedule.addEvent(TTATask) ){
-            this.print("not added!");
-            return false;
-        }
+        synchronized(this.timeSchedule){ this.timeSchedule.addEvent(TTATask); }
    
         Message response = this.createOfferMsgFromTask(TTATask, offerVal, availabeOre);
     
@@ -393,16 +401,17 @@ public class StorageAgent extends CommunicationAid{
      */
     protected Task createTaskFromServiceOffer(Message m, double ore, Pose startPos){
         String[] mParts = this.parseMessage(m, "", true);
-
+        this.print(mParts[2]);
         Pose TTAPos = this.posefyString(mParts[2]);
-        PoseSteering[] path = this.calculatePath(TTAPos, startPos);
+        PoseSteering[] path = this.calculatePath(this.mp, TTAPos, startPos);
         double pathDist = this.calculatePathDist(path);
         double pathTime = this.calculateDistTime(pathDist);
 
-        double startTime = this.getNextTime();
-        double endTime = startTime + pathTime;
+        double taskStartTime;
+        synchronized(this.timeSchedule){ taskStartTime = this.timeSchedule.getNextStartTime(); }
+        double endTime = taskStartTime + pathTime;
 
-        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, startTime, endTime, pathDist, TTAPos, startPos);
+        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathDist, TTAPos, startPos);
     }
 
    /**
@@ -415,14 +424,11 @@ public class StorageAgent extends CommunicationAid{
         if (t.pathDist > 0.5) {
             double oreLevel = this.timeSchedule.getLastOreState();
             double oreLevelPercentage = oreLevel/this.capacity;
-            this.print("ORELEVEL%%%%%%%%%%%%%%%%%%" + oreLevelPercentage);
             if (oreLevelPercentage > 0.8) {
-                this.print("HIGH ORE LEVEL");
                 double tooMuchOreBonus = 1000 * oreLevelPercentage;
                 offer = (int)tooMuchOreBonus + this.calcCDF(t.pathDist);
             }
             else if (oreLevelPercentage < 0.05) {
-                this.print("LOW ORE LEVEL");
                 offer = 0;
             }
             else {
@@ -433,7 +439,7 @@ public class StorageAgent extends CommunicationAid{
         else {
             offer = 0;
         }
-        this.print("------------OFFER---------->: " + offer);
+        this.timeSchedule.printSchedule(this.COLOR);
         return offer;
     }   
 
@@ -453,21 +459,6 @@ public class StorageAgent extends CommunicationAid{
                       endPoseStr +s+ t.startTime +s+ t.endTime +s+ ore;
 
         return new Message(this.robotID, t.partner, "offer", body);
-    }
-
-
-    /**
-     * Calculates path ...
-     * @param from
-     * @param to
-     * @return
-     */
-    public PoseSteering[] calculatePath(Pose from, Pose to){
-        this.mp.setGoals(from);
-        this.mp.setStart(to);
-        if (!this.mp.plan()) throw new Error ("No path between " + from + " and " + to);
-
-        return this.mp.getPath();
     }
 
     /**simlpe print func with color and robotID included

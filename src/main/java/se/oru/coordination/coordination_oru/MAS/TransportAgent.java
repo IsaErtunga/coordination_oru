@@ -21,7 +21,6 @@ public class TransportAgent extends CommunicationAid{
     protected double TIME_WAITING_FOR_OFFERS = 3.0;
     protected String COLOR = "\033[0;32m";
 
-
     protected TrajectoryEnvelopeCoordinatorSimulation tec;
     protected ReedsSheppCarPlanner mp;
 
@@ -355,7 +354,7 @@ public class TransportAgent extends CommunicationAid{
             boolean taskPossible;
             synchronized(this.timeSchedule){ taskPossible = this.timeSchedule.isTaskPossible(taskID, taskStartTime, endTime); }
 
-            if( taskPossible) {
+            if (taskPossible) {
                 String[] mParts = this.parseMessage( m, "", true); // sort out offer not part of current auction(taskID)
 
                 if ( Integer.parseInt(mParts[0]) == taskID ){

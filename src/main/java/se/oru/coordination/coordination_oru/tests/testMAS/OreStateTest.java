@@ -171,7 +171,7 @@ public class OreStateTest {
 	final int[] numDraw = {1101, 1102, 1103, 1104, 1105, 2101, 2102, 2103, 2104, 2105};
 	Pose[] drawPoses = { DA1posLeft, DA2posLeft, DA3posLeft, DA4posLeft, DA5posLeft,
 						 DA1posRight, DA2posRight, DA3posRight, DA4posRight, DA5posRight };
-	final int[] iter3 = {0, 1, 5, 6};
+	final int[] iter3 = {};
 
 	ReedsSheppCarPlanner mp = new ReedsSheppCarPlanner();
 	mp.setFootprint(footprint1, footprint2, footprint3, footprint4);
@@ -195,7 +195,7 @@ public class OreStateTest {
 
 												/*		TRANSPORT AGENT	*/
 	final int[] numTransport = {1201, 1202, 1203, 2201, 2202, 2203};
-	final int[] iter = {0, 3};
+	final int[] iter = {};
 	Pose[] transportPoses = { TA1posLeft, TA2posLeft, TA3posLeft, TA1posRight, TA2posRight, TA3posRight };    
 	for (final int i : iter) {
 
@@ -270,12 +270,29 @@ public class OreStateTest {
 		};
 		storageThreadRight.start();
 
+		Thread storageThreadTTA = new Thread() {
+			@Override
+			public void run() {
+				this.setPriority(Thread.MAX_PRIORITY);
+				
+				ReedsSheppCarPlanner rsp = new ReedsSheppCarPlanner();
+				rsp.setFootprint(footprint1, footprint2, footprint3, footprint4);
+				rsp.setTurningRadius(4.0); 	
+				rsp.setMap(yamlFile);
+
+				StorageAgent SA = new StorageAgent(TTANumStorages[i], router, SAOreCapacity, SAStartOre, TTAStoragePoses[i], startTime, rsp, oreState);
+				SA.start();
+			
+			}
+		};
+		storageThreadTTA.start();
+
 		try { Thread.sleep(3000); }
 		catch (InterruptedException e) { e.printStackTrace(); }
 	}
 
-	final int[] numTransportTruck = {15001, 15002}; 
-	final int[] iter4 = {};
+	final int[] numTransportTruck = {9401, 9402}; 
+	final int[] iter4 = {0};
 	Pose[] transportTruckPoses = {TTA1pos, TTA2pos};    
 	
 	for (final int i : iter4) {

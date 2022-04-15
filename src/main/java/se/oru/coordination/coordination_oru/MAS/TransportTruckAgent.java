@@ -18,7 +18,6 @@ public class TransportTruckAgent extends CommunicationAid{
     //Control parameters
     protected double TIME_WAITING_FOR_OFFERS = 3.0;
 
-
     protected TrajectoryEnvelopeCoordinatorSimulation tec;
     protected ReedsSheppCarPlanner mp;
 
@@ -31,7 +30,7 @@ public class TransportTruckAgent extends CommunicationAid{
     // Begins at 4. Will iterate through SW, NW, NE, SE
     protected int cornerState = 4;
 
-    protected TimeSchedule timeSchedule;
+    protected TimeScheduleNew timeSchedule;
     protected long startTime;
 
     public ArrayList<Message> missionList = new ArrayList<Message>();
@@ -54,7 +53,7 @@ public class TransportTruckAgent extends CommunicationAid{
         this.startPose = startPos;
         this.startTime = startTime;
 
-        this.timeSchedule = new TimeSchedule(startPos, 0.0);
+        this.timeSchedule = new TimeScheduleNew(startPos, this.capacity, 0.0);
 
         // enter network and broadcast our id to others.
         router.enterNetwork(this);
@@ -162,9 +161,12 @@ public class TransportTruckAgent extends CommunicationAid{
      */
     protected void executeTasks () {
         while (true) {
+            int size;
+            synchronized(this.timeSchedule){size = this.timeSchedule.getSize(); }
             // Execute task while its schedule is not empty
-            if (this.timeSchedule.getSize() > 0) {
-                Task task = this.timeSchedule.pop();
+            if (size > 0) {
+                Task task = null;
+                synchronized(this.timeSchedule){ task = this.timeSchedule.getNextEvent(); }
                 if (task == null) {
                     continue;
                 }
@@ -174,10 +176,10 @@ public class TransportTruckAgent extends CommunicationAid{
                 // if robot managed to complete task 
                 //String oreChange = task.partner<10000 ? Integer.toString(this.capacity) : Integer.toString(-this.capacity);
                 while (!isTaskDone(task)) {
-                    this.sleep(500);
+                    this.sleep(100);
                 }
                 if (task.partner != -1){
-                    Message doneMessage = new Message(this.robotID, task.partner, "inform", task.taskID + this.separator + "done" + "," + task.ore);
+                    Message doneMessage = new Message(this.robotID, task.partner, "inform", task.taskID + this.separator + "done" + this.separator + task.ore);
                     this.sendMessage(doneMessage, false);
                 }
 
@@ -190,13 +192,14 @@ public class TransportTruckAgent extends CommunicationAid{
     protected void initialState() {
         double oreLevelThreshold = 1.0;
         while (true) {
-            System.out.println("ORELEVLE: : : " + this.timeSchedule.checkEndStateOreLvl());
-            if ( false ){} //TODO check if we have an inconsistent schedule ore-wise
-
+            double lastOreState;
+            synchronized(this.timeSchedule){
+                lastOreState = this.timeSchedule.getLastOreState();
+            }
             
-            else if ( this.timeSchedule.checkEndStateOreLvl() <= oreLevelThreshold ){ // book task to get ore
-
-                Message bestOffer = this.offerService(this.getNextTime()); // hold auction with DA's
+            if (lastOreState <= oreLevelThreshold) { 
+                // book task to get ore
+                Message bestOffer = this.offerService(this.getNextTime());
 
                 if (bestOffer.isNull){ 
                     this.sleep(200);
@@ -204,19 +207,28 @@ public class TransportTruckAgent extends CommunicationAid{
                 }
     
                 Task task = this.createTaskFromOfferMessage(bestOffer);
-    
-                if ( this.timeSchedule.add(task) == false ){ // if false then task no longer possible, send abort msg to task partner
+
+                boolean taskAdded;
+                synchronized(this.timeSchedule){ taskAdded = this.timeSchedule.addEvent(task); }
+
+                if ( taskAdded == false ){ // if false then task no longer possible, send abort msg to task partner
                     this.print("TASK ABORTED");
+                    this.sendMessage(new Message(this.robotID, task.partner, "inform", Integer.toString(task.taskID)+this.separator+"abort"));
                 }
-                // this.timeSchedule.printSchedule();
+    
             }
 
             else {
                 // Deliver ore 
-                if (this.timeSchedule.add(createDeliverTask()) == false) { // if false then task no longer possible, send abort msg to task partner
+                Task deliverTask = createDeliverTask();
+                boolean taskAdded;
+                synchronized(this.timeSchedule){ taskAdded = this.timeSchedule.addEvent(deliverTask); }
+
+                if ( taskAdded == false ){ // if false then task no longer possible, send abort msg to task partner
                     this.print("TASK ABORTED");
+                    this.sendMessage(new Message(this.robotID, deliverTask.partner, "inform", deliverTask.taskID+this.separator+"abort"));
                 }
-                this.timeSchedule.printSchedule("");
+                // this.timeSchedule.printSchedule("");
             }
 
             this.sleep(500);
@@ -236,7 +248,11 @@ public class TransportTruckAgent extends CommunicationAid{
         if (receivers.size() <= 0) return new Message();
         
         this.offers.clear();
-        String startPos = this.stringifyPose(this.timeSchedule.getLastToPose());
+        
+        Pose nextPose;
+        synchronized(this.timeSchedule){ nextPose = this.timeSchedule.getNextPose(); }
+
+        String startPos = this.stringifyPose(nextPose);
         int taskID = this.sendCNPmessage(taskStartTime, startPos, receivers);
     
 
@@ -302,8 +318,11 @@ public class TransportTruckAgent extends CommunicationAid{
             // SCHEDULE: Extract startTime & endTime and see if it fits into schedule
             double taskStartTime = Double.parseDouble(parseMessage(m, "startTime")[0]);
             double endTime = Double.parseDouble(parseMessage(m, "endTime")[0]);
+
+            boolean taskPossible;
+            synchronized(this.timeSchedule){ taskPossible = this.timeSchedule.isTaskPossible(taskID, taskStartTime, endTime); }
   
-            if( this.timeSchedule.taskPossible(taskStartTime, endTime) ) {
+            if(taskPossible) {
                 String[] mParts = this.parseMessage( m, "", true); // sort out offer not part of current auction(taskID)
 
                 if ( Integer.parseInt(mParts[0]) == taskID ){
@@ -365,7 +384,10 @@ public class TransportTruckAgent extends CommunicationAid{
      * @return Task deliverTask
      */
     protected Task createDeliverTask() {
-        Pose robotPos = this.timeSchedule.getLastToPose();
+        Pose robotPos;
+        synchronized(this.timeSchedule) {
+            robotPos = this.timeSchedule.getNextPose();
+        }
         Pose deliveryPos = new Pose(245.0, 105.0, Math.PI);	
         double distance = this.calcDistance(robotPos, deliveryPos);
         double taskStartTime = this.getNextTime();
@@ -449,13 +471,21 @@ public class TransportTruckAgent extends CommunicationAid{
                 }
 
                 else if (m.type == "accept"){
-                    this.timeSchedule.setTaskActive(taskID);
+                    // Add or abort (send message)
+                    boolean eventAdded;
+                    synchronized(this.timeSchedule){ eventAdded = this.timeSchedule.setEventActive(taskID); }
+
+                    if ( eventAdded == false ) {
+                        this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
+                    }
                 }
 
                 else if (m.type == "decline"){
                     //remove task from activeTasks
-                    //SCHEDULE: remove reserved task from schedule
-                    this.timeSchedule.remove(taskID);
+                    synchronized(this.timeSchedule){
+                        boolean successfulRemove = this.timeSchedule.removeEvent(taskID);
+                        this.print("got decline taskID-->"+taskID+"\tremoved-->"+successfulRemove);
+                    }
                 }
                 
                 else if (m.type == "offer"){
@@ -469,27 +499,26 @@ public class TransportTruckAgent extends CommunicationAid{
                     if (informVal.equals(new String("done"))) {
                         // current solution does not receive 'done'-msg
                         //TODO add code if implementing it that way
-                        this.timeSchedule.remove(taskID);
+                        synchronized(this.timeSchedule){ this.timeSchedule.removeEvent(taskID); }
+                        
 
                     }
-                    // else if (informVal.equals(new String("status"))) {
-                    //     /* SCHEDULE: 
-                    //         * if TA notice it will not be done in time, we get inform->status msg
-                    //         * update schedule with new time and check if problem
-                    //         * if 2 mission have big overlap then send ABORT msg to later mission.
-                    //         * else all is good.
-                    //     */ 
-                    //     double newEndTime = Double.parseDouble(this.parseMessage(m, "ore")[0]); //TODO ore is 3rd element NOT ore in this case
-                    //     if (newEndTime > this.timeSchedule.get(taskID).endTime) {
-                    //         this.timeSchedule.update(taskID, newEndTime);
-                    //     }
-                    // }
+                    else if (informVal.equals(new String("status"))) {
+                        double newEndTime = Double.parseDouble(this.parseMessage(m, "", true)[2]);
+
+                        synchronized(this.timeSchedule){
+                            if ( this.timeSchedule.isNewEndTimePossible(taskID, newEndTime) ){
+                                this.timeSchedule.setNewEndTime(taskID, newEndTime);
+                            }
+                            else{
+                                this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
+                                this.timeSchedule.abortEvent(taskID);
+                            }
+                        }
+                    }
 
                     else if (informVal.equals(new String("abort"))) {
-                        /* SCHEDULE:
-                            * remove task from schedule
-                        */
-                        this.timeSchedule.remove(taskID);
+                        synchronized(this.timeSchedule){ this.timeSchedule.abortEvent(taskID); }
                     } 
                 }
                 
