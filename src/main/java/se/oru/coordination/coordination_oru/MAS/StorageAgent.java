@@ -137,18 +137,15 @@ public class StorageAgent extends CommunicationAid{
 
             else if (oreLevel < 0.8 * capacity) { // plan future tasks
 
-                if ( this.timeSchedule.getSize() > this.taskCap ){
-                    this.sleep(1000);
-                    continue;
-                } 
+                if ( this.timeSchedule.getSize() > this.taskCap ) continue;
 
                 Message bestOffer = this.offerService(this.getNextTime());
 
                 if (!bestOffer.isNull) {
                     Task task = this.createTaskFromMessage(bestOffer);
                     this.timeSchedule.addEvent(task);
-                    this.print("in status, task added. ---Schedule---");
-                    this.timeSchedule.printSchedule(this.COLOR);
+                    // this.print("in status, task added. ---Schedule---");
+                    // this.timeSchedule.printSchedule(this.COLOR);
                 }
                 
             }
@@ -215,14 +212,14 @@ public class StorageAgent extends CommunicationAid{
                 }
 
                 else if (m.type == "accept") {
-                    this.print("");
-                    this.timeSchedule.printSchedule(this.COLOR);
+                    // this.print("");
+                    // this.timeSchedule.printSchedule(this.COLOR);
                     boolean eventAdded;
                     synchronized(this.timeSchedule){ eventAdded = this.timeSchedule.setEventActive(taskID, true); }
                     this.print("accept-msg, taskID-->"+taskID+"\twith robot-->"+m.sender+"\ttask added-->"+eventAdded);
                     if ( eventAdded == false ){
                         this.print("accept received but not successfully added. sending abort msg");
-                        // this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
+                        //this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
                     }
                 } 
 
@@ -260,12 +257,12 @@ public class StorageAgent extends CommunicationAid{
         if (informVal.equals(new String("done"))) {
             double oreChange = Double.parseDouble(this.parseMessage(m, "", true)[2]);  
 
-            int docId = this.robotID % 1000;
-            try {
-                this.fp.write(this.getTime(), this.timeSchedule.getOreStateAtTime(this.getTime()), docId);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            // int docId = this.robotID % 1000;
+            // try {
+            //     this.fp.write(this.getTime(), this.timeSchedule.getOreStateAtTime(this.getTime()), docId);
+            // } catch (IOException e) {
+            //     e.printStackTrace();
+            // }
 
             //this.print("ORESTATE: " + this.timeSchedule.getOreStateAtTime(this.getTime()) + " AT TIME: "+ this.getTime());
             synchronized(this.timeSchedule){ this.timeSchedule.removeEvent(taskID); }
@@ -318,7 +315,8 @@ public class StorageAgent extends CommunicationAid{
 
         Message bestOffer = this.handleOffers(taskID); //extract best offer
         if ( bestOffer.isNull == true ){
-
+            this.print("no good offer received, ---schedule--- time-->"+this.getTime());
+            if (this.robotID < 2000) this.timeSchedule.printSchedule(this.COLOR);
             if(debug) this.print("no offers received");
 
             Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));
@@ -495,7 +493,7 @@ public class StorageAgent extends CommunicationAid{
         else {
             offer = 0;
         }
-        this.timeSchedule.printSchedule(this.COLOR);
+        // this.timeSchedule.printSchedule(this.COLOR);
         return offer;
         // if (t.pathDist <= 2.0) return 0;
 

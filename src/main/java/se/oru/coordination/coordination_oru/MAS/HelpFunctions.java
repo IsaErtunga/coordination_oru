@@ -43,6 +43,14 @@ public class HelpFunctions {
         return this.getPath(null, mp, from, toPoses);
     }
 
+    public PoseSteering[] calculatePath(ReedsSheppCarPlanner mp, Pose from, Pose to){
+        mp.setStart(from);
+        mp.setGoals(to);
+        if (!mp.plan()) throw new Error ("No path between " + from + " and " + to);
+
+        return mp.getPath();
+    }
+
 
     public double calculatePathDist(PoseSteering[] path) {
         double accumulatedDist = 0.0;

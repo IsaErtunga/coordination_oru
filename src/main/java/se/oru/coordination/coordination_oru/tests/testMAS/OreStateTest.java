@@ -121,17 +121,17 @@ public class OreStateTest {
 
     final long startTime = System.currentTimeMillis();
 
-	Pose DA1posLeft = new Pose(36.0, 75.0, Math.PI);
-	Pose DA2posLeft = new Pose(36.0, 95.0, Math.PI);
+	Pose DA1posLeft = new Pose(36.0, 35.0, Math.PI);
+	Pose DA2posLeft = new Pose(36.0, 75.0, Math.PI);
 	Pose DA3posLeft = new Pose(36.0, 115.0, Math.PI);
-	Pose DA4posLeft = new Pose(36.0, 135.0, Math.PI);
-	Pose DA5posLeft = new Pose(36.0, 155.0, Math.PI);
+	Pose DA4posLeft = new Pose(36.0, 155.0, Math.PI);
+	Pose DA5posLeft = new Pose(36.0, 175.0, Math.PI);
 
-	Pose DA1posRight = new Pose(310.0, 55.0, 0.0);	
-	Pose DA2posRight = new Pose(310.0, 75.0, 0.0);
-	Pose DA3posRight = new Pose(310.0, 95.0, 0.0);
-	Pose DA4posRight = new Pose(310.0, 115.0, 0.0);
-	Pose DA5posRight = new Pose(310.0, 135.0, 0.0);
+	Pose DA1posRight = new Pose(305.0, 35.0, 0.0);	
+	Pose DA2posRight = new Pose(305.0, 75.0, 0.0);
+	Pose DA3posRight = new Pose(305.0, 115.0, 0.0);
+	Pose DA4posRight = new Pose(305.0, 155.0, 0.0);
+	Pose DA5posRight = new Pose(305.0, 175.0, 0.0);
 
 	Pose TA1posLeft = new Pose(50.0,20.0, Math.PI/2);
 	Pose TA2posLeft = new Pose(50.0,190.0, 3*Math.PI/2);	
@@ -154,7 +154,7 @@ public class OreStateTest {
 	Pose TTA1pos = new Pose(140.0, 25.0, Math.PI);
 	Pose TTA2pos = new Pose(170.0, 25.0, Math.PI);	
 
-	double SAOreCapacity = 200.0;
+	double SAOreCapacity = 400.0;
 	double SAStartOre = SAOreCapacity/4;
 
     												/*		ROUTER THREAD	*/
@@ -188,7 +188,7 @@ public class OreStateTest {
 			@Override
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);
-				DrawAgent DA = new DrawAgent(numDraw[i], router, 60.0, drawPoses[i], mp, startTime, numDraw[i] < 2000 );
+				DrawAgent DA = new DrawAgent(numDraw[i], router, 55.0, drawPoses[i], mp, startTime, numDraw[i] < 2000 );
 				DA.listener();
 				
 			}
@@ -224,8 +224,8 @@ public class OreStateTest {
                 
 		};
         t.start();
-		try { Thread.sleep(100); }
-		catch (InterruptedException e) { e.printStackTrace(); }
+		// try { Thread.sleep(100); }
+		// catch (InterruptedException e) { e.printStackTrace(); }
     }
 
 													/*		STORAGE AGENT	*/
@@ -241,6 +241,7 @@ public class OreStateTest {
 
 	for (final int i : iter2) {
 		OreState oreState = new OreState(SAOreCapacity, SAStartOre);
+		
 		Thread storageThreadLeft = new Thread() {
 			@Override
 			public void run() {

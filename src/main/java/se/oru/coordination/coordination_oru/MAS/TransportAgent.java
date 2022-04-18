@@ -116,7 +116,7 @@ public class TransportAgent extends CommunicationAid{
         // add robot to simulation prep...
         double MAX_ACCEL = 10.0;
 	    double MAX_VEL = 20.0;
-
+        synchronized(this.tec){
         this.tec.setForwardModel(this.robotID, new ConstantAccelerationForwardModel(
             MAX_ACCEL, 
             MAX_VEL, 
@@ -127,9 +127,10 @@ public class TransportAgent extends CommunicationAid{
         this.tec.setFootprint(this.robotID, this.rShape);
 
         this.tec.placeRobot(this.robotID, this.startPose);
-
+        
         // Motion planner
         tec.setMotionPlanner(this.robotID, this.mp);
+        }
     }
 
 
@@ -140,7 +141,7 @@ public class TransportAgent extends CommunicationAid{
      */
     protected Boolean isTaskDone (Task task) {
         // Distance from robots actual position to task goal pose
-        return this.tec.getRobotReport(this.robotID).getPose().distanceTo(task.toPose) < 0.5;
+        synchronized(this.tec){ return this.tec.getRobotReport(this.robotID).getPose().distanceTo(task.toPose) < 0.5; }
     }
 
     /**
@@ -168,13 +169,14 @@ public class TransportAgent extends CommunicationAid{
                 this.timeSchedule.changeOreStateEndTime(task.taskID, nextStartTime);
                 newEndTimes = this.timeSchedule.compressSchedule(nextStartTime);
             }
-            this.print("starting mission with -->" +task.partner + "\tat time-->"+this.getTime()+"\ttaskStartTime-->"+task.startTime);
+            this.print("starting mission taskID-->"+task.taskID+" with -->" +task.partner + "\tat time-->"+this.getTime()+"\ttaskStartTime-->"+task.startTime);
 
             task.startTime = now;
             task.endTime = nextStartTime;
             newEndTimes.add(0, task);
             // start next task
-            this.tec.addMissions(this.createMission(task, prevTaskFromPose));
+
+            synchronized(this.tec){ this.tec.addMissions(this.createMission(task, prevTaskFromPose)); }
 
             // send inform msgs informing of new times.
             if ( now - task.startTime > 0.0 ){ //if we start later = send from last to first
@@ -236,8 +238,8 @@ public class TransportAgent extends CommunicationAid{
                     this.sendMessage(new Message(this.robotID, task.partner, "inform", Integer.toString(task.taskID)+this.separator+"abort"));
                 }
 
-                this.print("in initialState: --- schedule ---");
-                synchronized(this.timeSchedule){ this.timeSchedule.printSchedule(this.COLOR); }
+                // this.print("in initialState: --- schedule ---");
+                // synchronized(this.timeSchedule){ this.timeSchedule.printSchedule(this.COLOR); }
             }
 
             else {
@@ -456,7 +458,7 @@ public class TransportAgent extends CommunicationAid{
      * @return
      */
     public Mission createMission(Task task, Pose prevToPose) {
-        return new Mission(this.robotID, this.getPath( this.mp, prevToPose, task.toPose ));
+        return new Mission(this.robotID, this.calculatePath( this.mp, prevToPose, task.toPose ));
     }
 
 
