@@ -209,27 +209,25 @@ public class StorageAgent extends CommunicationAid{
                 }
 
                 else if (m.type == "offer"){
+                    this.print("received offer from-->"+m.sender+"\ttaskID-->"+taskID+"\tofferVal-->"+this.parseMessage(m, "offerVal")[0]);
                     this.offers.add(m);
                 }
 
                 else if (m.type == "accept") {
 
                     boolean eventAdded;
-                    synchronized(this.timeSchedule){ eventAdded = this.timeSchedule.setEventActive(taskID, true); }
-                    if (eventAdded) { 
-                        this.print("task added to schedule, taskID-->"+taskID);
+                    synchronized(this.timeSchedule){ eventAdded = this.timeSchedule.setEventActive(taskID); }
+                    this.print("accept-msg, taskID-->"+taskID+"\twith robot-->"+m.sender+"\ttask added-->"+eventAdded);
+                    if ( eventAdded == false ){
+                        this.print("accept received but not successfully added. sending abort msg");
+                        this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
                     }
-                    // else{ //TODO task not added, need to send abort to taskProvider.
-                    //     this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
-                    // } 
-                    this.print("RobotID: " + this.robotID);
-                    this.timeSchedule.printSchedule(this.COLOR);
-                } //TODO does nothing in our Scenario atm
+                } 
 
                 else if (m.type == "decline"){
                     synchronized(this.timeSchedule){
                         boolean successfulRemove = this.timeSchedule.removeEvent(taskID);
-                        this.print("got decline taskID-->"+taskID+"\tremoved-->"+successfulRemove);
+                        this.print("got decline from-->"+m.sender+"\ttaskID-->"+taskID+"\tremoved-->"+successfulRemove);
                     }
                 }
 
@@ -258,25 +256,23 @@ public class StorageAgent extends CommunicationAid{
         String informVal = this.parseMessage(m, "informVal")[0];
         
         if (informVal.equals(new String("done"))) {
-            double oreChange = Double.parseDouble(this.parseMessage(m, "", true)[2]);
-            
-            // Ore state + faktiska amount
+            double oreChange = Double.parseDouble(this.parseMessage(m, "", true)[2]);  
+
             try {
                 this.fp.write(this.getTime(), this.timeSchedule.getOreStateAtTime(this.getTime()));
             } catch (IOException e) {
                 e.printStackTrace();
             }
 
-            this.print("ORESTATE: " + this.timeSchedule.getOreStateAtTime(this.getTime()) + " AT TIME: "+ this.getTime());
+            //this.print("ORESTATE: " + this.timeSchedule.getOreStateAtTime(this.getTime()) + " AT TIME: "+ this.getTime());
             synchronized(this.timeSchedule){ this.timeSchedule.removeEvent(taskID); }
 
             if (oreChange > 0) this.addOre(oreChange);
             else this.dumpOre(oreChange);
 
         }
-
         else if (informVal.equals(new String("status"))) { 
-            this.print("---SCHEDULE---");
+            this.print("in status: ---SCHEDULE---");
             this.timeSchedule.printSchedule(this.COLOR);
 
             double newEndTime = Double.parseDouble(this.parseMessage(m, "", true)[2]);
@@ -290,8 +286,8 @@ public class StorageAgent extends CommunicationAid{
         }                   
 
         else if (informVal.equals(new String("abort"))) { //TODO remove task from schedule 
-            this.print("---SCHEDULE---");
-            this.timeSchedule.printSchedule(this.COLOR);
+            // this.print("---SCHEDULE---");
+            // this.timeSchedule.printSchedule(this.COLOR);
 
             this.timeSchedule.abortEvent(taskID);
             this.print("got ABORT MSG! taskID-->"+taskID+"\twith-->"+m.sender );
@@ -304,38 +300,37 @@ public class StorageAgent extends CommunicationAid{
      * @param robotID id of robot{@link TransportAgent} calling this
      */
     public Message offerService(double startTime){
+        boolean debug = false;
         ArrayList<Integer> receivers = this.getReceivers(this.robotID, this.robotsInNetwork, "TRANSPORT");
 
         if ( receivers.size() <= 0 ) return new Message();
-        
         this.offers.clear();
         int taskID = this.sendCNPmessage(startTime, this.stringifyPose(this.startPose), receivers);
-        this.print("starting to wait for offers at time-->"+ String.format("%.2f",this.getTime())+"\tnrReceivers-->"+receivers.size() );
+
+        if(debug) this.print("starting to wait for offers at time-->"+ String.format("%.2f",this.getTime())+"\tnrReceivers-->"+receivers.size() );
+
         double time = this.waitForAllOffersToCome( receivers.size(), taskID );  //locking function. wait for receivers
-        this.print("done waiting at time-->"+ String.format("%.2f",this.getTime()) +"\tamountInOffers-->"+this.offers.size());
+
+        if(debug) this.print("done waiting at time-->"+ String.format("%.2f",this.getTime()) +"\tamountInOffers-->"+this.offers.size());
 
         Message bestOffer = this.handleOffers(taskID); //extract best offer
-
         if ( bestOffer.isNull == true ){
-            this.print("no offers received");
+
+            if(debug) this.print("no offers received");
+
             Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));
             this.sendMessage(declineMessage);
             return bestOffer;
         }
 
-        // Send response: Mission to best offer sender, and deny all the other ones.
         Message acceptMessage = new Message(robotID, bestOffer.sender, "accept", Integer.toString(taskID) );
         this.sendMessage(acceptMessage);
 
         receivers.removeIf(i -> i==bestOffer.sender);
-
         if (receivers.size() > 0){
-            // Send decline message to all the others. 
             Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));
             this.sendMessage(declineMessage);
-
         }
-        
         return bestOffer;
     }
 
@@ -384,32 +379,40 @@ public class StorageAgent extends CommunicationAid{
      * @return the message that is the best offer
      */
     public Message handleOffers(int taskID) {
+        boolean debug = false;
         Message bestOffer = new Message();
         int bestOfferVal = 0;
         double bestEndTime = 0;
-
+        
         for (Message m : this.offers) {
 
             String[] mParts = this.parseMessage( m, "", true); 
-            this.print("m.taskID == taskID-->"+(Integer.parseInt(mParts[0]) == taskID) );
+
+            if(debug) this.print("m.taskID == taskID-->"+(Integer.parseInt(mParts[0]) == taskID) );
+
             if ( Integer.parseInt(mParts[0]) != taskID ) continue; // sort out offer not part of current auction(taskID)
-            // int taskID & int offerVal & startPos & endPos & startTime & endTime & ore
+
             int offerVal = Integer.parseInt(mParts[1]);
             double startTime = Double.parseDouble(mParts[4]);
             double endTime = Double.parseDouble(mParts[5]);
-            this.print("isTaskPossible("+taskID+", "+String.format("%.2f",startTime)+", "+String.format("%.2f",endTime)+"-->"+(this.timeSchedule.isTaskPossible(taskID, startTime, endTime)));
+
+            if(debug) this.print("isTaskPossible("+taskID+", "+String.format("%.2f",startTime)+", "+String.format("%.2f",endTime)+"-->"+(this.timeSchedule.isTaskPossible(taskID, startTime, endTime)));
+
             if( this.timeSchedule.isTaskPossible(taskID, startTime, endTime) ) {
-                this.print("\tofferVal("+offerVal+" > "+bestOfferVal+"-->"+(offerVal > bestOfferVal));
+
+                if(debug) this.print("\tofferVal("+offerVal+" > "+bestOfferVal+"-->"+(offerVal > bestOfferVal));
+
                 if (offerVal > bestOfferVal){
                     bestOfferVal = offerVal;
                     bestOffer = new Message(m);
                     bestEndTime = endTime;
                 }
                 else if ( offerVal == bestOfferVal && endTime < bestEndTime ){
-                    this.print("changed offer because better startTime, new EndTime-->"+endTime);
                     bestOfferVal = offerVal;
                     bestOffer = new Message(m);
                     bestEndTime = endTime;
+
+                    if(debug) this.print("changed offer because better startTime, new EndTime-->"+endTime);
                 }
             }
         }
@@ -452,7 +455,8 @@ public class StorageAgent extends CommunicationAid{
     protected Task createTaskFromServiceOffer(Message m, double ore){
         String[] mParts = this.parseMessage(m, "", true);
         Pose TTAPos = this.posefyString(mParts[2]);
-        PoseSteering[] path = this.calculatePath(this.mp, TTAPos, this.startPose);
+        // PoseSteering[] path = this.calculatePath(this.mp, TTAPos, this.startPose);
+        PoseSteering[] path = this.getPath(this.pStorage, this.mp, TTAPos, this.startPose);
         double pathDist = this.calculatePathDist(path);
         double pathTime = this.calculateDistTime(pathDist);
 

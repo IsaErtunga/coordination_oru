@@ -14,10 +14,11 @@ public class HelpFunctions {
     FilePrinter fp = new FilePrinter();
 
     public PoseSteering[] getPath(HashMap<String, PoseSteering[]> paths, ReedsSheppCarPlanner mp, Pose from, Pose[] to){
-        Pose finalToPose = to[to.length-1];
-        String pathID = String.format("%.2f",from.getX())+"," +String.format("%.2f",from.getY())
-                        + "->" +
-                        String.format("%.2f",finalToPose.getX())+"," +String.format("%.2f",finalToPose.getY());
+        String pathID = String.format("%.2f",from.getX())+"," +String.format("%.2f",from.getY());
+
+        for (Pose p : to){
+            pathID += "->"+String.format("%.2f",p.getX())+"," +String.format("%.2f",p.getY());
+        }
 
 
         PoseSteering[] path = null;

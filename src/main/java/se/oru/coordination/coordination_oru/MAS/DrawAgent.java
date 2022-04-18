@@ -99,19 +99,23 @@ public class DrawAgent extends CommunicationAid{
                     if ( !this.robotsInNetwork.contains(m.sender) ) this.robotsInNetwork.add(m.sender);
                 }
 
-                else if (m.type == "accept"){
-                    if ( this.timeSchedule.setEventActive(taskID) ){ 
-                        this.print("task added to schedule, taskID-->"+taskID);
-                        this.timeSchedule.printSchedule(this.COLOR);
-                    }
-                    else{ //TODO task not added, need to send abort to taskProvider.
+                else if (m.type == "accept") {
+
+                    boolean eventAdded;
+                    synchronized(this.timeSchedule){ eventAdded = this.timeSchedule.setEventActive(taskID); }
+                    this.print("accept-msg, taskID-->"+taskID+"\twith robot-->"+m.sender+"\ttask added-->"+eventAdded);
+                    if ( eventAdded == false ){
+                        this.print("accept received but not successfully added. sending abort msg");
                         this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
-                    } 
-                }
+                    }
+                } 
 
                 else if (m.type == "decline"){
-                    this.timeSchedule.removeEvent(taskID);
-                } //TODO remove task from reservedTasks in schedule
+                    synchronized(this.timeSchedule){
+                        boolean successfulRemove = this.timeSchedule.removeEvent(taskID);
+                        this.print("got decline from-->"+m.sender+"\ttaskID-->"+taskID+"\tremoved-->"+successfulRemove);
+                    }
+                }
 
                 else if (m.type == "cnp-service"){
                     this.handleService(m);
@@ -138,6 +142,7 @@ public class DrawAgent extends CommunicationAid{
         }
 
         else if (informVal.equals(new String("status"))) { //TODO change so schedule gets updated: newEndTime = Double.parseDouble(messageParts[2])
+            this.print("in status: ---SCHEDULE---");
             this.timeSchedule.printSchedule(this.COLOR);
 
             double newEndTime = Double.parseDouble(this.parseMessage(m, "", true)[2]);
@@ -151,7 +156,6 @@ public class DrawAgent extends CommunicationAid{
         }                     
 
         else if (informVal.equals(new String("abort"))) { //TODO remove task from schedule 
-            this.timeSchedule.printSchedule(this.COLOR);
             this.timeSchedule.abortEvent(taskID);
             this.print("got ABORT MSG! taskID-->"+taskID+"\twith-->"+m.sender );
         } 
@@ -260,7 +264,7 @@ public class DrawAgent extends CommunicationAid{
         // distance calc
         double dist = t.fromPose.distanceTo(t.toPose);
 
-        int distEval = this.calcCDF( dist );
+        int distEval = this.calcCDF( dist, 500 );
         // time bonus
         double CNPstartTime = Double.parseDouble(this.parseMessage(m, "startTime")[0]);
         double timeDiff = Math.abs(t.startTime - CNPstartTime);

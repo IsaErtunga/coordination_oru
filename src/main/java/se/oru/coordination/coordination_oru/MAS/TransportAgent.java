@@ -160,7 +160,6 @@ public class TransportAgent extends CommunicationAid{
                 task = this.timeSchedule.getNextEvent();
             }
             if (task == null) continue;
-            this.timeSchedule.printSchedule(this.COLOR);
 
             // update schedule to actual start of mission and send inform msg to all tasks affected.
             double now = this.getTime();
@@ -206,6 +205,8 @@ public class TransportAgent extends CommunicationAid{
     protected void initialState() {
         double oreLevelThreshold = 1.0;
         while (true) {
+            this.sleep(200);
+
             ArrayList<Task> abortTasks = new ArrayList<Task>();
             double lastOreState;
 
@@ -222,10 +223,8 @@ public class TransportAgent extends CommunicationAid{
             if ( lastOreState <= oreLevelThreshold ){ // book task to get ore
                 Message bestOffer = this.offerService(this.getNextTime()); // hold auction with DA's
 
-                if (bestOffer.isNull){ 
-                    this.sleep(200);
-                    continue;
-                }
+                if (bestOffer.isNull) continue;
+                
     
                 Task task = this.createTaskFromMessage(bestOffer);
 
@@ -233,19 +232,18 @@ public class TransportAgent extends CommunicationAid{
                 synchronized(this.timeSchedule){ taskAdded = this.timeSchedule.addEvent(task); }
 
                 if ( taskAdded == false ){ // if false then task no longer possible, send abort msg to task partner
-                    this.print("TASK ABORTED");
+                    this.print("in initialState: task NOT added with-->"+task.partner+"\t taskID-->"+task.taskID);
                     this.sendMessage(new Message(this.robotID, task.partner, "inform", Integer.toString(task.taskID)+this.separator+"abort"));
                 }
 
-                // this.print("--- schedule ---");
-                // this.timeSchedule.printSchedule(this.COLOR);
+                this.print("in initialState: --- schedule ---");
+                this.timeSchedule.printSchedule(this.COLOR);
             }
 
             else {
                 //this.print("WAITING FOR TASK BY STORAGE AGENT");
             }
 
-            this.sleep(200);
         }
 
     }
@@ -356,8 +354,6 @@ public class TransportAgent extends CommunicationAid{
      * @return true if we send offer = we expect resp.
      */
     public boolean handleService(Message m) { 
-        this.print("handeling cnp at time-->"+ String.format("%.2f",this.getTime()) );
-
         double availabeOre;
         int scheduleSize;
         synchronized(this.timeSchedule){
@@ -369,7 +365,6 @@ public class TransportAgent extends CommunicationAid{
         if (availabeOre <= 0.01) return false;   //if we dont have ore dont act 
 
         Pose pos = this.timeSchedule.getNextPose();
-
         Task SATask = this.createTaskFromServiceOffer(m, availabeOre, pos);
 
         boolean taskPossible;
@@ -381,10 +376,6 @@ public class TransportAgent extends CommunicationAid{
         if ( offerVal <= 0.01 ) return false;
 
         synchronized(this.timeSchedule){ this.timeSchedule.addEvent(SATask); }
-
-        // this.print("--- schedule ---");
-        // this.timeSchedule.printSchedule(this.COLOR);
-        this.print("sending cnp-msg at time-->"+ String.format("%.2f",this.getTime()) );
 
         this.sendMessage(this.createOfferMsgFromTask(SATask, offerVal, availabeOre));
 
@@ -401,14 +392,9 @@ public class TransportAgent extends CommunicationAid{
         String[] mParts = this.parseMessage(m, "", true);
 
         Pose SApos = this.posefyString(mParts[2]);
-        // PoseSteering[] path = this.getPath(this.pStorage, this.mp, this.robotID, m.sender, taskStartPos, SApos);
-        //PoseSteering[] path = this.calculatePath(this.mp, taskStartPos, SApos);
-        // double pathDist = this.calculatePathDist(path);
-        // double pathTime = this.calculateDistTime(pathDist);
         double pathDist = taskStartPos.distanceTo(SApos);
         double pathTime = this.calculateDistTime(pathDist) + 5.0;
 
-        //double startTime = Double.parseDouble(mParts[3]);
         double taskStartTime;
         synchronized(this.timeSchedule){ taskStartTime = this.timeSchedule.getNextStartTime(); }
         
@@ -530,8 +516,6 @@ public class TransportAgent extends CommunicationAid{
             }
 
             for (Message m : inbox_copy){
-                //TODO fix new msg type 'echo' to respond to 'hello-world'.
-                // this will help us remove this.activeTasks
                 int taskID = Integer.parseInt(this.parseMessage(m, "taskID")[0]);
                 
                 if (m.type == "hello-world"){ 
@@ -543,32 +527,31 @@ public class TransportAgent extends CommunicationAid{
                     if ( !this.robotsInNetwork.contains(m.sender) ) this.robotsInNetwork.add(m.sender);
                 }
 
-                else if (m.type == "accept"){
+                else if (m.type == "offer"){
+                    this.print("received offer from-->"+m.sender+"\ttaskID-->"+taskID+"\tofferVal-->"+this.parseMessage(m, "offerVal")[0]);
+                    this.offers.add(m);
+                }
+
+                else if (m.type == "accept") {
                     boolean eventAdded;
                     synchronized(this.timeSchedule){ eventAdded = this.timeSchedule.setEventActive(taskID); }
-
-                    if ( eventAdded == false ) {
+                    this.print("accept-msg, taskID-->"+taskID+"\twith robot-->"+m.sender+"\ttask added-->"+eventAdded);
+                    if ( eventAdded == false ){
+                        this.print("accept received but not successfully added. sending abort msg");
                         this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
-                        this.print("sending ABORT msg. taskID-->"+taskID+"\twith-->"+m.sender );
                     }
-                    this.print("---schedule---");
-                    this.timeSchedule.printSchedule(this.COLOR);
-                }
+
+                } 
 
                 else if (m.type == "decline"){
                     synchronized(this.timeSchedule){
                         boolean successfulRemove = this.timeSchedule.removeEvent(taskID);
-                        this.print("remove of task -->"+taskID+ "\tsuccess-->"+successfulRemove);
+                        this.print("got decline from-->"+m.sender+"\ttaskID-->"+taskID+"\tremoved-->"+successfulRemove);
                     }
-                    
                 }
 
                 else if (m.type == "cnp-service"){
                     this.handleService(m);
-                }
-
-                else if (m.type == "offer"){
-                    this.offers.add(m);
                 }
 
                 else if (m.type.equals(new String("inform"))) {

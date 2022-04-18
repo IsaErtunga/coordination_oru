@@ -176,25 +176,36 @@ public class TimeScheduleNew {
         int indexOfTask = this.schedule.indexOf(t);
         if ( indexOfTask < 0 ) return null;
 
-        if ( t.endTime > NewEndTime && indexOfTask > 0){ // if task is earlier than expected
+        boolean earlierStartTime = t.endTime > NewEndTime;
+        t.startTime = newStartTime;
+        t.endTime = NewEndTime;
+
+        if ( earlierStartTime && indexOfTask > 0){ // if task is earlier than expected
             Task taskBefore = this.schedule.get(indexOfTask-1);
-            if ( this.tasksOverlapping(newStartTime, NewEndTime, taskBefore.startTime, taskBefore.endTime) == true ){
-                this.abortEvent(taskID);
-                return t;
+            if ( this.tasksOverlapping(newStartTime, NewEndTime, taskBefore.startTime, taskBefore.endTime) == true ){ // if overlapp with task before
+                taskToAbort = taskBefore.startTime > t.startTime ? taskBefore : t;
             }
         }
         else if ( this.schedule.size()-1 > indexOfTask ){   // else task is later. if taskID has task after it, then check if overlapp.
             Task taskAfter = this.schedule.get(indexOfTask+1);
             if ( this.tasksOverlapping(newStartTime, NewEndTime, taskAfter.startTime, taskAfter.endTime) == true ){
-                this.abortEvent(taskAfter.taskID);
-                taskToAbort = taskAfter;
+                taskToAbort = taskAfter.startTime > t.startTime ? taskAfter : t;
             }
         }
+        if ( taskToAbort != null ) this.abortEvent(taskToAbort.taskID);
         synchronized(this.oreState){ this.oreState.changeState(taskID, NewEndTime); }
-        t.startTime = newStartTime;
-        t.endTime = NewEndTime;
         return taskToAbort;
     }
+
+    /*
+    private Task getTaskAtTime(double sTime, double eTime){
+        ArrayList<Task> tasksAtTime = new ArrayList<Task>();
+        for ( Task t : this.schedule ){
+            if ( t.startTime >= time && t.endTime <= time ) tasksAtTime.add(t);
+        }
+        return tasksAtTime;
+    }
+    */
 
 
     public boolean removeEvent(int taskID){
