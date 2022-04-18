@@ -17,13 +17,14 @@ import se.oru.coordination.coordination_oru.ConstantAccelerationForwardModel;
 public class TransportTruckAgent extends CommunicationAid{
     //Control parameters
     protected double TIME_WAITING_FOR_OFFERS = 3.0;
+    protected String COLOR = "\033[1;94m";
 
     protected TrajectoryEnvelopeCoordinatorSimulation tec;
     protected ReedsSheppCarPlanner mp;
 
     protected Coordinate[] rShape;
     protected Pose startPose;
-    protected final Double capacity = 15.0;
+    protected final Double capacity = 50.0;
     protected Double holdingOre = 0.0;
     protected final int taskCap = 4;
 
@@ -108,8 +109,6 @@ public class TransportTruckAgent extends CommunicationAid{
             }
         };
         listenerThread.start();
-
-        this.sleep(500);
 
         Thread stateThread = new Thread() {
             public void run() {
@@ -208,7 +207,7 @@ public class TransportTruckAgent extends CommunicationAid{
 
                 boolean taskAdded;
                 synchronized(this.timeSchedule){ taskAdded = this.timeSchedule.addEvent(task); }
-
+                this.timeSchedule.printSchedule(this.COLOR);
                 if ( taskAdded != true ){ // if false then task no longer possible, send abort msg to task partner
                     this.print("TASK ABORTED");
                     this.sendMessage(new Message(this.robotID, task.partner, "inform", Integer.toString(task.taskID)+this.separator+"abort"));
@@ -325,35 +324,40 @@ public class TransportTruckAgent extends CommunicationAid{
 
                 if ( Integer.parseInt(mParts[0]) == taskID ){
                     int val = Integer.parseInt(mParts[1]);
-                    int SAOrderNumber = m.sender - 5000;
 
-                    if (val > offerVal) {
-                        if (val < offerVal * 1.1) {
-                            // If only 10% larger or less
-                            if (SAOrderNumber > SAOrderVAl) {
-                                // Check precedence
-                                offerVal = val;
-                                SAOrderVAl = SAOrderNumber;
-                                bestOffer = new Message(m);
-                            }
-                        }
-                        else {
-                            offerVal = val;
-                            SAOrderVAl = SAOrderNumber;
-                            bestOffer = new Message(m);
-                        }
+                    if (val > offerVal){
+                        offerVal = val;
+                        bestOffer = new Message(m);
                     }
-                    else {
-                        if (val > offerVal * 0.9) {
-                            // If only 10% smaller or less
-                            if (SAOrderNumber > SAOrderVAl) {
-                                // Check precedence
-                                offerVal = val;
-                                SAOrderVAl = SAOrderNumber;
-                                bestOffer = new Message(m);
-                            }
-                        }
-                    }
+                    //int SAOrderNumber = m.sender - 5000;
+
+                    // if (val > offerVal) {
+                    //     if (val < offerVal * 1.1) {
+                    //         // If only 10% larger or less
+                    //         if (SAOrderNumber > SAOrderVAl) {
+                    //             // Check precedence
+                    //             offerVal = val;
+                    //             SAOrderVAl = SAOrderNumber;
+                    //             bestOffer = new Message(m);
+                    //         }
+                    //     }
+                    //     else {
+                    //         offerVal = val;
+                    //         SAOrderVAl = SAOrderNumber;
+                    //         bestOffer = new Message(m);
+                    //     }
+                    // }
+                    // else {
+                    //     if (val > offerVal * 0.9) {
+                    //         // If only 10% smaller or less
+                    //         if (SAOrderNumber > SAOrderVAl) {
+                    //             // Check precedence
+                    //             offerVal = val;
+                    //             SAOrderVAl = SAOrderNumber;
+                    //             bestOffer = new Message(m);
+                    //         }
+                    //     }
+                    // }
                 }
             }
         }
@@ -371,7 +375,7 @@ public class TransportTruckAgent extends CommunicationAid{
         // replace intexes
         
         // Task(int taskID, int partner, boolean isActive, double ore, double startTime, double endTime, double dist, Pose fromPose, Pose toPose) {
-        return new Task(Integer.parseInt(mParts[0]), m.sender, true, this.capacity, Double.parseDouble(mParts[4]),
+        return new Task(Integer.parseInt(mParts[0]), m.sender, true, Double.parseDouble(mParts[6]), Double.parseDouble(mParts[4]),
                         Double.parseDouble(mParts[5]), this.posefyString(mParts[2]), this.posefyString(mParts[3]));
     }
 
@@ -401,7 +405,6 @@ public class TransportTruckAgent extends CommunicationAid{
      * @return
      */
     public Mission createMission(Task task) {
-        this.timeSchedule.printSchedule("");
         this.mp.setStart(task.fromPose);
         //Pose[] goals = {task.NE, task.SE, task.SW, task.toPose};
         // if ore is positive, it means that it will fetch ore
@@ -468,15 +471,6 @@ public class TransportTruckAgent extends CommunicationAid{
                     if ( !this.robotsInNetwork.contains(m.sender) ) this.robotsInNetwork.add(m.sender);
                 }
 
-                else if (m.type == "accept"){
-                    // Add or abort (send message)
-                    boolean eventAdded;
-                    synchronized(this.timeSchedule){ eventAdded = this.timeSchedule.setEventActive(taskID); }
-
-                    if ( eventAdded == false ) {
-                        this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
-                    }
-                }
 
                 else if (m.type == "decline"){
                     //remove task from activeTasks
@@ -508,16 +502,16 @@ public class TransportTruckAgent extends CommunicationAid{
                             if ( this.timeSchedule.isNewEndTimePossible(taskID, newEndTime) ){
                                 this.timeSchedule.setNewEndTime(taskID, newEndTime);
                             }
-                            else{
-                                this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
-                                this.timeSchedule.abortEvent(taskID);
-                            }
+                            // else{
+                            //     this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
+                            //     this.timeSchedule.abortEvent(taskID);
+                            // }
                         }
                     }
 
-                    else if (informVal.equals(new String("abort"))) {
-                        synchronized(this.timeSchedule){ this.timeSchedule.abortEvent(taskID); }
-                    } 
+                    // else if (informVal.equals(new String("abort"))) {
+                    //     synchronized(this.timeSchedule){ this.timeSchedule.abortEvent(taskID); }
+                    // } 
                 }
                 
             }

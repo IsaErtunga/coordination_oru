@@ -83,7 +83,7 @@ public class HelpFunctions {
      * @param value
      * @return
      */
-    public int calcCDF(double value) {
+    public int calcCDF(double value, int yValue) {
         
         double lambda = 0.07;
         double e = 2.718;
@@ -93,7 +93,7 @@ public class HelpFunctions {
         }
 
         //int res = (int) (101 - Math.pow(e, lambda*value));
-        int res = (int) (100 - value);
+        int res = (int) (yValue - value);
 
         if (res < 0) {
             res = 0;

@@ -198,15 +198,18 @@ public class StorageAgent extends CommunicationAid{
                     this.offers.add(m);
                 }
 
-                else if (m.type == "accept"){
+                else if (m.type == "accept") {
+
                     boolean eventAdded;
-                    synchronized(this.timeSchedule){ eventAdded = this.timeSchedule.setEventActive(taskID); }
+                    synchronized(this.timeSchedule){ eventAdded = this.timeSchedule.setEventActive(taskID, true); }
                     if (eventAdded) { 
                         this.print("task added to schedule, taskID-->"+taskID);
                     }
-                    else{ //TODO task not added, need to send abort to taskProvider.
-                        this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
-                    } 
+                    // else{ //TODO task not added, need to send abort to taskProvider.
+                    //     this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
+                    // } 
+                    this.print("RobotID: " + this.robotID);
+                    this.timeSchedule.printSchedule(this.COLOR);
                 } //TODO does nothing in our Scenario atm
 
                 else if (m.type == "decline"){
@@ -217,7 +220,6 @@ public class StorageAgent extends CommunicationAid{
                 }
 
                 else if (m.type == "cnp-service"){
-                    this.print("CNP SERVICE______________----______________________--");
                     this.handleService(m);
                 }
 
@@ -244,6 +246,7 @@ public class StorageAgent extends CommunicationAid{
         if (informVal.equals(new String("done"))) {
             double oreChange = Double.parseDouble(this.parseMessage(m, "", true)[2]);
             
+            // Ore state + faktiska amount
             try {
                 this.fp.write(this.getTime(), this.timeSchedule.getOreStateAtTime(this.getTime()));
             } catch (IOException e) {
@@ -255,9 +258,6 @@ public class StorageAgent extends CommunicationAid{
 
             if (oreChange > 0) this.addOre(oreChange);
             else this.dumpOre(oreChange);
-
-            this.print("RECEIVED ORE ___-_________________________");
-            this.timeSchedule.printSchedule(this.COLOR);
 
         }
 
@@ -379,32 +379,22 @@ public class StorageAgent extends CommunicationAid{
      * @return true if we send offer = we expect resp.
      */
     public boolean handleService(Message m) { 
-        this.print("handleService - start");
-        
-        double availabeOre;
-        synchronized(this.timeSchedule){
-            availabeOre = this.timeSchedule.getLastOreState();
-        }
-        
-        if (availabeOre <= 0.01) return false;   //if we dont have ore dont act 
-        else availabeOre = availabeOre >= 15.0 ? 15.0 : availabeOre;
+        // Check how much ore we can deliver.
+        double availabeOre = this.timeSchedule.getLastOreState();
+        if (availabeOre <= 0.0) return false;   
+        else availabeOre = availabeOre >= 40.0 ? 40.0 : availabeOre; 
 
-        Task TTATask = this.createTaskFromServiceOffer(m, availabeOre, this.startPose);
-
-        boolean taskPossible;
-        synchronized(this.timeSchedule){ taskPossible = this.timeSchedule.isTaskPossible(TTATask); }
-        if ( !taskPossible ) return false;    // task doesnt fit in schedule
+        // Create Task
+        Task TTATask = createTaskFromServiceOffer(m, availabeOre);
+        if ( !this.timeSchedule.isTaskPossible(TTATask) ) return false;    // task doesnt fit in schedule
         
+        // Calculate offer
         int offerVal = this.calculateOffer(TTATask);
+        if ( offerVal <= 0 ) return false;
+        if (! this.timeSchedule.addEvent(TTATask) ) return false;
         
-        if (offerVal <= 0.01) return false;
-
-        synchronized(this.timeSchedule){ this.timeSchedule.addEvent(TTATask); }
-   
-        Message response = this.createOfferMsgFromTask(TTATask, offerVal, availabeOre);
-    
-        // räkna ut ett bud och skicka det.
-        this.sendMessage(response);
+        // Send Offer
+        this.sendMessage(this.createOfferMsgFromTask(TTATask, offerVal, availabeOre));
                 
         return true;
     }
@@ -416,18 +406,17 @@ public class StorageAgent extends CommunicationAid{
      * @param ore the amount of ore the task is about
      * @return a Task with attributes extracted from m
      */
-    protected Task createTaskFromServiceOffer(Message m, double ore, Pose startPos){
+    protected Task createTaskFromServiceOffer(Message m, double ore){
         String[] mParts = this.parseMessage(m, "", true);
         Pose TTAPos = this.posefyString(mParts[2]);
-        PoseSteering[] path = this.calculatePath(this.mp, TTAPos, startPos);
+        PoseSteering[] path = this.calculatePath(this.mp, TTAPos, this.startPose);
         double pathDist = this.calculatePathDist(path);
         double pathTime = this.calculateDistTime(pathDist);
 
-        double taskStartTime;
-        synchronized(this.timeSchedule){ taskStartTime = this.timeSchedule.getNextStartTime(); }
+        double taskStartTime = Double.parseDouble(mParts[3]);;
         double endTime = taskStartTime + pathTime;
 
-        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathDist, TTAPos, startPos);
+        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathDist, TTAPos, this.startPose);
     }
 
    /**
@@ -436,27 +425,33 @@ public class StorageAgent extends CommunicationAid{
      * @return offer
      */
     protected int calculateOffer(Task t){
-        int offer;
-        if (t.pathDist > 0.5) {
-            double oreLevel = this.timeSchedule.getLastOreState();
-            double oreLevelPercentage = oreLevel/this.capacity;
-            if (oreLevelPercentage > 0.8) {
-                double tooMuchOreBonus = 1000 * oreLevelPercentage;
-                offer = (int)tooMuchOreBonus + this.calcCDF(t.pathDist);
-            }
-            else if (oreLevelPercentage < 0.05) {
-                offer = 0;
-            }
-            else {
-                this.print("ELSE");
-                offer = (int)(((oreLevel/this.capacity)*100) + this.calcCDF(t.pathDist));
-            }
-        }
-        else {
-            offer = 0;
-        }
-        this.timeSchedule.printSchedule(this.COLOR);
-        return offer;
+        // int offer;
+        // if (t.pathDist > 0.5) {
+        //     double oreLevel = this.timeSchedule.getLastOreState();
+        //     double oreLevelPercentage = oreLevel/this.capacity;
+        //     if (oreLevelPercentage > 0.8) {
+        //         double tooMuchOreBonus = 1000 * oreLevelPercentage;
+        //         offer = (int)tooMuchOreBonus + this.calcCDF(t.pathDist);
+        //     }
+        //     else if (oreLevelPercentage < 0.05) {
+        //         offer = 0;
+        //     }
+        //     else {
+        //         this.print("ELSE");
+        //         offer = (int)(((oreLevel/this.capacity)*100) + this.calcCDF(t.pathDist));
+        //     }
+        // }
+        // else {
+        //     offer = 0;
+        // }
+        // this.timeSchedule.printSchedule(this.COLOR);
+        // return offer;
+        if (t.pathDist <= 2.0) return 0;
+
+        double dist = 100.0 * 1.0 / t.pathDist;
+        double evaluatedCapacity = 200.0 * this.amount / this.capacity; 
+
+        return (int)(dist + evaluatedCapacity);
     }   
 
     /** Used to generate a response message from a task. Called from {@link handleService}

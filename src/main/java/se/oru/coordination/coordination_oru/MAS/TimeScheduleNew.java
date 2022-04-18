@@ -64,6 +64,25 @@ public class TimeScheduleNew {
         return true;
     }
 
+    /**
+     * Overloaded for SA agent
+     * @param taskID
+     * @param isSA
+     * @return
+     */
+    public boolean setEventActive(int taskID, boolean isSA){
+        Task t = this.reserved.remove(taskID);
+        if( t == null ) return false;
+        t.isActive = true;
+
+        boolean taskAdded = this.addEvent(t);
+        double lastOreState;
+        synchronized(this.oreState){
+            lastOreState = this.oreState.getLastOreState();
+        }
+        return true;
+    }
+
     public boolean addEvent(Task task){
         if (!task.isActive){
             this.reserved.put(task.taskID, task);
