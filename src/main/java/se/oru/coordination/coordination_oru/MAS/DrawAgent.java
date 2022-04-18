@@ -113,7 +113,7 @@ public class DrawAgent extends CommunicationAid{
                 else if (m.type == "decline"){
                     synchronized(this.timeSchedule){
                         boolean successfulRemove = this.timeSchedule.removeEvent(taskID);
-                        this.print("got decline from-->"+m.sender+"\ttaskID-->"+taskID+"\tremoved-->"+successfulRemove);
+                        //this.print("got decline from-->"+m.sender+"\ttaskID-->"+taskID+"\tremoved-->"+successfulRemove);
                     }
                 }
 
@@ -142,8 +142,8 @@ public class DrawAgent extends CommunicationAid{
         }
 
         else if (informVal.equals(new String("status"))) { //TODO change so schedule gets updated: newEndTime = Double.parseDouble(messageParts[2])
-            this.print("in status: ---SCHEDULE---");
-            this.timeSchedule.printSchedule(this.COLOR);
+            // this.print("in status: ---SCHEDULE---");
+            // this.timeSchedule.printSchedule(this.COLOR);
 
             double newEndTime = Double.parseDouble(this.parseMessage(m, "", true)[2]);
             Task taskToAbort = this.timeSchedule.updateTaskEndTimeIfPossible(taskID, newEndTime); // this function aborts task from schedule

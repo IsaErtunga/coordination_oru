@@ -147,6 +147,7 @@ public class StorageAgent extends CommunicationAid{
                 if (!bestOffer.isNull) {
                     Task task = this.createTaskFromMessage(bestOffer);
                     this.timeSchedule.addEvent(task);
+                    this.print("in status, task added. ---Schedule---");
                     this.timeSchedule.printSchedule(this.COLOR);
                 }
                 
@@ -272,15 +273,15 @@ public class StorageAgent extends CommunicationAid{
 
         }
         else if (informVal.equals(new String("status"))) { 
-            this.print("in status: ---SCHEDULE---");
-            this.timeSchedule.printSchedule(this.COLOR);
+            // this.print("in status: ---SCHEDULE---");
+            // this.timeSchedule.printSchedule(this.COLOR);
 
             double newEndTime = Double.parseDouble(this.parseMessage(m, "", true)[2]);
             Task taskToAbort = this.timeSchedule.updateTaskEndTimeIfPossible(taskID, newEndTime); // this function aborts task from schedule
 
             if ( taskToAbort != null ){
                 this.sendMessage(new Message(this.robotID, taskToAbort.partner, "inform", taskToAbort.taskID+this.separator+"abort"));
-                this.print("sending ABORT msg. taskID-->"+taskID+"\twith-->"+m.sender );
+                this.print("sending ABORT msg. taskID-->"+taskToAbort.taskID+"\twith-->"+taskToAbort.partner );
             }
             else {this.print("updated without conflict-->"+taskID +"\twith-->"+ m.sender);}
         }                   
