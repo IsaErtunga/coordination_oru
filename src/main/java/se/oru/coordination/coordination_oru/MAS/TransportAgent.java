@@ -237,7 +237,7 @@ public class TransportAgent extends CommunicationAid{
                 }
 
                 this.print("in initialState: --- schedule ---");
-                this.timeSchedule.printSchedule(this.COLOR);
+                synchronized(this.timeSchedule){ this.timeSchedule.printSchedule(this.COLOR); }
             }
 
             else {
@@ -489,10 +489,7 @@ public class TransportAgent extends CommunicationAid{
 
         else if (informVal.equals(new String("abort"))) {
             this.print("got ABORT MSG! taskID-->"+taskID+"\twith-->"+m.sender );
-            synchronized(this.timeSchedule){
-                this.timeSchedule.abortEvent(taskID);
-                
-            }
+            synchronized(this.timeSchedule){ this.timeSchedule.abortEvent(taskID); }
         } 
     }
 

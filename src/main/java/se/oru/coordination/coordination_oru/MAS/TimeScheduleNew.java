@@ -192,8 +192,12 @@ public class TimeScheduleNew {
                 taskToAbort = taskAfter.startTime > t.startTime ? taskAfter : t;
             }
         }
-        if ( taskToAbort != null ) this.abortEvent(taskToAbort.taskID);
-        synchronized(this.oreState){ this.oreState.changeState(taskID, NewEndTime); }
+
+        if ( taskToAbort == null) synchronized(this.oreState){ this.oreState.changeState(taskID, NewEndTime); }
+        else {
+            this.abortEvent(taskToAbort.taskID);
+            if ( taskToAbort.taskID != taskID ) synchronized(this.oreState){ this.oreState.changeState(taskID, NewEndTime); }
+        }
         return taskToAbort;
     }
 
