@@ -21,7 +21,7 @@ import se.oru.coordination.coordination_oru.Mission;
 
 public class CommunicationAid extends HelpFunctions{
     protected int lowerTaskIDBound = 1000;
-    protected int upperTaskIDBound = 9999;
+    protected int upperTaskIDBound = 99999;
     protected String separator = ",";
     public int robotID;
 
@@ -143,15 +143,15 @@ public class CommunicationAid extends HelpFunctions{
     }
 
     /**
-     * 
+     * body -> int taskID & int offerVal & startPos & endPos & startTime & endTime & ore
+
      * @param message
      * @return Task
      */
-    protected Task createTaskFromMessage(Message message, boolean isTakeOre) {
+    protected Task createTaskFromMessage(Message message) {
         String[] msgParts = parseMessage(message, "", true);
         // replace intexes
-        double ore = isTakeOre ? Double.parseDouble(msgParts[6]) : -Double.parseDouble(msgParts[6]);
-        return new Task(Integer.parseInt(msgParts[0]), message.sender, true, ore, Double.parseDouble(msgParts[4]),
+        return new Task(Integer.parseInt(msgParts[0]), message.sender, true, Double.parseDouble(msgParts[6]), Double.parseDouble(msgParts[4]),
                         Double.parseDouble(msgParts[5]), this.posefyString(msgParts[2]), this.posefyString(msgParts[3]));
     }
     

@@ -1,6 +1,7 @@
 package se.oru.coordination.coordination_oru.MAS;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Arrays;
 
 import com.vividsolutions.jts.geom.Coordinate;
@@ -18,7 +19,7 @@ public class TransportTruckAgent extends CommunicationAid{
     //Control parameters
     protected double TIME_WAITING_FOR_OFFERS = 3.0;
 
-
+    protected HashMap<String, PoseSteering[]> pStorage;
     protected TrajectoryEnvelopeCoordinatorSimulation tec;
     protected ReedsSheppCarPlanner mp;
 
@@ -42,8 +43,8 @@ public class TransportTruckAgent extends CommunicationAid{
     public TransportTruckAgent(  int r_id, TrajectoryEnvelopeCoordinatorSimulation tec,
                         ReedsSheppCarPlanner mp, Pose startPos, Router router){}
 
-    public TransportTruckAgent(  int r_id, TrajectoryEnvelopeCoordinatorSimulation tec,
-                        ReedsSheppCarPlanner mp, Pose startPos, Router router, long startTime){
+    public TransportTruckAgent( int r_id, TrajectoryEnvelopeCoordinatorSimulation tec,ReedsSheppCarPlanner mp,
+                                Pose startPos, Router router, long startTime, HashMap<String, PoseSteering[]> pathStorage){
             
                             System.out.println("#######################");
                             System.out.println(r_id +" -- constructor");
@@ -53,6 +54,7 @@ public class TransportTruckAgent extends CommunicationAid{
         this.mp = mp;
         this.startPose = startPos;
         this.startTime = startTime;
+        this.pStorage = pathStorage;
 
         this.timeSchedule = new TimeSchedule(startPos, 0.0);
 
@@ -367,7 +369,7 @@ public class TransportTruckAgent extends CommunicationAid{
     protected Task createDeliverTask() {
         Pose robotPos = this.timeSchedule.getLastToPose();
         Pose deliveryPos = new Pose(245.0, 105.0, Math.PI);	
-        double distance = this.calcDistance(robotPos, deliveryPos);
+        double distance = robotPos.distanceTo(deliveryPos);
         double taskStartTime = this.getNextTime();
         double endTime = taskStartTime + this.calculateDistTime(distance);
         Task deliverTask = new Task(this.tID(), -1, true, -this.capacity, taskStartTime, endTime, endTime, robotPos, deliveryPos);
@@ -381,14 +383,8 @@ public class TransportTruckAgent extends CommunicationAid{
      * @return
      */
     public Mission createMission(Task task) {
-        this.timeSchedule.printSchedule("");
-        this.mp.setStart(task.fromPose);
-        //Pose[] goals = {task.NE, task.SE, task.SW, task.toPose};
-        // if ore is positive, it means that it will fetch ore
-        this.mp.setGoals(this.navigateCorrectly(task, task.ore > 0.0));
-        if (!this.mp.plan()) throw new Error ("No path between " + "current_pos" + " and " + task.toPose);
-        PoseSteering[] path = this.mp.getPath();
-        return new Mission(this.robotID, path);
+        this.timeSchedule.printSchedule("");        
+        return new Mission( this.robotID, this.getPath(this.pStorage, this.mp, task.fromPose, this.navigateCorrectly(task, task.ore > 0.0)) );
     }
 
     /**

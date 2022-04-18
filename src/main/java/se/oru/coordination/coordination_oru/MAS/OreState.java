@@ -8,6 +8,7 @@ public class OreState {
         double t;
         double currOre;
         double deltaOre;
+        int taskID;
 
     }
 
@@ -22,7 +23,7 @@ public class OreState {
      */
     public OreState(double oreCapacity, double startOre){
         this.oreCapacity = oreCapacity;
-        addState( createState(-1.0, startOre) );
+        addState( createState(-1, -1.0, startOre) );
     }
 
     /**
@@ -31,9 +32,9 @@ public class OreState {
      * @param ore the oreChange at the state fetched (in case multiple states exist at time)
      * @return the state if found, else null.
      */
-    public State getState(double time, double ore){
+    public State getState(int taskID){
         for ( State s : this.oreStateArray ){
-            if ( s.t-0.1 < time && s.t+0.1 > time && s.deltaOre-0.1 < ore && s.deltaOre+0.1 > ore) return s;
+            if ( s.taskID == taskID) return s;
         }
         return null; // no state found
     }
@@ -89,8 +90,8 @@ public class OreState {
         update();
     }
     /* same with as above but with time, ore parameters */
-    public void addState(double time, double oreChange){
-        addState(createState(time, oreChange));
+    public void addState(int taskID, double time, double oreChange){
+        addState(createState(taskID, time, oreChange));
     }
 
     /**
@@ -105,8 +106,8 @@ public class OreState {
         return result;
     }
     /* same with as above but with time, ore parameters */
-    public boolean removeState(double time, double ore){
-        return removeState(getState(time, ore));
+    public boolean removeState(int taskID){
+        return removeState(getState(taskID));
     }
 
     /**
@@ -115,10 +116,11 @@ public class OreState {
      * @param ore deltaOre at state
      * @return the state created
      */
-    public State createState(double time, double ore){
+    public State createState(int taskID, double time, double ore){
         State s = new State();
         s.t = time;
         s.deltaOre = ore;
+        s.taskID = taskID;
         return s;
     }
 
@@ -141,8 +143,8 @@ public class OreState {
      * @param newTime the new time of the state
      * @return true if state was found and updated, false if it was not found
      */
-    public boolean changeState(double oldTime, double oldOreChange, double newTime){
-        State s = getState(oldTime, oldOreChange);
+    public boolean changeState(int taskID, double newTime){
+        State s = getState(taskID);
         if ( s == null ) return false;
         removeState(s);
         s.t = newTime; 
@@ -152,7 +154,7 @@ public class OreState {
     }
     /* same with as above but with state as param */
     public boolean changeState(State s, double newTime){
-        return this.changeState(s.t, s.deltaOre, newTime);
+        return this.changeState(s.taskID, newTime);
     }    
 
     /**
@@ -160,11 +162,11 @@ public class OreState {
      * negative currOre at any state, it will need to be fixed.
      * @return
      */
-    public HashMap<Double, Double> getInconsistencies(){
-        HashMap<Double, Double> fixes = new HashMap<Double, Double>();
+    public ArrayList<Integer> getInconsistencies(){
+        ArrayList<Integer> fixes = new ArrayList<Integer>();
 
         for (State s : this.oreStateArray){
-            if ( s.currOre < 0.0 || s.currOre > this.oreCapacity+0.01) fixes.put(s.t, s.currOre);
+            if ( s.currOre < -0.1 || s.currOre > this.oreCapacity+0.1) fixes.add(s.taskID);
         }
         return fixes;
     }
@@ -174,31 +176,33 @@ public class OreState {
      * negative currOre at any state, it will need to be fixed.
      * @return
      */
-    public double getFirstFail(){
+    public int getFirstFail(){
         for (State s : this.oreStateArray){
-            if ( s.currOre < 0.0 || s.currOre > this.oreCapacity+0.01) return s.t;
+            if ( s.currOre < -0.1 || s.currOre > this.oreCapacity+0.1) return s.taskID;
         }
-        return -1.0;
+        return -1;
     }
 
     public void print(String c){
         String e = "\033[0m";
 
         System.out.println("");
-        for ( State s : this.oreStateArray ){
-            System.out.println(c+"time--> "+ String.format("%.2f",s.t) +"\tore at state--> "+s.currOre+"\tdeltaOre--> "+s.deltaOre+e);
+        int size = this.oreStateArray.size();
+        int startIndex = size > 10 ? size-10 : 0;
+        for ( int i=startIndex; i<size; i++){
+            State s = this.oreStateArray.get(i);
+            System.out.println(c+"time--> "+ String.format("%.2f",s.t) +"\tore at state--> "+s.currOre+"\tchange--> "+s.deltaOre +"\ttaskID-->"+s.taskID+e);
         }
     }
-
 
     public static void main(String[] args){
         OreState os = new OreState(100.0, 20.0);
 
-        os.addState( os.createState(5.0, 15.0) );
-        os.addState( os.createState(10.0, -25.0) );
-        os.addState( os.createState(5.0, 10.0) );
-        os.addState( os.createState(9.0, 16.0) );
-        os.addState( os.createState(10.0, 40.0) );
+        os.addState( os.createState(1, 5.0, 15.0) );
+        os.addState( os.createState(2, 10.0, -25.0) );
+        os.addState( os.createState(3, 5.0, 10.0) );
+        os.addState( os.createState(4, 9.0, 16.0) );
+        os.addState( os.createState(5, 10.0, 40.0) );
         os.print("");
 
         System.out.println(os.getStateAtTime(7.0));

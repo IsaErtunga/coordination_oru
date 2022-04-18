@@ -11,7 +11,7 @@ import java.util.Map;
 
 public class Router {
 
-    protected int periodMili = 500;
+    protected int periodMili = 200;
 
     public HashMap<Integer, ArrayList<Message>> inboxes = new HashMap<Integer, ArrayList<Message>>();
     public HashMap<Integer, ArrayList<Message>> outboxes = new HashMap<Integer, ArrayList<Message>>();
@@ -81,14 +81,13 @@ public class Router {
     private void print(){
         
         System.out.println("\033[0;35m"+ "###ROUTER###"+ "\033[0m");
-        HashMap<Integer, ArrayList<Message>> msgs2Print;
-         
+        HashMap<Integer, ArrayList<Message>> hashMapCopy;
 
         synchronized(this.outboxes){
-            msgs2Print = new HashMap<Integer, ArrayList<Message>>(this.outboxes);
+            hashMapCopy = this.copy(this.outboxes);
         }
                 
-        for (Map.Entry<Integer, ArrayList<Message>> t : msgs2Print.entrySet()) {
+        for (Map.Entry<Integer, ArrayList<Message>> t : hashMapCopy.entrySet()) {
             if ( t.getValue().size() < 1 ) continue;
             System.out.println("\033[0;35m"+"outbox r" + t.getKey() +":"+ "\033[0m");
 
@@ -98,10 +97,10 @@ public class Router {
         }
 
         synchronized(this.inboxes){
-            msgs2Print = new HashMap<Integer, ArrayList<Message>>(this.inboxes);
+            hashMapCopy = this.copy(this.inboxes);
         }
           
-        for (Map.Entry<Integer, ArrayList<Message>> t : msgs2Print.entrySet()) {
+        for (Map.Entry<Integer, ArrayList<Message>> t : hashMapCopy.entrySet()) {
             if ( t.getValue().size() < 1 ) continue;
 
             System.out.println("\033[0;35m"+"inbox r" + t.getKey() +":"+ "\033[0m");
@@ -112,6 +111,19 @@ public class Router {
         }
         
     }
+
+    public HashMap<Integer, ArrayList<Message>> copy(
+        HashMap<Integer, ArrayList<Message>> original)
+        {
+            HashMap<Integer, ArrayList<Message>> copy = new HashMap<Integer, ArrayList<Message>>();
+            for (Map.Entry<Integer, ArrayList<Message>> entry : original.entrySet())
+            {
+                copy.put(entry.getKey(),
+                // Or whatever List implementation you'd like here.
+                new ArrayList<Message>(entry.getValue()));
+            }
+            return copy;
+        }
 
     /* ####################### TEST ####################### */
 
