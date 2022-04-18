@@ -1,6 +1,7 @@
 package se.oru.coordination.coordination_oru.MAS;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import com.vividsolutions.jts.geom.Coordinate;
 
@@ -16,8 +17,11 @@ import se.oru.coordination.coordination_oru.MAS.Router;
 
 public class StorageAgent extends CommunicationAid{
     //Control parameters
-    protected double TIME_WAITING_FOR_OFFERS = 3.0;
     protected String COLOR = "\033[1;33m";
+    protected double TIME_WAITING_FOR_OFFERS = 5.0;
+    private static int taskCap = 4;
+
+    protected HashMap<String, PoseSteering[]> pStorage;
 
     protected Pose startPose;
     protected Pose startPoseRight;
@@ -89,7 +93,8 @@ public class StorageAgent extends CommunicationAid{
      * @param capacity
      * @param startPos
      */
-    public StorageAgent(int r_id, Router router, double capacity, double startOre, Pose startPos, long startTime, ReedsSheppCarPlanner mp, OreState oreState){
+    public StorageAgent(int r_id, Router router, double capacity, double startOre, Pose startPos,long startTime, 
+                        ReedsSheppCarPlanner mp, OreState oreState, HashMap<String, PoseSteering[]> pathStorage){
         this.print("STORAGE AGENT INITIATED");
         this.robotID = r_id;
         this.capacity = capacity;
@@ -99,6 +104,8 @@ public class StorageAgent extends CommunicationAid{
         this.startTime = startTime;
         this.mp = mp;
         this.orderNumber = 1;
+
+        this.pStorage = pathStorage;
 
         router.enterNetwork(this);
 
@@ -119,24 +126,31 @@ public class StorageAgent extends CommunicationAid{
 
     public void status () {
         while(true) {
+            this.sleep(2000);
+
             double oreLevel = this.timeSchedule.getLastOreState();
             if ( this.amount < oreLevel && false ){} //TODO request ore fast
 
 
-            else if ( false ){} //TODO check if we need more or at some point in future
+            else if ( false ){} //TODO check if we need more ore at some point in future
 
 
             else if (oreLevel < 0.8 * capacity) { // plan future tasks
 
+                if ( this.timeSchedule.getSize() > this.taskCap ){
+                    this.sleep(1000);
+                    continue;
+                } 
+
                 Message bestOffer = this.offerService(this.getNextTime());
 
                 if (!bestOffer.isNull) {
-                    Task task = this.createTaskFromMessage(bestOffer, true);
+                    Task task = this.createTaskFromMessage(bestOffer);
                     this.timeSchedule.addEvent(task);
                     this.timeSchedule.printSchedule(this.COLOR);
                 }
+                
             }
-            this.sleep(2000);
         }      
     }
 
@@ -149,7 +163,7 @@ public class StorageAgent extends CommunicationAid{
         };
         listener.start();
 
-        this.sleep(1000);
+        this.sleep(300);
 
         this.status();
 
@@ -230,7 +244,7 @@ public class StorageAgent extends CommunicationAid{
                 
             }
             // Changed sleep from 1000
-            this.sleep(500);
+            this.sleep(100);
         }
 
     }
@@ -261,22 +275,27 @@ public class StorageAgent extends CommunicationAid{
 
         }
 
-        else if (informVal.equals(new String("status"))) {
+        else if (informVal.equals(new String("status"))) { 
+            this.print("---SCHEDULE---");
+            this.timeSchedule.printSchedule(this.COLOR);
+
             double newEndTime = Double.parseDouble(this.parseMessage(m, "", true)[2]);
+            Task taskToAbort = this.timeSchedule.updateTaskEndTimeIfPossible(taskID, newEndTime); // this function aborts task from schedule
 
-            synchronized(this.timeSchedule){
-                if ( this.timeSchedule.isNewEndTimePossible(taskID, newEndTime) ){
-                    this.timeSchedule.setNewEndTime(taskID, newEndTime);
-                }
-                else{
-                    this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
-                    this.timeSchedule.abortEvent(taskID);
-                }
+            if ( taskToAbort != null ){
+                this.sendMessage(new Message(this.robotID, taskToAbort.partner, "inform", taskToAbort.taskID+this.separator+"abort"));
+                this.print("sending ABORT msg. taskID-->"+taskID+"\twith-->"+m.sender );
             }
-        }                  
+            else {this.print("updated without conflict-->"+taskID +"\twith-->"+ m.sender);}
+        }                   
 
-        else if (informVal.equals(new String("abort"))) {
-            synchronized(this.timeSchedule){ this.timeSchedule.abortEvent(taskID); }
+        else if (informVal.equals(new String("abort"))) { //TODO remove task from schedule 
+            this.print("---SCHEDULE---");
+            this.timeSchedule.printSchedule(this.COLOR);
+
+            this.timeSchedule.abortEvent(taskID);
+            this.print("got ABORT MSG! taskID-->"+taskID+"\twith-->"+m.sender );
+            
         } 
     }
 
@@ -291,26 +310,32 @@ public class StorageAgent extends CommunicationAid{
         
         this.offers.clear();
         int taskID = this.sendCNPmessage(startTime, this.stringifyPose(this.startPose), receivers);
-
-        double time = this.waitForAllOffersToCome(receivers.size());  //locking function. wait for receivers
-        this.print("time waited for offers-->"+time);
+        this.print("starting to wait for offers at time-->"+ String.format("%.2f",this.getTime())+"\tnrReceivers-->"+receivers.size() );
+        double time = this.waitForAllOffersToCome( receivers.size(), taskID );  //locking function. wait for receivers
+        this.print("done waiting at time-->"+ String.format("%.2f",this.getTime()) +"\tamountInOffers-->"+this.offers.size());
 
         Message bestOffer = this.handleOffers(taskID); //extract best offer
 
-        if (!bestOffer.isNull){        
-            // Send response: Mission to best offer sender, and deny all the other ones.
-            Message acceptMessage = new Message(robotID, bestOffer.sender, "accept", Integer.toString(taskID) );
-            this.sendMessage(acceptMessage);
-
-            receivers.removeIf(i -> i==bestOffer.sender);
-
-            if (receivers.size() > 0){
-                // Send decline message to all the others. 
-                Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));
-                this.sendMessage(declineMessage);
-
-            }
+        if ( bestOffer.isNull == true ){
+            this.print("no offers received");
+            Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));
+            this.sendMessage(declineMessage);
+            return bestOffer;
         }
+
+        // Send response: Mission to best offer sender, and deny all the other ones.
+        Message acceptMessage = new Message(robotID, bestOffer.sender, "accept", Integer.toString(taskID) );
+        this.sendMessage(acceptMessage);
+
+        receivers.removeIf(i -> i==bestOffer.sender);
+
+        if (receivers.size() > 0){
+            // Send decline message to all the others. 
+            Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));
+            this.sendMessage(declineMessage);
+
+        }
+        
         return bestOffer;
     }
 
@@ -319,10 +344,20 @@ public class StorageAgent extends CommunicationAid{
      * @param nrOfReceivers an int with the number of recipients of the cnp message sent. 
      * @return a double with the time it took before exiting this function.
      */
-    protected double waitForAllOffersToCome(int nrOfReceivers){
+    protected double waitForAllOffersToCome(int nrOfReceivers, int taskID){
         double before = this.getTime();
+        ArrayList<Message> offerListCopy;
 
-        while ( this.offers.size() < nrOfReceivers && this.getTime() - before <= this.TIME_WAITING_FOR_OFFERS){
+        while ( this.getTime() - before <= this.TIME_WAITING_FOR_OFFERS){
+            int offersReceived = 0;
+            synchronized(this.offers){ offerListCopy = new ArrayList<Message>(this.offers); }
+
+            for ( Message offer : offerListCopy ){
+                if ( Integer.parseInt(this.parseMessage(offer, "taskID")[0]) == taskID ) offersReceived++;
+            }
+            
+            if ( offersReceived >= nrOfReceivers ) return (this.getTime() - before);
+
             this.sleep(50);
         }
         return (this.getTime() - before);
@@ -350,23 +385,31 @@ public class StorageAgent extends CommunicationAid{
      */
     public Message handleOffers(int taskID) {
         Message bestOffer = new Message();
-        int offerVal = 0;
-    
+        int bestOfferVal = 0;
+        double bestEndTime = 0;
+
         for (Message m : this.offers) {
-            // SCHEDULE: Extract startTime & endTime and see if it fits into schedule
-            double startTime = Double.parseDouble(parseMessage(m, "startTime")[0]);
-            double endTime = Double.parseDouble(parseMessage(m, "endTime")[0]);
-  
+
+            String[] mParts = this.parseMessage( m, "", true); 
+            this.print("m.taskID == taskID-->"+(Integer.parseInt(mParts[0]) == taskID) );
+            if ( Integer.parseInt(mParts[0]) != taskID ) continue; // sort out offer not part of current auction(taskID)
+            // int taskID & int offerVal & startPos & endPos & startTime & endTime & ore
+            int offerVal = Integer.parseInt(mParts[1]);
+            double startTime = Double.parseDouble(mParts[4]);
+            double endTime = Double.parseDouble(mParts[5]);
+            this.print("isTaskPossible("+taskID+", "+String.format("%.2f",startTime)+", "+String.format("%.2f",endTime)+"-->"+(this.timeSchedule.isTaskPossible(taskID, startTime, endTime)));
             if( this.timeSchedule.isTaskPossible(taskID, startTime, endTime) ) {
-                String[] mParts = this.parseMessage( m, "", true); // sort out offer not part of current auction(taskID)
-
-                if ( Integer.parseInt(mParts[0]) == taskID ){
-                    int val = Integer.parseInt(mParts[1]);
-
-                    if (val > offerVal){
-                        offerVal = val;
-                        bestOffer = new Message(m);
-                    }
+                this.print("\tofferVal("+offerVal+" > "+bestOfferVal+"-->"+(offerVal > bestOfferVal));
+                if (offerVal > bestOfferVal){
+                    bestOfferVal = offerVal;
+                    bestOffer = new Message(m);
+                    bestEndTime = endTime;
+                }
+                else if ( offerVal == bestOfferVal && endTime < bestEndTime ){
+                    this.print("changed offer because better startTime, new EndTime-->"+endTime);
+                    bestOfferVal = offerVal;
+                    bestOffer = new Message(m);
+                    bestEndTime = endTime;
                 }
             }
         }

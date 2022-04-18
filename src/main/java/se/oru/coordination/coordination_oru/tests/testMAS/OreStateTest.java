@@ -121,17 +121,17 @@ public class OreStateTest {
 
     final long startTime = System.currentTimeMillis();
 
-	Pose DA1posLeft = new Pose(36.0, 35.0, Math.PI);
-	Pose DA2posLeft = new Pose(36.0, 55.0, Math.PI);
-	Pose DA3posLeft = new Pose(36.0, 75.0, Math.PI);
-	Pose DA4posLeft = new Pose(36.0, 95.0, Math.PI);
-	Pose DA5posLeft = new Pose(36.0, 115.0, Math.PI);
+	Pose DA1posLeft = new Pose(36.0, 75.0, Math.PI);
+	Pose DA2posLeft = new Pose(36.0, 95.0, Math.PI);
+	Pose DA3posLeft = new Pose(36.0, 115.0, Math.PI);
+	Pose DA4posLeft = new Pose(36.0, 135.0, Math.PI);
+	Pose DA5posLeft = new Pose(36.0, 155.0, Math.PI);
 
-	Pose DA1posRight = new Pose(310.0, 35.0, 0.0);	
-	Pose DA2posRight = new Pose(310.0, 55.0, 0.0);
-	Pose DA3posRight = new Pose(310.0, 75.0, 0.0);
-	Pose DA4posRight = new Pose(310.0, 95.0, 0.0);
-	Pose DA5posRight = new Pose(310.0, 115.0, 0.0);
+	Pose DA1posRight = new Pose(310.0, 55.0, 0.0);	
+	Pose DA2posRight = new Pose(310.0, 75.0, 0.0);
+	Pose DA3posRight = new Pose(310.0, 95.0, 0.0);
+	Pose DA4posRight = new Pose(310.0, 115.0, 0.0);
+	Pose DA5posRight = new Pose(310.0, 135.0, 0.0);
 
 	Pose TA1posLeft = new Pose(50.0,20.0, Math.PI/2);
 	Pose TA2posLeft = new Pose(50.0,190.0, 3*Math.PI/2);	
@@ -166,6 +166,10 @@ public class OreStateTest {
 	};
 	t3.start();
 
+	//================= PATH STORAGE ======================
+	HashMap<String, PoseSteering[]> pathStorage = new HashMap<String, PoseSteering[]>();
+	//================= PATH STORAGE ======================
+
 
 													/*		DRAW AGENT	*/
 	final int[] numDraw = {1101, 1102, 1103, 1104, 1105, 2101, 2102, 2103, 2104, 2105};
@@ -184,13 +188,14 @@ public class OreStateTest {
 			@Override
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);
-				DrawAgent DA = new DrawAgent(numDraw[i], router, 55.0, drawPoses[i], mp, startTime, numDraw[i] < 2000);
+				DrawAgent DA = new DrawAgent(numDraw[i], router, 40.0, drawPoses[i], mp, startTime, numDraw[i] < 2000 );
 				DA.listener();
 				
 			}
 		};
 		drawAgentThread.start();
-
+		try { Thread.sleep(100); }
+		catch (InterruptedException e) { e.printStackTrace(); }
 	}
 
 												/*		TRANSPORT AGENT	*/
@@ -212,14 +217,14 @@ public class OreStateTest {
 				rsp.setTurningRadius(2.0); 				//default is 1.0
 				rsp.setMap(yamlFile);
 
-				TransportAgent r = new TransportAgent(numTransport[i], tec, rsp, transportPoses[i], router, startTime);
+				TransportAgent r = new TransportAgent( numTransport[i], tec, rsp, transportPoses[i], router, startTime );
 				r.start();
 
 			}
                 
 		};
         t.start();
-		try { Thread.sleep(3000); }
+		try { Thread.sleep(100); }
 		catch (InterruptedException e) { e.printStackTrace(); }
     }
 
@@ -232,7 +237,7 @@ public class OreStateTest {
 	Pose[] RightStoragePoses = {SA1posRight, SA2posRight};
 	Pose[] TTAStoragePoses = {SA1posTTA, SA2posTTA};
 
-	final int[] iter2 = {0, 1};
+	final int[] iter2 = {0,1};
 
 	for (final int i : iter2) {
 		OreState oreState = new OreState(SAOreCapacity, SAStartOre);
@@ -246,7 +251,7 @@ public class OreStateTest {
 				rsp.setTurningRadius(4.0); 	
 				rsp.setMap(yamlFile);
 
-				StorageAgent SA = new StorageAgent(leftNumStorages[i], router, SAOreCapacity, SAStartOre, LeftStoragePoses[i], startTime, rsp, oreState);
+				StorageAgent SA = new StorageAgent(leftNumStorages[i], router, SAOreCapacity, SAStartOre, LeftStoragePoses[i], startTime, rsp, oreState, pathStorage);
 				SA.start();
 			
 			}
@@ -263,7 +268,7 @@ public class OreStateTest {
 				rsp.setTurningRadius(4.0); 	
 				rsp.setMap(yamlFile);
 
-				StorageAgent SA = new StorageAgent(rightNumStorages[i], router, SAOreCapacity, SAStartOre, RightStoragePoses[i], startTime, rsp, oreState);
+				StorageAgent SA = new StorageAgent(rightNumStorages[i], router, SAOreCapacity, SAStartOre, RightStoragePoses[i], startTime, rsp, oreState, pathStorage);
 				SA.start();
 			
 			}
@@ -310,14 +315,14 @@ public class OreStateTest {
 				rsp.setTurningRadius(1.0); 				//default is 1.0
 				rsp.setMap(yamlFile);
 
-				TransportTruckAgent TTA = new TransportTruckAgent(numTransportTruck[i], tec, rsp, transportTruckPoses[i], router, startTime);
+				TransportTruckAgent TTA = new TransportTruckAgent(numTransportTruck[i], tec, rsp, transportTruckPoses[i], router, startTime, pathStorage);
 				TTA.start();
 
 			}
                 
 		};
         t.start();
-		try { Thread.sleep(3000); }
+		try { Thread.sleep(2000); }
 		catch (InterruptedException e) { e.printStackTrace(); }
     }
 

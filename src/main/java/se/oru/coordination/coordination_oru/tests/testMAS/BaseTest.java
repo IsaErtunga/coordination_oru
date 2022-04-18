@@ -147,6 +147,9 @@ public class BaseTest {
 	};
 	t3.start();
 
+	
+
+
 
 													/*		DRAW AGENT	*/
 	final int[] numDraw = {1101, 1102, 1103, 1104, 1105};
@@ -253,7 +256,7 @@ public class BaseTest {
 				rsp.setTurningRadius(1.0); 				//default is 1.0
 				rsp.setMap(yamlFile);
 
-				TransportTruckAgent TTA = new TransportTruckAgent(numTransportTruck[i], tec, rsp, transportTruckPoses[i], router, startTime);
+				TransportTruckAgent TTA = new TransportTruckAgent(numTransportTruck[i], tec, rsp, transportTruckPoses[i], router, startTime, null);
 				TTA.start();
 
 			}

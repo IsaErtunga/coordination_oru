@@ -4,6 +4,7 @@
 package se.oru.coordination.coordination_oru.MAS;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Arrays;
 
 import org.metacsp.multi.spatioTemporal.paths.PoseSteering;
@@ -17,6 +18,7 @@ import se.oru.coordination.coordination_oru.Mission;
 public class DrawAgent extends CommunicationAid{
     // control parameters
     protected String COLOR = "\033[0;36m";
+    protected double ADD_TIME2TA_TASKS = 0.0;
 
     private double finalXPos;
     protected double initalXPos;
@@ -32,7 +34,9 @@ public class DrawAgent extends CommunicationAid{
 
     public DrawAgent(int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp){}
 
-    public DrawAgent(int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp, long startTime, boolean shiftLeft){
+    public DrawAgent(   int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp,
+                        long startTime, boolean shiftLeft){
+
         this.robotID = robotID; // drawID >10'000
         this.capacity = capacity;
         this.amount = capacity; // 100% full in beginning
@@ -98,6 +102,7 @@ public class DrawAgent extends CommunicationAid{
                 else if (m.type == "accept"){
                     if ( this.timeSchedule.setEventActive(taskID) ){ 
                         this.print("task added to schedule, taskID-->"+taskID);
+                        this.timeSchedule.printSchedule(this.COLOR);
                     }
                     else{ //TODO task not added, need to send abort to taskProvider.
                         this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
@@ -118,7 +123,7 @@ public class DrawAgent extends CommunicationAid{
                 
             }
             // Changed sleep from 1000
-            this.sleep(500);
+            this.sleep(100);
         }
     }
 
@@ -133,20 +138,22 @@ public class DrawAgent extends CommunicationAid{
         }
 
         else if (informVal.equals(new String("status"))) { //TODO change so schedule gets updated: newEndTime = Double.parseDouble(messageParts[2])
-            double newEndTime = Double.parseDouble(this.parseMessage(m, "", true)[2]);
-            if ( this.timeSchedule.isNewEndTimePossible(taskID, newEndTime) ){
-                this.timeSchedule.setNewEndTime(taskID, newEndTime);
-            }
-            else{
-                this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
-                this.timeSchedule.abortEvent(taskID);
-            }
-            this.print("--- schedule ---AFTER INFORM MSG");
             this.timeSchedule.printSchedule(this.COLOR);
+
+            double newEndTime = Double.parseDouble(this.parseMessage(m, "", true)[2]);
+            Task taskToAbort = this.timeSchedule.updateTaskEndTimeIfPossible(taskID, newEndTime); // this function aborts task from schedule
+
+            if ( taskToAbort != null ){
+                this.sendMessage(new Message(this.robotID, taskToAbort.partner, "inform", taskToAbort.taskID+this.separator+"abort"));
+                this.print("sending ABORT msg. taskID-->"+taskID+"\twith-->"+m.sender );
+            }
+            else {this.print("updated without conflict-->"+taskID +"\twith-->"+ m.sender);}
         }                     
 
         else if (informVal.equals(new String("abort"))) { //TODO remove task from schedule 
+            this.timeSchedule.printSchedule(this.COLOR);
             this.timeSchedule.abortEvent(taskID);
+            this.print("got ABORT MSG! taskID-->"+taskID+"\twith-->"+m.sender );
         } 
     }
 
@@ -161,8 +168,9 @@ public class DrawAgent extends CommunicationAid{
         else availabeOre = availabeOre >= 15.0 ? 15.0 : availabeOre; // only give what ore we have available
 
         Task DAtask = createTaskFromServiceOffer(m, availabeOre);
+
         if ( !this.timeSchedule.isTaskPossible(DAtask) ) return false;    // task doesnt fit in schedule
-        int offerVal = this.calculateOffer(DAtask);
+        int offerVal = this.calculateOffer(DAtask, m);
 
         if ( offerVal <= 0 ) return false;
         if (! this.timeSchedule.addEvent(DAtask) ) return false;
@@ -201,11 +209,14 @@ public class DrawAgent extends CommunicationAid{
         Pose TApos = this.posefyString(mParts[2]);
 
         // removed for easier debug
-        //PoseSteering[] path = this.calculatePath(this.pos, TApos);
-        //double pathDist = this.calculatePathDist(path);
-        //double pathTime = this.calculateDistTime(pathDist);
+        // PoseSteering[] path = this.getPath( this.mp, this.pos, TApos);
+        // double pathDist = this.calculatePathDist(path);
+        // double pathTime = this.calculateDistTime(pathDist);
+
+        // this.print("pathDist-->"+pathDist+"\twith-->"+m.sender);
+
         double pathDist = this.pos.distanceTo(TApos);
-        double pathTime = this.calculateDistTime(pathDist) + 10.0;
+        double pathTime = this.calculateDistTime(pathDist) + 4.0;
 
         double taskStartTime = Double.parseDouble(mParts[3]);
         double endTime = taskStartTime + pathTime;
@@ -229,7 +240,7 @@ public class DrawAgent extends CommunicationAid{
         String TAposStr = this.stringifyPose(t.fromPose);
         String DAposStr = this.stringifyPose(t.toPose);
         String body = t.taskID +s+ offer +s+ TAposStr +s+ 
-                      DAposStr +s+ t.startTime +s+ t.endTime +s+ ore;
+                      DAposStr +s+ t.startTime +s+ (t.endTime - this.ADD_TIME2TA_TASKS) +s+ ore;
 
         return new Message(this.robotID, t.partner, "offer", body);
     }
@@ -241,28 +252,40 @@ public class DrawAgent extends CommunicationAid{
      * @param t the task to be evaluated how well it fits for this agent
      * @return an int with the value of this task.
      */
-    protected int calculateOffer(Task t){
-        // if (t.pathDist <= 2.0) return 0;
+    protected int calculateOffer(Task t, Message m){
+        if (t.pathDist <= 2.0) return 0;
 
-        // double dist = 100.0 * 1.0 / t.pathDist;
-        // double evaluatedCapacity = 200.0 * this.amount / this.capacity; 
+        int fullOreBonus = t.ore < -15.0 +0.1 ? 1000 : 0;
+        
+        // distance calc
+        double dist = t.fromPose.distanceTo(t.toPose);
 
-        // return (int)(dist + evaluatedCapacity);
-        int offer;
-        if (t.pathDist > 0.5) {
-            double oreLevel = this.timeSchedule.getOreStateAtTime(this.getTime());
-            int fullOreBonus = 1000;
-            if (oreLevel >= t.ore) {
-                offer = this.calcCDF(t.pathDist, 500) + fullOreBonus;
-            }
-            else {
-                offer = this.calcCDF(t.pathDist, 500);
-            }
-        }
-        else {
-            offer = 0;
-        }
-        return offer;
+        int distEval = this.calcCDF( dist );
+        // time bonus
+        double CNPstartTime = Double.parseDouble(this.parseMessage(m, "startTime")[0]);
+        double timeDiff = Math.abs(t.startTime - CNPstartTime);
+        int timeEval = (int)( 50 - timeDiff );
+
+        //this.print("with robot-->"+m.sender +"\t dist-->"+dist+"\tdistance eval-->"+distEval+"\t cnp starttime-->"+CNPstartTime+"\t timeDiff-->"+timeDiff+"\ttime eval-->"+timeEval);
+        return fullOreBonus + distEval + timeEval;
+        
+        // int offer;
+        // if (t.pathDist > 0.5) {
+        //     double evaluatedCapacity = 100.0 * this.amount / this.capacity; 
+        //     if (this.amount / this.capacity > 0.9) {
+        //         // Ändra med t.ore. If t.ore < -15
+        //         // Draw agent is nearly full
+        //         int fullOreBonus = 1000;
+        //         offer = this.calcCDF(t.pathDist) + fullOreBonus;
+        //     }
+        //     else {
+        //         offer = this.calcCDF(t.pathDist) + (int)evaluatedCapacity;
+        //     }
+        // }
+        // else {
+        //     offer = 0;
+        // }
+        // return offer;
     }
 
     /**

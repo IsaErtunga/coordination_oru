@@ -6,19 +6,42 @@ import org.metacsp.multi.spatioTemporal.paths.Pose;
 import se.oru.coordination.coordination_oru.motionplanning.ompl.ReedsSheppCarPlanner;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.lang.Math;
 
 public class HelpFunctions {
 
     FilePrinter fp = new FilePrinter();
 
-    public PoseSteering[] calculatePath(ReedsSheppCarPlanner mp, Pose from, Pose to){
+    public PoseSteering[] getPath(HashMap<String, PoseSteering[]> paths, ReedsSheppCarPlanner mp, Pose from, Pose[] to){
+        Pose finalToPose = to[to.length-1];
+        String pathID = String.format("%.2f",from.getX())+"," +String.format("%.2f",from.getY())
+                        + "->" +
+                        String.format("%.2f",finalToPose.getX())+"," +String.format("%.2f",finalToPose.getY());
+
+
+        PoseSteering[] path = null;
+        if ( paths != null ) synchronized(paths){ path = paths.get(pathID); }
+
+        if (path != null) return path;
+
         mp.setStart(from);
         mp.setGoals(to);
         if (!mp.plan()) throw new Error ("No path between " + from + " and " + to);
 
-        return mp.getPath();
-    } 
+        path = mp.getPath();
+        if ( paths != null ) synchronized(paths){ paths.put(pathID, path); }
+        return path;
+    }
+    public PoseSteering[] getPath(HashMap<String, PoseSteering[]> paths, ReedsSheppCarPlanner mp, Pose from, Pose to){
+        Pose[] toPoses = new Pose[] {to};
+        return this.getPath(paths, mp, from, toPoses);
+    }
+    public PoseSteering[] getPath(ReedsSheppCarPlanner mp, Pose from, Pose to){
+        Pose[] toPoses = new Pose[] {to};
+        return this.getPath(null, mp, from, toPoses);
+    }
+
 
     public double calculatePathDist(PoseSteering[] path) {
         double accumulatedDist = 0.0;
@@ -67,16 +90,6 @@ public class HelpFunctions {
     }
 
     /**
-     * Helper function to calculate distance between to Pose objects. 
-     * @param start
-     * @param end
-     * @return
-     */
-    public double calcDistance(Pose start, Pose end) {
-        return start.distanceTo(end);
-    }
-
-    /**
      * Returns value from Cumulative Distribution Function
      * ATM: Exponential distribution Can play around with which one we want. 
      * Value is distance. Around 65 distance = 0 in result
@@ -95,10 +108,7 @@ public class HelpFunctions {
         //int res = (int) (101 - Math.pow(e, lambda*value));
         int res = (int) (yValue - value);
 
-        if (res < 0) {
-            res = 0;
-        }
-        return res;
+        return res < 0 ? 0 : res;
     }
 
     public static void main(String args[]){

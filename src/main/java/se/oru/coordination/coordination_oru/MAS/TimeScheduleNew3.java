@@ -5,33 +5,33 @@ import java.util.HashMap;
 
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 
-public class TimeScheduleNew {
+public class TimeScheduleNew3 {
     // control parameters
     private static double tSensitivity = 0.0;
-    private static int unchangeableTaskCount = 0;
+    private static int unchangeableTaskCount = 2;
 
+    private Pose startPos = null; 
     private double capacity; 
-    protected Task currentTask;    
+    protected Task currentTask = null;    
     private ArrayList<Task> schedule = new ArrayList<Task>();
     private HashMap<Integer, Task> reserved = new HashMap<Integer, Task>();
     public OreState oreState = null;
 
-    public TimeScheduleNew(Pose startPos, double oreCapacity, double startOre){
+    public TimeScheduleNew3(Pose startPos, double oreCapacity, double startOre){
         this.oreState = new OreState(oreCapacity, startOre);
         this.capacity = oreCapacity;
-        Task initialTask = new Task(-1.0, -1.0);
-        initialTask.toPose = startPos;
-        this.currentTask = initialTask;
+        this.startPos = startPos;
     }
-    public TimeScheduleNew(OreState os, Pose startPos, double oreCapacity, double startOre){
+    public TimeScheduleNew3(OreState os, Pose startPos, double oreCapacity, double startOre){
         this.oreState = os;
-        Task initialTask = new Task(-1.0, -1.0);
-        initialTask.toPose = startPos;
-        this.currentTask = initialTask;
+        this.startPos = startPos;
     }
 
     private Task getLastTask(){
-        if ( this.schedule.size() <= 0 ) return this.currentTask;
+        if ( this.schedule.size() <= 0 ){
+            if ( this.currentTask != null ) return this.currentTask;
+            return null;
+        }
         return this.schedule.get(this.schedule.size()-1);
     }
 
@@ -58,25 +58,6 @@ public class TimeScheduleNew {
             this.abortEvent(taskID);
             synchronized(this.oreState){ this.oreState.removeState(taskID); }
             return false;
-        }
-        return true;
-    }
-
-    /**
-     * Overloaded for SA agent
-     * @param taskID
-     * @param isSA
-     * @return
-     */
-    public boolean setEventActive(int taskID, boolean isSA){
-        Task t = this.reserved.remove(taskID);
-        if( t == null ) return false;
-        t.isActive = true;
-
-        boolean taskAdded = this.addEvent(t);
-        double lastOreState;
-        synchronized(this.oreState){
-            lastOreState = this.oreState.getLastOreState();
         }
         return true;
     }
@@ -116,8 +97,10 @@ public class TimeScheduleNew {
     }
 
     public Pose getPoseAtTime(double time){
-        if ( this.schedule.size() <= 0 || (int)(time) == -1) return this.currentTask.toPose;
-            
+        if ( this.schedule.size() <= 0 ){
+            if ( this.currentTask != null ) return this.currentTask.toPose;
+            return this.startPos;
+        }
         for ( int i=this.schedule.size()-1; i>=0; i-- ){
             Task curr = this.schedule.get(i);
             if ( curr.endTime <= time ) return curr.toPose;
@@ -128,31 +111,45 @@ public class TimeScheduleNew {
         return this.getPoseAtTime(Double.MAX_VALUE);
     }
 
-     /**
-      * will push all slots in schedule so they are compressed with no free space between.
-      * @param nextStartTime is the calculated next starttime for the next task.
-      * @return an array of tasks to be informed of the new times.
-      */
-    public ArrayList<Task> compressSchedule(double nextStartTime){
-        ArrayList<Task> tasks2inform = new ArrayList<Task>();
+    public ArrayList<Task> updateSchedule(){
+        ArrayList<Task> fixes = new ArrayList<Task>();  // add {Task t} if task updated with diff> 5s
+
+        if (this.schedule.size() > this.unchangeableTaskCount){
+
+            Task prev = this.schedule.get(this.unchangeableTaskCount);
+            for ( int i=this.unchangeableTaskCount+1; i<this.schedule.size(); i++ ){
+                Task curr = this.schedule.get(i);
+
+                if (prev.endTime - this.tSensitivity > curr.startTime ){
+                    double newEndTime = curr.endTime - curr.startTime + prev.endTime;
+                    synchronized(this.oreState){ this.oreState.changeState(curr.taskID, newEndTime); }
+                    curr.endTime = newEndTime;
+                    curr.startTime = prev.endTime;
+                    fixes.add(curr);
+                }
+                prev = curr;
+            }
+        }
+        return fixes;
+    }
+
+    public ArrayList<Task> updateSchedule(int aaaa){
+        ArrayList<Task> tasks2inform = new ArrayList<Task>();  // add {Task t} if task updated with diff> 5s
         final int startIndex = this.unchangeableTaskCount;
         int scheduleSize = this.schedule.size();
 
-        if ( scheduleSize > 0 ){
-            Task prev = this.schedule.get(0);
-            double taskLength = prev.endTime - prev.startTime;
-            prev.startTime = nextStartTime;
-            prev.endTime = nextStartTime + taskLength;
-            synchronized(this.oreState){ this.oreState.changeState(prev.taskID, prev.endTime); }
-            if ( startIndex <= 0 ) tasks2inform.add(prev);
-            for ( int i=1; i<scheduleSize; i++ ){
-                Task curr = this.schedule.get(i);
-                double newEndTime = curr.endTime - curr.startTime + prev.endTime;
+        if ( scheduleSize >= startIndex ){
 
+            Task prev = this.schedule.get(startIndex-1);
+
+            for ( int i=startIndex; i<scheduleSize; i++ ){
+                Task curr = this.schedule.get(i);
+
+                double newEndTime = curr.endTime - curr.startTime + prev.endTime;
                 synchronized(this.oreState){ this.oreState.changeState(curr.taskID, newEndTime); }
                 curr.endTime = newEndTime;
                 curr.startTime = prev.endTime;
-                if ( startIndex <= i ) tasks2inform.add(curr);
+                tasks2inform.add(curr);
                 
                 prev = curr;
             }
@@ -160,42 +157,35 @@ public class TimeScheduleNew {
         return tasks2inform;
     }
 
-    /**
-     * will check if new times of task can be updated. if it doesnt work with task after, the task after will be aborted.
-     * if it doesnt work with task before, it will abort the task to be updated. always prio tasks closer in future.
-     * @param taskID id of task to be updated
-     * @param NewEndTime new endTime of task to be updated
-     * @return the robotID to inform of their task being aborted. if -1 then abort the task being altered.
-     */
-    public Task updateTaskEndTimeIfPossible(int taskID, double NewEndTime){
-        Task taskToAbort = null;
+    public Task setNewEndTime(int taskID, double newEndTime){
+        Task returnFix = null;
         Task t = this.getEvent(taskID);
-        if ( t == null ) return null;
+        if ( t != null ){
+            t.endTime = newEndTime;
+            synchronized(this.oreState){ this.oreState.changeState(t.taskID, newEndTime); }
+        }
+        
+        else if ( this.currentTask != null && this.currentTask.taskID == taskID){
+            this.currentTask.endTime = newEndTime;
+            if ( this.schedule.size() > 0 ){
+                Task nextTask = this.schedule.get(0);
+                if ( this.currentTask.endTime - this.tSensitivity > nextTask.startTime || this.currentTask.endTime + this.tSensitivity < nextTask.startTime){
+                    double nextTaskNewEndTime = (nextTask.endTime - nextTask.startTime) + currentTask.endTime;
 
-        double newStartTime = NewEndTime - (t.endTime - t.startTime);
-        int indexOfTask = this.schedule.indexOf(t);
-        if ( indexOfTask < 0 ) return null;
-
-        if ( t.endTime > NewEndTime && indexOfTask > 0){ // if task is earlier than expected
-            Task taskBefore = this.schedule.get(indexOfTask-1);
-            if ( this.tasksOverlapping(newStartTime, NewEndTime, taskBefore.startTime, taskBefore.endTime) == true ){
-                this.abortEvent(taskID);
-                return t;
+                    synchronized(this.oreState){ this.oreState.changeState(nextTask.taskID, nextTaskNewEndTime); }
+                    nextTask.endTime = nextTaskNewEndTime;
+                    nextTask.startTime = this.currentTask.endTime;
+                    returnFix = nextTask;
+                }
             }
         }
-        else if ( this.schedule.size()-1 > indexOfTask ){   // else task is later. if taskID has task after it, then check if overlapp.
-            Task taskAfter = this.schedule.get(indexOfTask+1);
-            if ( this.tasksOverlapping(newStartTime, NewEndTime, taskAfter.startTime, taskAfter.endTime) == true ){
-                this.abortEvent(taskAfter.taskID);
-                taskToAbort = taskAfter;
-            }
-        }
-        synchronized(this.oreState){ this.oreState.changeState(taskID, NewEndTime); }
-        t.startTime = newStartTime;
-        t.endTime = NewEndTime;
-        return taskToAbort;
+        return returnFix;
     }
 
+    public boolean isNewEndTimePossible(int taskID, double newEndTime){
+        Task t = this.getEvent(taskID);
+        return isTaskPossible(taskID, t.startTime, newEndTime);
+    }
 
     public boolean removeEvent(int taskID){
         for (Task t : this.schedule){
@@ -225,22 +215,19 @@ public class TimeScheduleNew {
 
     public ArrayList<Task> fixBrokenSchedule(){
         ArrayList<Task> fixes = new ArrayList<Task>();
-        int taskIDwhereBroken = -1;
+        double scheduleFailTime;
 
-        synchronized(this.oreState){ taskIDwhereBroken = this.oreState.getFirstFail(); }
-        if ( taskIDwhereBroken == -1 ) return fixes;
+        synchronized(this.oreState){
+            scheduleFailTime = this.oreState.getFirstFail();
+        }
+        if ( scheduleFailTime == -1.0 ) return fixes;
         
         ArrayList<Task> scheduleCopy = new ArrayList<Task>(this.schedule);
-        
-        int indexOfBrokenTask = this.schedule.indexOf(this.getEvent(taskIDwhereBroken));
-        if ( indexOfBrokenTask >= scheduleCopy.size() || indexOfBrokenTask < 0 ) return fixes;
-
-        System.out.println("\t\tIn fixBrokenSchedule, taskID where schedule broken-->"+taskIDwhereBroken+"\tindex of that task-->"+indexOfBrokenTask+"\n");
-        //this.printSchedule("");
-        for (int i=indexOfBrokenTask; i < scheduleCopy.size(); i++){
-            Task t = scheduleCopy.get(i);
-            this.abortEvent(t.taskID);
-            fixes.add(t);
+        for (Task t : scheduleCopy){
+            if ( t.endTime >= scheduleFailTime ){
+                this.abortEvent(t.taskID);
+                fixes.add(t);
+            } 
         }
         return fixes;
     }
@@ -280,21 +267,18 @@ public class TimeScheduleNew {
             //System.out.println(c+"from: " +t.fromPose.toString() + " --> " + t.toPose.toString()+e);
         }
         System.out.println();
-        System.out.println(c+"_____________________________ORE-STATE__________________"+e);
+        System.out.println("_____________________________ORE-STATE__________________");
         synchronized(this.oreState){ this.oreState.print(c); }
         
     }
 
-    private boolean tasksOverlapping( double t1StartTime, double t1EndTime, double t2StartTime, double t2EndTime){
-        return (t1EndTime > t2StartTime && t1StartTime < t2EndTime);
-    }
+    
     private boolean tasksOverlapping( Task t1, double tStartTime, double tEndTime){
-        return this.tasksOverlapping(t1.startTime,t1.endTime, tStartTime, tEndTime);
+        return (t1.endTime > tStartTime && t1.startTime < tEndTime);
     }
     private boolean tasksOverlapping( Task t1, Task t2){
-        return this.tasksOverlapping(t1, t2.startTime, t2.endTime);
+        return tasksOverlapping(t1, t2.startTime, t2.endTime);
     }
-    
 
     public boolean isTaskPossible(int taskID, double tStartTime, double tEndTime){
         for ( Task t : this.schedule ){
@@ -317,7 +301,7 @@ public class TimeScheduleNew {
         Pose startp = new Pose(0.0, 0.0, 0.0);
         double startOre = 0.0;
         double capacity = 30.0;
-        TimeScheduleNew ts = new TimeScheduleNew(startp, capacity, capacity);
+        TimeScheduleNew3 ts = new TimeScheduleNew3(startp, capacity, capacity);
 
 
         //overlap test
@@ -415,6 +399,20 @@ public class TimeScheduleNew {
             System.out.println("\nBEFORE");
             ts.printSchedule("");
 
+            ts.setNewEndTime(1, 31.0);
+            //ts.printSchedule("");
+            System.out.println("\nnow with conflict::");
+            ts.setNewEndTime(1, 36.0);
+            ts.printSchedule("");
+            //ts.setNewEndTime(2, 55.0);
+            //ts.printSchedule("");
+
+            ArrayList<Task> aa = ts.updateSchedule();
+
+            for ( Task t : aa ){
+                System.out.println("taskid-->"+t.taskID +"\tsTime-->"+t.startTime+"\teTime-->"+t.endTime);
+            }
+            ts.printSchedule("");
 
             System.out.println(ts.getOreStateInconsistencies());
                     
@@ -449,7 +447,7 @@ public class TimeScheduleNew {
         }
 
         if ( testLastToPose ){
-            TimeScheduleNew tss = new TimeScheduleNew(startp, startOre, capacity);
+            TimeScheduleNew3 tss = new TimeScheduleNew3(startp, startOre, capacity);
 
             Task t1 = new Task(10.0, 20.0, 1);
             Task t2 = new Task(30.0, 40.0, 2);
