@@ -4,7 +4,7 @@ import csv
 plt.rcParams["figure.figsize"] = [7.50, 3.50]
 plt.rcParams["figure.autolayout"] = True
 
-robotID = "1"
+robotID = "301"
 path = "/home/parallels/" + "OreState" + robotID + ".csv"
   
 x = []

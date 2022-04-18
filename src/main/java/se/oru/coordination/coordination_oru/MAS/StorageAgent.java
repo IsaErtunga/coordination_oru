@@ -215,13 +215,14 @@ public class StorageAgent extends CommunicationAid{
                 }
 
                 else if (m.type == "accept") {
-
+                    this.print("");
+                    this.timeSchedule.printSchedule(this.COLOR);
                     boolean eventAdded;
-                    synchronized(this.timeSchedule){ eventAdded = this.timeSchedule.setEventActive(taskID); }
+                    synchronized(this.timeSchedule){ eventAdded = this.timeSchedule.setEventActive(taskID, true); }
                     this.print("accept-msg, taskID-->"+taskID+"\twith robot-->"+m.sender+"\ttask added-->"+eventAdded);
                     if ( eventAdded == false ){
                         this.print("accept received but not successfully added. sending abort msg");
-                        this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
+                        // this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
                     }
                 } 
 
@@ -259,8 +260,9 @@ public class StorageAgent extends CommunicationAid{
         if (informVal.equals(new String("done"))) {
             double oreChange = Double.parseDouble(this.parseMessage(m, "", true)[2]);  
 
+            int docId = this.robotID % 1000;
             try {
-                this.fp.write(this.getTime(), this.timeSchedule.getOreStateAtTime(this.getTime()), this.robotID);
+                this.fp.write(this.getTime(), this.timeSchedule.getOreStateAtTime(this.getTime()), docId);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -473,33 +475,34 @@ public class StorageAgent extends CommunicationAid{
      * @return offer
      */
     protected int calculateOffer(Task t){
-        // int offer;
-        // if (t.pathDist > 0.5) {
-        //     double oreLevel = this.timeSchedule.getLastOreState();
-        //     double oreLevelPercentage = oreLevel/this.capacity;
-        //     if (oreLevelPercentage > 0.8) {
-        //         double tooMuchOreBonus = 1000 * oreLevelPercentage;
-        //         offer = (int)tooMuchOreBonus + this.calcCDF(t.pathDist);
-        //     }
-        //     else if (oreLevelPercentage < 0.05) {
-        //         offer = 0;
-        //     }
-        //     else {
-        //         this.print("ELSE");
-        //         offer = (int)(((oreLevel/this.capacity)*100) + this.calcCDF(t.pathDist));
-        //     }
-        // }
-        // else {
-        //     offer = 0;
-        // }
-        // this.timeSchedule.printSchedule(this.COLOR);
-        // return offer;
-        if (t.pathDist <= 2.0) return 0;
+        int offer;
+        if (t.pathDist > 0.5) {
 
-        double dist = 100.0 * 1.0 / t.pathDist;
-        double evaluatedCapacity = 200.0 * this.amount / this.capacity; 
+            double oreLevel = this.timeSchedule.getOreStateAtTime(t.endTime);
+            double oreLevelPercentage = oreLevel/this.capacity;
 
-        return (int)(dist + evaluatedCapacity);
+            if (oreLevelPercentage > 0.8) {
+                double tooMuchOreBonus = 1000 * oreLevelPercentage;
+                offer = (int)tooMuchOreBonus + this.calcCDF(t.pathDist, 500);
+            }
+            else if (oreLevelPercentage < 0.05) {
+                offer = 0;
+            }
+            else {
+                offer = (int) (oreLevelPercentage * this.calcCDF(t.pathDist, 500));
+            }
+        }
+        else {
+            offer = 0;
+        }
+        this.timeSchedule.printSchedule(this.COLOR);
+        return offer;
+        // if (t.pathDist <= 2.0) return 0;
+
+        // double dist = 100.0 * 1.0 / t.pathDist;
+        // double evaluatedCapacity = 200.0 * this.amount / this.capacity; 
+
+        // return (int)(dist + evaluatedCapacity);
     }   
 
     /** Used to generate a response message from a task. Called from {@link handleService}

@@ -205,6 +205,7 @@ public class TransportTruckAgent extends CommunicationAid{
 
                 boolean taskAdded;
                 synchronized(this.timeSchedule){ taskAdded = this.timeSchedule.addEvent(task); }
+                this.print("<-------------");
                 this.timeSchedule.printSchedule(this.COLOR);
                 if ( taskAdded != true ){ // if false then task no longer possible, send abort msg to task partner
                     this.print("TASK ABORTED");

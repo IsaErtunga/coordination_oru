@@ -74,10 +74,10 @@ public class TimeScheduleNew {
         t.isActive = true;
 
         boolean taskAdded = this.addEvent(t);
-        double lastOreState;
-        synchronized(this.oreState){
-            lastOreState = this.oreState.getLastOreState();
-        }
+        // double lastOreState;
+        // synchronized(this.oreState){
+        //     lastOreState = this.oreState.getLastOreState();
+        // }
         return true;
     }
 

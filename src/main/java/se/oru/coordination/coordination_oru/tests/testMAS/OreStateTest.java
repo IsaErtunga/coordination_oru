@@ -188,7 +188,7 @@ public class OreStateTest {
 			@Override
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);
-				DrawAgent DA = new DrawAgent(numDraw[i], router, 40.0, drawPoses[i], mp, startTime, numDraw[i] < 2000 );
+				DrawAgent DA = new DrawAgent(numDraw[i], router, 60.0, drawPoses[i], mp, startTime, numDraw[i] < 2000 );
 				DA.listener();
 				
 			}
@@ -274,7 +274,7 @@ public class OreStateTest {
 			}
 		};
 		storageThreadRight.start();
-		/*
+		
 		Thread storageThreadTTA = new Thread() {
 			@Override
 			public void run() {
@@ -291,14 +291,14 @@ public class OreStateTest {
 			}
 		};
 		storageThreadTTA.start();
-		*/
+		
 
 		try { Thread.sleep(3000); }
 		catch (InterruptedException e) { e.printStackTrace(); }
 	}
 
 	final int[] numTransportTruck = {9401, 9402}; 
-	final int[] iter4 = {};
+	final int[] iter4 = {0};
 	Pose[] transportTruckPoses = {TTA1pos, TTA2pos};    
 	
 	for (final int i : iter4) {

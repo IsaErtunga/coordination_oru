@@ -34,16 +34,18 @@ public class FilePrinter {
     }
  
     public static void main(String[] args) {
-        FilePrinter fp = new FilePrinter();
-        try {
-            fp.write(0.5, 20.0, 1);
-            fp.write(0.5, 20.0, 1);
-            fp.write(0.5, 23.0, 2);
-            fp.write(0.5, 23.0, 1);
-            fp.write(0.5, 23.0, 2);
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+    //     FilePrinter fp = new FilePrinter();
+    //     try {
+    //         fp.write(0.5, 20.0, 1);
+    //         fp.write(0.5, 20.0, 1);
+    //         fp.write(0.5, 23.0, 2);
+    //         fp.write(0.5, 23.0, 1);
+    //         fp.write(0.5, 23.0, 2);
+    //     } catch (IOException e) {
+    //         // TODO Auto-generated catch block
+    //         e.printStackTrace();
+    //     }
+    // }
+ 
     }
 }
