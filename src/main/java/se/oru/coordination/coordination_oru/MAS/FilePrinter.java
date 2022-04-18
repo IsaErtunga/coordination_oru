@@ -10,21 +10,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
  
 // Main class
 public class FilePrinter {
-    protected String fileName;
-    protected Path path;
     protected String separator = ",";
-
-    public FilePrinter() {
-        this.fileName = "StorageAgentState.csv";
-        this.path = Path.of("/home/parallels/" + this.fileName);
-    }
-
-    public FilePrinter(String path, String fileName) {
-        this.path = Path.of(path + this.fileName);
-    }
+    protected ArrayList<Integer> robots = new ArrayList<Integer>();
 
     /**
      * For writing storage state into file
@@ -32,20 +23,24 @@ public class FilePrinter {
      * @param ore
      * @throws IOException
      */
-    protected void write(double time, double ore) throws IOException {
+    protected void write(double time, double ore, int robotID) throws IOException {
+        Path path = Path.of("/home/parallels/" + "OreState" + robotID + ".csv");
         String content = time + this.separator + ore + "\n";
-        if (Files.exists(this.path)) {
-            Files.write(this.path, content.getBytes(), StandardOpenOption.APPEND);
+        if (Files.exists(path)) {
+            Files.write(path, content.getBytes(), StandardOpenOption.APPEND);
         } else {
-            Files.write(this.path, content.getBytes(), StandardOpenOption.CREATE);
+            Files.write(path, content.getBytes(), StandardOpenOption.CREATE);
         }
     }
  
     public static void main(String[] args) {
         FilePrinter fp = new FilePrinter();
         try {
-            fp.write(0.5, 20.0);
-            fp.write(0.5, 30.0);
+            fp.write(0.5, 20.0, 1);
+            fp.write(0.5, 20.0, 1);
+            fp.write(0.5, 23.0, 2);
+            fp.write(0.5, 23.0, 1);
+            fp.write(0.5, 23.0, 2);
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();

@@ -259,7 +259,7 @@ public class StorageAgent extends CommunicationAid{
             double oreChange = Double.parseDouble(this.parseMessage(m, "", true)[2]);  
 
             try {
-                this.fp.write(this.getTime(), this.timeSchedule.getOreStateAtTime(this.getTime()));
+                this.fp.write(this.getTime(), this.timeSchedule.getOreStateAtTime(this.getTime()), this.robotID);
             } catch (IOException e) {
                 e.printStackTrace();
             }

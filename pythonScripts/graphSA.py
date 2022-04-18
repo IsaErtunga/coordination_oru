@@ -4,8 +4,8 @@ import csv
 plt.rcParams["figure.figsize"] = [7.50, 3.50]
 plt.rcParams["figure.autolayout"] = True
 
-filename = "StorageAgentState.csv"
-path = "/home/parallels/" + filename
+robotID = "1"
+path = "/home/parallels/" + "OreState" + robotID + ".csv"
   
 x = []
 y = []
@@ -18,7 +18,7 @@ with open(path,'r') as csvfile:
         y.append(float(row[1]))
 
 
-plt.plot(sorted(x), sorted(y))
+plt.plot(x, y)
 plt.title('StorageAgent (ore pass) state')
 plt.xlabel('Time')
 plt.ylabel('Ore')
