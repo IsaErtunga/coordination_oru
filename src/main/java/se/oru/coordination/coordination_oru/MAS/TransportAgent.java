@@ -27,7 +27,7 @@ public class TransportAgent extends CommunicationAid{
     protected Coordinate[] rShape;
     protected Pose startPose;
     protected final Double capacity = 15.0;
-    protected final int taskCap = 4;
+    protected final int taskCap = 6;
 
     protected TimeScheduleNew timeSchedule;
     protected long startTime;
@@ -72,10 +72,10 @@ public class TransportAgent extends CommunicationAid{
     }
 
     protected double getNextTime(){
-        double STARTUP_ADD = 10.0;
+        double STARTUP_ADD = 8.0;
         synchronized(this.timeSchedule){
             double nextTime = this.timeSchedule.getNextStartTime();
-            return (int)(nextTime) == -1 ? this.getTime()+STARTUP_ADD : nextTime;
+            return (int)(nextTime) == -1 ? STARTUP_ADD : nextTime;
         }
     }
 
@@ -141,7 +141,8 @@ public class TransportAgent extends CommunicationAid{
      */
     protected Boolean isTaskDone (Task task) {
         // Distance from robots actual position to task goal pose
-        synchronized(this.tec){ return this.tec.getRobotReport(this.robotID).getPose().distanceTo(task.toPose) < 0.5; }
+        synchronized(this.tec){ return this.tec.isFree(robotID); }
+        //synchronized(this.tec){ return this.tec.getRobotReport(this.robotID).getPose().distanceTo(task.toPose) < 2.0; }
     }
 
     /**
@@ -154,10 +155,10 @@ public class TransportAgent extends CommunicationAid{
 
             ArrayList<Task> newEndTimes;
             Task task = null;
-            Pose prevTaskFromPose = null;
+            Pose prevToPose = null;
             
             synchronized(this.timeSchedule){
-                prevTaskFromPose = this.timeSchedule.getPoseAtTime(-1.0);
+                prevToPose = this.timeSchedule.getPoseAtTime(-1.0);
                 task = this.timeSchedule.getNextEvent();
             }
             if (task == null) continue;
@@ -168,15 +169,16 @@ public class TransportAgent extends CommunicationAid{
             synchronized(this.timeSchedule){
                 this.timeSchedule.changeOreStateEndTime(task.taskID, nextStartTime);
                 newEndTimes = this.timeSchedule.compressSchedule(nextStartTime);
+                this.timeSchedule.printSchedule(this.COLOR);
             }
             this.print("starting mission taskID-->"+task.taskID+" with -->" +task.partner + "\tat time-->"+this.getTime()+"\ttaskStartTime-->"+task.startTime);
-
+            this.print("from pose-->"+prevToPose.toString() +"\tto pose-->"+ task.toPose.toString());
             task.startTime = now;
             task.endTime = nextStartTime;
             newEndTimes.add(0, task);
             // start next task
 
-            synchronized(this.tec){ this.tec.addMissions(this.createMission(task, prevTaskFromPose)); }
+            synchronized(this.tec){ this.tec.addMissions(this.createMission(task, prevToPose)); }
 
             // send inform msgs informing of new times.
             if ( now - task.startTime > 0.0 ){ //if we start later = send from last to first
@@ -198,6 +200,10 @@ public class TransportAgent extends CommunicationAid{
             while (!isTaskDone(task)) {
                 this.sleep(100);
             }
+            this.print("mission DONE taskID-->"+task.taskID+" with -->" +task.partner + "\tat time-->"+this.getTime()+"\ttaskEndTime-->"+task.endTime);
+            Pose currentPose;
+            // synchronized(this.tec){ currentPose = this.tec.getRobotReport(this.robotID).getPose(); }
+            // this.print("currently at pose -->"+currentPose.toString() );
             Message doneMessage = new Message(this.robotID, task.partner, "inform", task.taskID + this.separator + "done" + "," + task.ore);
             this.sendMessage(doneMessage, false);
 
@@ -373,7 +379,7 @@ public class TransportAgent extends CommunicationAid{
         synchronized(this.timeSchedule){ taskPossible = this.timeSchedule.isTaskPossible(SATask); }
         if ( !taskPossible ) return false;    // task doesnt fit in schedule
 
-        int offerVal = this.calculateOffer(SATask);
+        int offerVal = this.calculateOffer(SATask, m);
         
         if ( offerVal <= 0.01 ) return false;
 
@@ -381,6 +387,8 @@ public class TransportAgent extends CommunicationAid{
 
         this.sendMessage(this.createOfferMsgFromTask(SATask, offerVal, availabeOre));
 
+        this.print("in handleService");
+        this.timeSchedule.printSchedule(this.COLOR);
         return true;
     }
 
@@ -433,22 +441,27 @@ public class TransportAgent extends CommunicationAid{
      * @param t
      * @return offer
      */
-    protected int calculateOffer(Task t){
-        int offer;
-        if (t.pathDist > 0.5) {
-            double oreLevel = this.timeSchedule.getOreStateAtTime(this.getTime());
-            int fullOreBonus = 1000;
-            if (oreLevel >= t.ore) {
-                offer = this.calcCDF(t.pathDist, 500) + fullOreBonus;
-            }
-            else {
-                offer = this.calcCDF(t.pathDist, 500) + (int)(fullOreBonus * oreLevel/t.ore);
-            }
-        }
-        else {
-            offer = 0;
-        }
-        return offer;
+    protected int calculateOffer(Task t, Message m){
+        if ( t.pathDist < 2.0 ) return 0;
+
+        // ore eval [1000, 0]
+        int oreEval = Math.abs(t.ore) > 14.9 ? 1000 : (int)this.linearDecreasingComparingFunc(Math.abs(t.ore), 15.0, 15.0, 500.0);
+        
+        // dist evaluation [1000, 0]
+        int distEval = (int)this.concaveDecreasingFunc(t.fromPose.distanceTo(t.toPose), 1000.0, 120.0); // [1000, 0]
+
+        // time bonus [500, 0]
+        double cnpStartTime = Double.parseDouble(this.parseMessage(m, "startTime")[0]);
+        double upperTimeDiff = cnpStartTime <= 0.0 ? 60.0 : 30.0;
+        int timeEval = (int)this.linearDecreasingComparingFunc(t.startTime, cnpStartTime, upperTimeDiff, 500.0);        
+
+        this.print("with robot-->"+m.sender +"\t dist-->"+ String.format("%.2f",t.pathDist) 
+                        +"\tdistance eval-->"+distEval
+                        +"\t cnp starttime-->"+String.format("%.2f",cnpStartTime) 
+                        +"\t timeDiff-->"+String.format("%.2f",Math.abs(cnpStartTime - t.startTime )) 
+                        +"\ttime eval-->"+timeEval);
+        return oreEval + distEval + timeEval;
+       
     }   
 
     /**
@@ -566,7 +579,7 @@ public class TransportAgent extends CommunicationAid{
      * @param s string to be printed
      */
     protected void print(String s){
-        System.out.println(this.COLOR+this.robotID+"\t" + s + "\033[0m");
+        System.out.println(this.COLOR+this.robotID+" TIME["+String.format("%.2f",this.getTime()) + "]\t" + s + "\033[0m");
     }
 
 }

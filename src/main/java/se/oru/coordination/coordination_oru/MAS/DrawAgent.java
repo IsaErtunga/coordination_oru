@@ -108,6 +108,8 @@ public class DrawAgent extends CommunicationAid{
                         this.print("accept received but not successfully added. sending abort msg");
                         this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
                     }
+                    this.print("---schedule---");
+                    this.timeSchedule.printSchedule(this.COLOR);
                 } 
 
                 else if (m.type == "decline"){
@@ -139,6 +141,7 @@ public class DrawAgent extends CommunicationAid{
             double oreChange = Double.parseDouble(this.parseMessage(m, "", true)[2]);
             this.timeSchedule.removeEvent(taskID);
             this.takeOre(oreChange);
+            synchronized(this.timeSchedule){ this.timeSchedule.printSchedule(this.COLOR); }
         }
 
         else if (informVal.equals(new String("status"))) { //TODO change so schedule gets updated: newEndTime = Double.parseDouble(messageParts[2])
@@ -168,7 +171,10 @@ public class DrawAgent extends CommunicationAid{
      */
     public boolean handleService(Message m){ 
         double availabeOre = this.timeSchedule.getLastOreState();
-        if (availabeOre <= 0.0) return false;   //if we dont have ore dont act 
+        if (availabeOre <= 0.0){ //if we dont have ore dont act 
+            this.print("no ore");
+            return false;   
+        } 
         else availabeOre = availabeOre >= 15.0 ? 15.0 : availabeOre; // only give what ore we have available
 
         Task DAtask = createTaskFromServiceOffer(m, availabeOre);
@@ -183,6 +189,8 @@ public class DrawAgent extends CommunicationAid{
         // this.timeSchedule.printSchedule(this.COLOR);
 
         this.sendMessage(this.createOfferMsgFromTask(DAtask, offerVal, availabeOre));
+        // this.print("in handleService");
+        // this.timeSchedule.printSchedule(this.COLOR);
         return true;
     }
 
@@ -259,19 +267,23 @@ public class DrawAgent extends CommunicationAid{
     protected int calculateOffer(Task t, Message m){
         if (t.pathDist <= 2.0) return 0;
 
-        int fullOreBonus = t.ore < -15.0 +0.1 ? 1000 : 0;
+        // ore eval [1000, 0]
+        int oreEval = Math.abs(t.ore) > 14.9 ? 1000 : (int)this.linearDecreasingComparingFunc(Math.abs(t.ore), 15.0, 15.0, 500.0);
         
-        // distance calc
-        double dist = t.fromPose.distanceTo(t.toPose);
+        // dist evaluation [1000, 0]
+        int distEval = (int)this.concaveDecreasingFunc(t.fromPose.distanceTo(t.toPose), 1000.0, 120.0); // [1000, 0]
 
-        int distEval = this.calcCDF( dist, 500 );
-        // time bonus
-        double CNPstartTime = Double.parseDouble(this.parseMessage(m, "startTime")[0]);
-        double timeDiff = Math.abs(t.startTime - CNPstartTime);
-        int timeEval = (int)( 50 - timeDiff );
+        // time bonus [100, 0]
+        double cnpStartTime = Double.parseDouble(this.parseMessage(m, "startTime")[0]);
+        double upperTimeDiff = cnpStartTime <= 0.0 ? 60.0 : 30.0;
+        int timeEval = (int)this.linearDecreasingComparingFunc(t.startTime, cnpStartTime, upperTimeDiff, 100.0);
 
-        //this.print("with robot-->"+m.sender +"\t dist-->"+dist+"\tdistance eval-->"+distEval+"\t cnp starttime-->"+CNPstartTime+"\t timeDiff-->"+timeDiff+"\ttime eval-->"+timeEval);
-        return fullOreBonus + distEval + timeEval;
+        this.print("with robot-->"+m.sender +"\t dist-->"+ String.format("%.2f",t.pathDist) 
+            +"\tdistance eval-->"+distEval
+            +"\t cnp starttime-->"+String.format("%.2f",cnpStartTime) 
+            +"\t timeDiff-->"+String.format("%.2f",Math.abs(cnpStartTime - t.startTime )) 
+            +"\ttime eval-->"+timeEval);
+        return oreEval + distEval + timeEval;
         
         // int offer;
         // if (t.pathDist > 0.5) {
@@ -297,7 +309,7 @@ public class DrawAgent extends CommunicationAid{
      * @param s string to be printed
      */
     protected void print(String s){
-        System.out.println(this.COLOR+this.robotID+"\t" + s + "\033[0m");
+        System.out.println(this.COLOR+this.robotID+" TIME["+String.format("%.2f",this.getTime()) + "]\t" + s + "\033[0m");
     }
     
 }

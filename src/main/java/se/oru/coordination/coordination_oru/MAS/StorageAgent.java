@@ -19,7 +19,7 @@ public class StorageAgent extends CommunicationAid{
     //Control parameters
     protected String COLOR = "\033[1;33m";
     protected double TIME_WAITING_FOR_OFFERS = 5.0;
-    private static int taskCap = 4;
+    private static int taskCap = 5;
 
     protected HashMap<String, PoseSteering[]> pStorage;
 
@@ -136,7 +136,8 @@ public class StorageAgent extends CommunicationAid{
 
 
             else if (oreLevel < 0.8 * capacity) { // plan future tasks
-
+                // this.print("in status");
+                // this.timeSchedule.printSchedule(this.COLOR);
                 if ( this.timeSchedule.getSize() > this.taskCap ) continue;
 
                 Message bestOffer = this.offerService(this.getNextTime());
@@ -148,6 +149,9 @@ public class StorageAgent extends CommunicationAid{
                     // this.timeSchedule.printSchedule(this.COLOR);
                 }
                 
+            }
+            else {
+                this.print("not doing anything atm...");
             }
         }      
     }
@@ -266,9 +270,11 @@ public class StorageAgent extends CommunicationAid{
 
             //this.print("ORESTATE: " + this.timeSchedule.getOreStateAtTime(this.getTime()) + " AT TIME: "+ this.getTime());
             synchronized(this.timeSchedule){ this.timeSchedule.removeEvent(taskID); }
-
+            
             if (oreChange > 0) this.addOre(oreChange);
             else this.dumpOre(oreChange);
+            synchronized(this.timeSchedule){ this.timeSchedule.printSchedule(this.COLOR); }
+
 
         }
         else if (informVal.equals(new String("status"))) { 
@@ -316,7 +322,7 @@ public class StorageAgent extends CommunicationAid{
         Message bestOffer = this.handleOffers(taskID); //extract best offer
         if ( bestOffer.isNull == true ){
             this.print("no good offer received, ---schedule--- time-->"+this.getTime());
-            if (this.robotID < 2000) this.timeSchedule.printSchedule(this.COLOR);
+            this.timeSchedule.printSchedule(this.COLOR);
             if(debug) this.print("no offers received");
 
             Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));
@@ -384,8 +390,13 @@ public class StorageAgent extends CommunicationAid{
         Message bestOffer = new Message();
         int bestOfferVal = 0;
         double bestEndTime = 0;
+
+        if(debug) this.print("in handleOffers ---schedule---");
+        if(debug) this.timeSchedule.printSchedule(this.COLOR);
+
+        ArrayList<Message> offersCopy = new ArrayList<Message>(this.offers);
         
-        for (Message m : this.offers) {
+        for (Message m : offersCopy) {
 
             String[] mParts = this.parseMessage( m, "", true); 
 
@@ -525,7 +536,7 @@ public class StorageAgent extends CommunicationAid{
      * @param s string to be printed
      */
     protected void print(String s){
-        System.out.println(this.COLOR+this.robotID+"\t" + s + "\033[0m");
+        System.out.println(this.COLOR+this.robotID+" TIME["+String.format("%.2f",this.getTime()) + "]\t" + s + "\033[0m");
     }
 
 }

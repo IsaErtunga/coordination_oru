@@ -120,10 +120,22 @@ public class HelpFunctions {
         return res < 0 ? 0 : res;
     }
 
+    public double concaveDecreasingFunc(double input, double yValueAt0, double refrenceMaxInput){
+        if ( input > 2.0 || input <= refrenceMaxInput  ) return yValueAt0 * Math.pow(input / refrenceMaxInput -1.0, 2.0);
+        return 0.0;
+    }
+
+    public double linearDecreasingComparingFunc(double input, double compareVal, double upperDiffVal, double maxReturn){
+        return maxReturn - ( maxReturn * Math.abs(input - compareVal) / upperDiffVal );
+    }
+
     public static void main(String args[]){
+        HelpFunctions test = new HelpFunctions();
+
+        double ret = test.linearDecreasingComparingFunc(5.0, 15.0, 15.0, 500.0);
 
         // HelpFunctions hf = new HelpFunctions();
-        // System.out.println(hf.calcCDF(100));
+        System.out.println(ret);
 
     }
 }

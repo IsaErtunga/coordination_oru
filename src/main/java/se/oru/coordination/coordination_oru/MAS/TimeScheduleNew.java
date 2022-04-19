@@ -59,7 +59,7 @@ public class TimeScheduleNew {
             synchronized(this.oreState){ this.oreState.removeState(taskID); }
             return false;
         }
-        return true;
+        return taskAdded;
     }
 
     /**

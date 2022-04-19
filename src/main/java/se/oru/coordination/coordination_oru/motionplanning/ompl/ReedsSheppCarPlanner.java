@@ -136,7 +136,7 @@ public class ReedsSheppCarPlanner extends AbstractMotionPlanner {
 				xCoords[j] = collisionCircleCenters[j].x;
 				yCoords[j] = collisionCircleCenters[j].y;
 			}
-			metaCSPLogger.info("Path planning with " + collisionCircleCenters.length + " circle positions");
+			//metaCSPLogger.info("Path planning with " + collisionCircleCenters.length + " circle positions");
 			if (this.om != null) {
 				byte[] occ = om.asByteArray();
 				int w = om.getPixelWidth();

@@ -65,7 +65,7 @@ public abstract class AbstractMotionPlanner {
 			for (Pose pose : p) {
 				if (prev == null || prev != null && !prev.equals(pose))
 					newGoals.add(new Pose(pose.getX(),pose.getY(),Missions.wrapAngle180b(pose.getTheta())));
-				else metaCSPLogger.warning("Removing duplicated useless goal " + pose.toString() + ".");
+				//else metaCSPLogger.warning("Removing duplicated useless goal " + pose.toString() + ".");
 				prev = pose;
 			}
 		}
@@ -141,7 +141,7 @@ public abstract class AbstractMotionPlanner {
 		if (this.om != null) {
 			for (Geometry obs : this.om.getObstacles()) {
 				if (obs.intersects(goalFoot)) {
-					metaCSPLogger.info("Goal intersects with an obstacle, no path can exist");
+					//metaCSPLogger.info("Goal intersects with an obstacle, no path can exist");
 					return false;
 				}
 			}
@@ -153,7 +153,7 @@ public abstract class AbstractMotionPlanner {
 		
 		PoseSteering[] path = getPath();
 		if (path == null) {
-			metaCSPLogger.info("Path planner could not find a plan");
+			//metaCSPLogger.info("Path planner could not find a plan");
 			return false;
 		}
 
@@ -168,7 +168,7 @@ public abstract class AbstractMotionPlanner {
 				for (Geometry obs : this.om.getObstacles()) {
 					if (obs.intersects(checkFoot)) {
 						collidingPose = new Pose(p.getX(),p.getY(),p.getTheta());
-						metaCSPLogger.info("Path verification failed");
+						//metaCSPLogger.info("Path verification failed");
 						return false;
 					}
 				}
