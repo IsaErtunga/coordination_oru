@@ -48,7 +48,7 @@ public class DrawAgent extends CommunicationAid{
         this.startTime = startTime;
 
         router.enterNetwork(this.robotID, this.inbox, this.outbox);
-        this.sendMessage(new Message(this.robotID, "hello-world", ""), true);
+        this.sendMessage(new Message(this.robotID, "hello-world", ""), true, 0.0);
 
         this.shiftLeft = shiftLeft;
         if (shiftLeft) {
@@ -92,7 +92,7 @@ public class DrawAgent extends CommunicationAid{
                 
                 if (m.type == "hello-world"){ 
                     if ( !this.robotsInNetwork.contains(m.sender) ) this.robotsInNetwork.add(m.sender);
-                    this.sendMessage( new Message( m.receiver.get(0), m.sender, "echo", Integer.toString(taskID)));
+                    this.sendMessage( new Message( m.receiver.get(0), m.sender, "echo", Integer.toString(taskID)), this.getTime());
                 }
 
                 if (m.type == "echo"){ 
@@ -106,7 +106,7 @@ public class DrawAgent extends CommunicationAid{
                     this.print("accept-msg, taskID-->"+taskID+"\twith robot-->"+m.sender+"\ttask added-->"+eventAdded);
                     if ( eventAdded == false ){
                         this.print("accept received but not successfully added. sending abort msg");
-                        this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
+                        this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"), this.getTime());
                     }
                     this.print("---schedule---");
                     this.timeSchedule.printSchedule(this.COLOR);
@@ -152,7 +152,7 @@ public class DrawAgent extends CommunicationAid{
             Task taskToAbort = this.timeSchedule.updateTaskEndTimeIfPossible(taskID, newEndTime); // this function aborts task from schedule
 
             if ( taskToAbort != null ){
-                this.sendMessage(new Message(this.robotID, taskToAbort.partner, "inform", taskToAbort.taskID+this.separator+"abort"));
+                this.sendMessage(new Message(this.robotID, taskToAbort.partner, "inform", taskToAbort.taskID+this.separator+"abort"), this.getTime());
                 this.print("sending ABORT msg. taskID-->"+taskID+"\twith-->"+m.sender );
             }
             else {this.print("updated without conflict-->"+taskID +"\twith-->"+ m.sender);}
@@ -188,7 +188,7 @@ public class DrawAgent extends CommunicationAid{
         // this.print("--- schedule ---");
         // this.timeSchedule.printSchedule(this.COLOR);
 
-        this.sendMessage(this.createOfferMsgFromTask(DAtask, offerVal, availabeOre));
+        this.sendMessage(this.createOfferMsgFromTask(DAtask, offerVal, availabeOre), this.getTime());
         // this.print("in handleService");
         // this.timeSchedule.printSchedule(this.COLOR);
         return true;

@@ -56,7 +56,7 @@ public class TransportAgent extends CommunicationAid{
 
         // enter network and broadcast our id to others.
         router.enterNetwork(this);
-        this.sendMessage(new Message(this.robotID, "hello-world", ""), true);
+        this.sendMessage(new Message(this.robotID, "hello-world", ""), true, 0.0);
                 
         double xl = 4.0;
 	    double yl = 2.8;
@@ -185,14 +185,14 @@ public class TransportAgent extends CommunicationAid{
                 for (int i=newEndTimes.size()-1; i>0; i--){
                     Task t = newEndTimes.get(i);
                     String body = t.taskID+this.separator+"status"+this.separator+t.endTime;
-                    this.sendMessage(new Message(this.robotID, t.partner, "inform", body));
+                    this.sendMessage(new Message(this.robotID, t.partner, "inform", body), this.getTime());
                 }
             }
             else {  // if we start earlier = send from first to last
                 for (int i=0; i<newEndTimes.size(); i++){
                     Task t = newEndTimes.get(i);
                     String body = t.taskID+this.separator+"status"+this.separator+t.endTime;
-                    this.sendMessage(new Message(this.robotID, t.partner, "inform", body));
+                    this.sendMessage(new Message(this.robotID, t.partner, "inform", body), this.getTime());
                 }
             }
             
@@ -205,7 +205,7 @@ public class TransportAgent extends CommunicationAid{
             // synchronized(this.tec){ currentPose = this.tec.getRobotReport(this.robotID).getPose(); }
             // this.print("currently at pose -->"+currentPose.toString() );
             Message doneMessage = new Message(this.robotID, task.partner, "inform", task.taskID + this.separator + "done" + "," + task.ore);
-            this.sendMessage(doneMessage, false);
+            this.sendMessage(doneMessage, false, this.getTime());
 
         }
     }
@@ -224,7 +224,7 @@ public class TransportAgent extends CommunicationAid{
             }
 
             for ( Task t : abortTasks ){
-                this.sendMessage(new Message(this.robotID, t.partner, "inform", t.taskID+this.separator+"abort"));
+                this.sendMessage(new Message(this.robotID, t.partner, "inform", t.taskID+this.separator+"abort"), this.getTime());
             }
 
 
@@ -241,7 +241,7 @@ public class TransportAgent extends CommunicationAid{
 
                 if ( taskAdded == false ){ // if false then task no longer possible, send abort msg to task partner
                     this.print("in initialState: task NOT added with-->"+task.partner+"\t taskID-->"+task.taskID);
-                    this.sendMessage(new Message(this.robotID, task.partner, "inform", Integer.toString(task.taskID)+this.separator+"abort"));
+                    this.sendMessage(new Message(this.robotID, task.partner, "inform", Integer.toString(task.taskID)+this.separator+"abort"), this.getTime());
                 }
 
                 // this.print("in initialState: --- schedule ---");
@@ -282,13 +282,13 @@ public class TransportAgent extends CommunicationAid{
 
         if (!bestOffer.isNull){        
             Message acceptMessage = new Message(robotID, bestOffer.sender, "accept", Integer.toString(taskID) );
-            this.sendMessage(acceptMessage);
+            this.sendMessage(acceptMessage, this.getTime());
 
             receivers.removeIf(i -> i==bestOffer.sender);
 
             if (receivers.size() > 0){
                 Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));
-                this.sendMessage(declineMessage);
+                this.sendMessage(declineMessage, this.getTime());
             }
         }
         return bestOffer;
@@ -320,7 +320,7 @@ public class TransportAgent extends CommunicationAid{
         String startTimeStr = Double.toString(taskStartTime);
         String body = this.robotID + this.separator + startPos + this.separator + startTimeStr;
         Message m = new Message(this.robotID, receivers, "cnp-service", body);
-        return this.sendMessage(m, true);
+        return this.sendMessage(m, true, this.getTime());
     }
 
     /** //TODO looks good for now. will use timeSchedule.evaluateTimeSlot() in future
@@ -385,7 +385,7 @@ public class TransportAgent extends CommunicationAid{
 
         synchronized(this.timeSchedule){ this.timeSchedule.addEvent(SATask); }
 
-        this.sendMessage(this.createOfferMsgFromTask(SATask, offerVal, availabeOre));
+        this.sendMessage(this.createOfferMsgFromTask(SATask, offerVal, availabeOre), this.getTime());
 
         this.print("in handleService");
         this.timeSchedule.printSchedule(this.COLOR);
@@ -495,7 +495,7 @@ public class TransportAgent extends CommunicationAid{
                 taskToAbort = this.timeSchedule.updateTaskEndTimeIfPossible(taskID, newEndTime); // this function aborts task from schedule
             }
             if ( taskToAbort != null ){
-                this.sendMessage(new Message(this.robotID, taskToAbort.partner, "inform", taskToAbort.taskID+this.separator+"abort"));
+                this.sendMessage(new Message(this.robotID, taskToAbort.partner, "inform", taskToAbort.taskID+this.separator+"abort"), this.getTime());
                 this.print("sending ABORT msg. taskID-->"+taskID+"\twith-->"+m.sender );
             }
             else {this.print("updated without conflict-->"+taskID +"\twith-->"+ m.sender);}
@@ -532,7 +532,7 @@ public class TransportAgent extends CommunicationAid{
                 
                 if (m.type == "hello-world"){ 
                     if ( !this.robotsInNetwork.contains(m.sender) ) this.robotsInNetwork.add(m.sender);
-                    this.sendMessage( new Message( m.receiver.get(0), m.sender, "echo", Integer.toString(taskID)));
+                    this.sendMessage( new Message( m.receiver.get(0), m.sender, "echo", Integer.toString(taskID)), this.getTime());
                 }
 
                 else if (m.type == "echo"){ 
@@ -550,7 +550,7 @@ public class TransportAgent extends CommunicationAid{
                     this.print("accept-msg, taskID-->"+taskID+"\twith robot-->"+m.sender+"\ttask added-->"+eventAdded);
                     if ( eventAdded == false ){
                         this.print("accept received but not successfully added. sending abort msg");
-                        this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
+                        this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"), this.getTime());
                     }
 
                 } 
