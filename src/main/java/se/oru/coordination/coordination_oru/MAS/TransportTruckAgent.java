@@ -130,20 +130,21 @@ public class TransportTruckAgent extends CommunicationAid{
         // add robot to simulation prep...
         double MAX_ACCEL = 10.0;
 	    double MAX_VEL = 20.0;
+        synchronized(this.tec){
+            this.tec.setForwardModel(this.robotID, new ConstantAccelerationForwardModel(
+                MAX_ACCEL, 
+                MAX_VEL, 
+                this.tec.getTemporalResolution(), 
+                this.tec.getControlPeriod(), 
+                this.tec.getRobotTrackingPeriodInMillis(this.robotID)));
 
-        this.tec.setForwardModel(this.robotID, new ConstantAccelerationForwardModel(
-            MAX_ACCEL, 
-            MAX_VEL, 
-            this.tec.getTemporalResolution(), 
-            this.tec.getControlPeriod(), 
-            this.tec.getRobotTrackingPeriodInMillis(this.robotID)));
+            this.tec.setFootprint(this.robotID, this.rShape);
 
-        this.tec.setFootprint(this.robotID, this.rShape);
+            this.tec.placeRobot(this.robotID, this.startPose);
 
-        this.tec.placeRobot(this.robotID, this.startPose);
-
-        // Motion planner
-        tec.setMotionPlanner(this.robotID, this.mp);
+            // Motion planner
+            tec.setMotionPlanner(this.robotID, this.mp);
+        }
     }
 
 
@@ -154,7 +155,7 @@ public class TransportTruckAgent extends CommunicationAid{
      */
     protected Boolean isTaskDone (Task task) {
         // Distance from robots actual position to task goal pose
-        return this.tec.getRobotReport(this.robotID).getPose().distanceTo(task.toPose) < 0.5;
+        synchronized(this.tec){ return this.tec.isFree(robotID); }
     }
 
     /**
@@ -172,7 +173,7 @@ public class TransportTruckAgent extends CommunicationAid{
             synchronized(this.timeSchedule){ task = this.timeSchedule.getNextEvent(); }
             if (task == null) continue;
 
-            this.tec.addMissions(this.createMission(task));
+            synchronized(this.tec){ this.tec.addMissions(this.createMission(task)); }
 
             while (!isTaskDone(task)) {
                 this.sleep(100);

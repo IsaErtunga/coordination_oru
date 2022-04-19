@@ -141,7 +141,7 @@ public class DrawAgent extends CommunicationAid{
             double oreChange = Double.parseDouble(this.parseMessage(m, "", true)[2]);
             this.timeSchedule.removeEvent(taskID);
             this.takeOre(oreChange);
-            synchronized(this.timeSchedule){ this.timeSchedule.printSchedule(this.COLOR); }
+            //synchronized(this.timeSchedule){ this.timeSchedule.printSchedule(this.COLOR); }
         }
 
         else if (informVal.equals(new String("status"))) { //TODO change so schedule gets updated: newEndTime = Double.parseDouble(messageParts[2])

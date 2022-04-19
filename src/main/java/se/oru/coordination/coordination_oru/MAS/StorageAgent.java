@@ -273,8 +273,7 @@ public class StorageAgent extends CommunicationAid{
             
             if (oreChange > 0) this.addOre(oreChange);
             else this.dumpOre(oreChange);
-            synchronized(this.timeSchedule){ this.timeSchedule.printSchedule(this.COLOR); }
-
+            //synchronized(this.timeSchedule){ this.timeSchedule.printSchedule(this.COLOR); }
 
         }
         else if (informVal.equals(new String("status"))) { 
