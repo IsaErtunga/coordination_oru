@@ -124,7 +124,7 @@ public class ThreadAgentFirstMap {
 	Pose[] poses = {new Pose(50.0,20.0, Math.PI/2), new Pose(50.0,190.0, 3*Math.PI/2) };
 
 
-	Router router = new Router();
+	Router router = new Router(0);
 
 
 	// Create all robots

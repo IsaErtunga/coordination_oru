@@ -9,12 +9,17 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-public class Router {
+public class Router extends HelpFunctions {
 
     protected int periodMili = 200;
 
     public HashMap<Integer, ArrayList<Message>> inboxes = new HashMap<Integer, ArrayList<Message>>();
     public HashMap<Integer, ArrayList<Message>> outboxes = new HashMap<Integer, ArrayList<Message>>();
+    private long startTime;
+
+    public Router(long startTime) {
+        this.startTime = startTime;
+    }
 
 
     public void enterNetwork(TransportAgent a){
@@ -41,22 +46,29 @@ public class Router {
     }
 
 
+
+
     public void run(){
         //TODO implement protection to check if robotID exist to router
 
         ArrayList<Message> outputMessages = new ArrayList<Message>();
 
         while(true){
+            int messageAmount = 0;
             this.print();
-
             synchronized(this.outboxes){ 
-                
                 for (Map.Entry<Integer, ArrayList<Message>> t : this.outboxes.entrySet()) {
+                    messageAmount += t.getValue().size();
                     outputMessages.addAll(t.getValue());
                     t.getValue().clear();
+
                 }
             }
-
+            if (messageAmount > 0) {
+                long diff = System.currentTimeMillis() - this.startTime;
+                Double time = (double)(diff)/1000.0;
+                this.fp.addMessageCounter(time, messageAmount);
+            }
             synchronized(this.inboxes){
                 for (Message m : outputMessages){
 

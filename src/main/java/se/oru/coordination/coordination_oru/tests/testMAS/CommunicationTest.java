@@ -128,7 +128,7 @@ public class CommunicationTest {
     
 	Pose[] poses = { startPoseRobot1, startPoseRobot2 };
 
-	Router router = new Router();
+	Router router = new Router(0);
 
 	Thread t3 = new Thread() {
 		public void run() {

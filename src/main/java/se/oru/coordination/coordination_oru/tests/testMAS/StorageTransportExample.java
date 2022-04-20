@@ -126,7 +126,7 @@ public class StorageTransportExample {
     
 	Pose[] poses = {startPoseRobot1, startPoseRobot2 };
 
-	Router router = new Router();
+	Router router = new Router(0);
 
 	// Create all robots
     for (final int robotID : robotIDs) {
