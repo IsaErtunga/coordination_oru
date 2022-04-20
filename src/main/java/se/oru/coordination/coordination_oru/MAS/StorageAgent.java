@@ -58,7 +58,7 @@ public class StorageAgent extends CommunicationAid{
 
         router.enterNetwork(this);
 
-        this.sendMessage(new Message(this.robotID, "hello-world", ""), true, 0.0);
+        this.sendMessage(new Message(this.robotID, "hello-world", ""), true);
     }
 
     /**
@@ -83,7 +83,7 @@ public class StorageAgent extends CommunicationAid{
 
         router.enterNetwork(this);
 
-        this.sendMessage(new Message(this.robotID, "hello-world", ""), true, 0.0);
+        this.sendMessage(new Message(this.robotID, "hello-world", ""), true);
     }
 
     /**
@@ -109,7 +109,7 @@ public class StorageAgent extends CommunicationAid{
 
         router.enterNetwork(this);
 
-        this.sendMessage(new Message(this.robotID, "hello-world", ""), true, 0.0);
+        this.sendMessage(new Message(this.robotID, "hello-world", ""), true);
     }
 
 
@@ -203,7 +203,7 @@ public class StorageAgent extends CommunicationAid{
                 
                 if (m.type == "hello-world"){ 
                     if ( !this.robotsInNetwork.contains(m.sender) ) this.robotsInNetwork.add(m.sender);
-                    this.sendMessage( new Message( m.receiver.get(0), m.sender, "echo", Integer.toString(taskID)), this.getTime());
+                    this.sendMessage( new Message( m.receiver.get(0), m.sender, "echo", Integer.toString(taskID)));
                 }
 
                 else if (m.type == "echo"){ 
@@ -296,7 +296,7 @@ public class StorageAgent extends CommunicationAid{
             Task taskToAbort = null;
             synchronized(this.timeSchedule) { taskToAbort = this.timeSchedule.updateTaskEndTimeIfPossible(taskID, newEndTime); }
             if ( taskToAbort != null ){
-                this.sendMessage(new Message(this.robotID, taskToAbort.partner, "inform", taskToAbort.taskID+this.separator+"abort"), this.getTime());
+                this.sendMessage(new Message(this.robotID, taskToAbort.partner, "inform", taskToAbort.taskID+this.separator+"abort"));
                 this.print("CONFLICT! sending ABORT msg. taskID-->"+taskID+"\twith-->"+m.sender );
             } else {
                 this.print("updated without conflict-->"+taskID +"\twith-->"+ m.sender);
@@ -324,17 +324,17 @@ public class StorageAgent extends CommunicationAid{
             if(debug) this.print("no offers received");
 
             Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));
-            this.sendMessage(declineMessage, this.getTime());
+            this.sendMessage(declineMessage);
             return bestOffer;
         }
 
         Message acceptMessage = new Message(robotID, bestOffer.sender, "accept", Integer.toString(taskID) );
-        this.sendMessage(acceptMessage, this.getTime());
+        this.sendMessage(acceptMessage);
 
         receivers.removeIf(i -> i==bestOffer.sender);
         if (receivers.size() > 0){
             Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));
-            this.sendMessage(declineMessage, this.getTime());
+            this.sendMessage(declineMessage);
         }
         return bestOffer;
     }
@@ -375,7 +375,7 @@ public class StorageAgent extends CommunicationAid{
         String startTimeStr = Double.toString(startTime);
         String body = this.robotID + this.separator + startPos + this.separator + startTimeStr;
         Message m = new Message(this.robotID, receivers, "cnp-service", body);
-        return this.sendMessage(m, true, this.getTime());
+        return this.sendMessage(m, true);
     }
 
     /** //TODO looks good for now. will use timeSchedule.evaluateTimeSlot() in future
@@ -450,7 +450,7 @@ public class StorageAgent extends CommunicationAid{
         if (! this.timeSchedule.addEvent(TTATask) ) return false;
         
         // Send Offer
-        this.sendMessage(this.createOfferMsgFromTask(TTATask, offerVal, availabeOre), this.getTime());
+        this.sendMessage(this.createOfferMsgFromTask(TTATask, offerVal, availabeOre));
                 
         return true;
     }

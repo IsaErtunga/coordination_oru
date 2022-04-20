@@ -41,7 +41,7 @@ public class CommunicationAid extends HelpFunctions{
      * @param m the message to be sent
      * @param genTaskID if true we generate a taskID for the msg and log the task in this.activeTasks
      */
-    public int sendMessage(Message m, boolean genTaskID, Double time){
+    public int sendMessage(Message m, boolean genTaskID){
         int taskID = -1;
 
         if (genTaskID){
@@ -52,13 +52,11 @@ public class CommunicationAid extends HelpFunctions{
 
         }
         synchronized(this.outbox){ this.outbox.add(m); }
-        // Log message
-        this.fp.addMessageCounter(time);
         return taskID;
     }
 
-    public int sendMessage(Message m, Double time){
-        return this.sendMessage(m, false, time); 
+    public int sendMessage(Message m){
+        return this.sendMessage(m, false); 
     }
     
     public String[] parseMessage(Message m, String get){

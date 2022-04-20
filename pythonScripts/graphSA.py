@@ -30,7 +30,7 @@ def plotSAState():
         plt.ylabel('Ore')
         path = ""
   
-
+[5, 3, 6, 8, 9, 12]
 # Plot message count
 def plotMessageAmount():
     path = "/home/parallels/testRun/Messages.csv"
@@ -42,8 +42,8 @@ def plotMessageAmount():
             times.append(float(row[0]))
             messageCounter.append(float(row[1]))
 
-        for i in range(0, len(messageCounter)):
-            messageCounter[i] += i
+        for i in range(1, len(messageCounter)):
+            messageCounter[i] += messageCounter[i-1]
 
         plt.figure()
         plt.plot(times, messageCounter, label="Messages")

@@ -43,9 +43,9 @@ public class FilePrinter {
      * Function that logs messages with times
      * @param time
      */
-    protected void addMessageCounter(Double time) {
+    protected void addMessageCounter(Double time, int messageAmount) {
         Path path = Path.of(this.path + this.folderName + "/Messages" + ".csv");
-        String content = time + this.separator + "1" + "\n";
+        String content = time + this.separator + messageAmount + "\n";
         try {
             if (Files.exists(path)) {
                 Files.write(path, content.getBytes(), StandardOpenOption.APPEND);
