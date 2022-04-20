@@ -83,7 +83,7 @@ public class CommunicationAid extends HelpFunctions{
             }
 
             else if (m.type == "inform") {
-                attributes = new String[] {"taskID", "informVal", "ore"};
+                attributes = new String[] {"taskID", "informVal", "informInfo"};
             }
 
             else if (m.type == "cnp-service"){

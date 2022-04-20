@@ -267,34 +267,41 @@ public class StorageAgent extends CommunicationAid{
 
             //this.print("ORESTATE: " + this.timeSchedule.getOreStateAtTime(this.getTime()) + " AT TIME: "+ this.getTime());
             synchronized(this.timeSchedule){ this.timeSchedule.removeEvent(taskID); }
+            this.print("---SCHEDULE---");
+            this.timeSchedule.printSchedule(this.COLOR);
             
             if (oreChange > 0) this.addOre(oreChange);
             else this.dumpOre(oreChange);
-            //synchronized(this.timeSchedule){ this.timeSchedule.printSchedule(this.COLOR); }
 
         }
-        else if (informVal.equals(new String("status"))) { 
-            // this.print("in status: ---SCHEDULE---");
-            // this.timeSchedule.printSchedule(this.COLOR);
+        else if (informVal.equals(new String("status"))) this.handleStatusMessage(m);                  
 
-            double newEndTime = Double.parseDouble(this.parseMessage(m, "", true)[2]);
-            Task taskToAbort = this.timeSchedule.updateTaskEndTimeIfPossible(taskID, newEndTime); // this function aborts task from schedule
-
-            if ( taskToAbort != null ){
-                this.sendMessage(new Message(this.robotID, taskToAbort.partner, "inform", taskToAbort.taskID+this.separator+"abort"), this.getTime());
-                this.print("sending ABORT msg. taskID-->"+taskToAbort.taskID+"\twith-->"+taskToAbort.partner );
-            }
-            else {this.print("updated without conflict-->"+taskID +"\twith-->"+ m.sender);}
-        }                   
-
-        else if (informVal.equals(new String("abort"))) { //TODO remove task from schedule 
-            // this.print("---SCHEDULE---");
-            // this.timeSchedule.printSchedule(this.COLOR);
-
+        else if (informVal.equals(new String("abort"))) {
             this.timeSchedule.abortEvent(taskID);
             this.print("got ABORT MSG! taskID-->"+taskID+"\twith-->"+m.sender );
-            
         } 
+    }
+
+    protected void handleStatusMessage(Message m){
+        String updateSep = "::";
+        String pairSep = ":";
+
+        String informInfo = (this.parseMessage(m, "informInfo")[0]);
+        String[] newTimes = informInfo.split(updateSep);
+        for ( int i=0; i<newTimes.length; i++ ){
+            String[] updatePair = newTimes[i].split(pairSep);
+            int taskID = Integer.parseInt( updatePair[0] );
+            double newEndTime = Double.parseDouble( updatePair[1] );
+    
+            Task taskToAbort = null;
+            synchronized(this.timeSchedule) { taskToAbort = this.timeSchedule.updateTaskEndTimeIfPossible(taskID, newEndTime); }
+            if ( taskToAbort != null ){
+                this.sendMessage(new Message(this.robotID, taskToAbort.partner, "inform", taskToAbort.taskID+this.separator+"abort"));
+                this.print("CONFLICT! sending ABORT msg. taskID-->"+taskID+"\twith-->"+m.sender );
+            } else {
+                this.print("updated without conflict-->"+taskID +"\twith-->"+ m.sender);
+            }
+        }
     }
 
     /** offerService is called when a robot want to plan in a new task to execute.
@@ -309,16 +316,11 @@ public class StorageAgent extends CommunicationAid{
         this.offers.clear();
         int taskID = this.sendCNPmessage(startTime, this.stringifyPose(this.startPose), receivers);
 
-        if(debug) this.print("starting to wait for offers at time-->"+ String.format("%.2f",this.getTime())+"\tnrReceivers-->"+receivers.size() );
-
         double time = this.waitForAllOffersToCome( receivers.size(), taskID );  //locking function. wait for receivers
-
-        if(debug) this.print("done waiting at time-->"+ String.format("%.2f",this.getTime()) +"\tamountInOffers-->"+this.offers.size());
 
         Message bestOffer = this.handleOffers(taskID); //extract best offer
         if ( bestOffer.isNull == true ){
             this.print("no good offer received, ---schedule--- time-->"+this.getTime());
-            this.timeSchedule.printSchedule(this.COLOR);
             if(debug) this.print("no offers received");
 
             Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));

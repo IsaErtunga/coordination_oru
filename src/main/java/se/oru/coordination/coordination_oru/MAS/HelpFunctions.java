@@ -4,6 +4,7 @@ import org.metacsp.multi.spatioTemporal.paths.PoseSteering;
 import org.sat4j.minisat.orders.VarOrderHeap;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 import se.oru.coordination.coordination_oru.motionplanning.ompl.ReedsSheppCarPlanner;
+import se.oru.coordination.coordination_oru.simulation2D.TrajectoryEnvelopeCoordinatorSimulation;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -90,6 +91,20 @@ public class HelpFunctions {
     }
 
     /**
+     * Compare robot pose to task end pose to see if Task is finished
+     * @param task
+     * @return
+     */
+    protected void waitUntilCurrentTaskComplete (TrajectoryEnvelopeCoordinatorSimulation tec, int agentID, int cycleSleepTimeMs) {
+        while ( true ){
+            synchronized(tec){
+                if ( tec.isFree(agentID) == true ) break;
+            }
+            this.sleep(cycleSleepTimeMs);
+        }
+    }
+
+    /**
      * Call when need to sleep
      * @param ms
      */
@@ -132,10 +147,15 @@ public class HelpFunctions {
     public static void main(String args[]){
         HelpFunctions test = new HelpFunctions();
 
-        double ret = test.linearDecreasingComparingFunc(5.0, 15.0, 15.0, 500.0);
-
+        //double ret = test.linearDecreasingComparingFunc(5.0, 15.0, 15.0, 500.0);
+        String aaa = "14957:14.840338448196023";
+        String[] parts = aaa.split("::");
         // HelpFunctions hf = new HelpFunctions();
-        System.out.println(ret);
-
+        for ( int i=0; i<parts.length; i++ ){
+            String[] updatePair = parts[i].split(":");
+            int taskID = Integer.parseInt( updatePair[0] );
+            double newEndTime = Double.parseDouble( updatePair[1] );
+            System.out.println(taskID +"\t"+ newEndTime);
+        }
     }
 }
