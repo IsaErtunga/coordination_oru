@@ -3,6 +3,7 @@ package se.oru.coordination.coordination_oru.MAS;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Arrays;
+import java.util.Collections;
 import java.lang.Math;
 
 import com.vividsolutions.jts.geom.Coordinate;
@@ -134,16 +135,7 @@ public class TransportAgent extends CommunicationAid{
     }
 
 
-    /**
-     * Compare robot pose to task end pose to see if Task is finished
-     * @param task
-     * @return
-     */
-    protected Boolean isTaskDone (Task task) {
-        // Distance from robots actual position to task goal pose
-        synchronized(this.tec){ return this.tec.isFree(robotID); }
-        //synchronized(this.tec){ return this.tec.getRobotReport(this.robotID).getPose().distanceTo(task.toPose) < 2.0; }
-    }
+    
 
     /**
      * Function enabling TA to execute the tasks in its schedule. 
@@ -176,37 +168,48 @@ public class TransportAgent extends CommunicationAid{
             task.startTime = now;
             task.endTime = nextStartTime;
             newEndTimes.add(0, task);
-            // start next task
 
+            // start next task
             synchronized(this.tec){ this.tec.addMissions(this.createMission(task, prevToPose)); }
 
             // send inform msgs informing of new times.
-            if ( now - task.startTime > 0.0 ){ //if we start later = send from last to first
-                for (int i=newEndTimes.size()-1; i>0; i--){
-                    Task t = newEndTimes.get(i);
-                    String body = t.taskID+this.separator+"status"+this.separator+t.endTime;
-                    this.sendMessage(new Message(this.robotID, t.partner, "inform", body));
-                }
-            }
-            else {  // if we start earlier = send from first to last
-                for (int i=0; i<newEndTimes.size(); i++){
-                    Task t = newEndTimes.get(i);
-                    String body = t.taskID+this.separator+"status"+this.separator+t.endTime;
-                    this.sendMessage(new Message(this.robotID, t.partner, "inform", body));
-                }
-            }
+            this.sendInformStatusMessages( newEndTimes, (now - task.startTime > 0.0) ); 
             
-
-            while (!isTaskDone(task)) {
-                this.sleep(100);
-            }
+            // wait for mission to be done.
+            this.waitUntilCurrentTaskComplete(this.tec, this.robotID, 100); // locking
+            
             this.print("mission DONE taskID-->"+task.taskID+" with -->" +task.partner + "\tat time-->"+this.getTime()+"\ttaskEndTime-->"+task.endTime);
-            Pose currentPose;
-            // synchronized(this.tec){ currentPose = this.tec.getRobotReport(this.robotID).getPose(); }
-            // this.print("currently at pose -->"+currentPose.toString() );
             Message doneMessage = new Message(this.robotID, task.partner, "inform", task.taskID + this.separator + "done" + "," + task.ore);
             this.sendMessage(doneMessage, false);
 
+        }
+    }
+
+    protected void sendInformStatusMessages(ArrayList<Task> tasksToUpdate, boolean isLater){
+        if ( isLater ) Collections.reverse(tasksToUpdate);
+        String updateSep = "::";
+        String pairSep = ":";
+
+        HashMap<Integer, ArrayList<Task>> taskMap = new HashMap<Integer, ArrayList<Task>>();
+        
+        for ( Task t : tasksToUpdate ){
+            ArrayList<Task> agentTasks = taskMap.get(t.partner);
+            if ( agentTasks == null ) agentTasks = new ArrayList<Task>();
+                
+            agentTasks.add(t);
+            taskMap.put(t.partner, agentTasks);
+        }
+
+        for (int key : taskMap.keySet()) {
+            ArrayList<Task> tasksNewTime = taskMap.get(key);
+            Task firstElement = tasksNewTime.remove(0);
+
+            String messageBody = "0" +this.separator+ "status" +this.separator+ firstElement.taskID + pairSep + firstElement.endTime;
+
+            for ( Task t : tasksNewTime ){
+                messageBody = messageBody +updateSep+ t.taskID +pairSep+ t.endTime;
+            }
+            this.sendMessage(new Message(this.robotID, key, "inform", messageBody));
         }
     }
 
@@ -453,7 +456,9 @@ public class TransportAgent extends CommunicationAid{
         // time bonus [500, 0]
         double cnpStartTime = Double.parseDouble(this.parseMessage(m, "startTime")[0]);
         double upperTimeDiff = cnpStartTime <= 0.0 ? 60.0 : 30.0;
-        int timeEval = (int)this.linearDecreasingComparingFunc(t.startTime, cnpStartTime, upperTimeDiff, 500.0);        
+        int timeEval = (int)this.linearDecreasingComparingFunc(t.startTime, cnpStartTime, upperTimeDiff, 500.0);  
+        
+        //TODO add eval for using middle space of map. using middle space is BAD
 
         this.print("with robot-->"+m.sender +"\t dist-->"+ String.format("%.2f",t.pathDist) 
                         +"\tdistance eval-->"+distEval
@@ -482,25 +487,8 @@ public class TransportAgent extends CommunicationAid{
     protected void handleInformMessage(Message m){
         int taskID = Integer.parseInt(this.parseMessage(m, "taskID")[0]);
         String informVal = this.parseMessage(m, "informVal")[0];
-        
-        if (informVal.equals(new String("done"))) {
-            synchronized(this.timeSchedule){ this.timeSchedule.removeEvent(taskID); }
-        }
 
-        else if (informVal.equals(new String("status"))) {
-            double newEndTime = Double.parseDouble(this.parseMessage(m, "", true)[2]);
-            Task taskToAbort = null;
-
-            synchronized(this.timeSchedule){
-                taskToAbort = this.timeSchedule.updateTaskEndTimeIfPossible(taskID, newEndTime); // this function aborts task from schedule
-            }
-            if ( taskToAbort != null ){
-                this.sendMessage(new Message(this.robotID, taskToAbort.partner, "inform", taskToAbort.taskID+this.separator+"abort"));
-                this.print("sending ABORT msg. taskID-->"+taskID+"\twith-->"+m.sender );
-            }
-            else {this.print("updated without conflict-->"+taskID +"\twith-->"+ m.sender);}
-
-        }
+        if (informVal.equals(new String("status"))) this.handleStatusMessage(m);
 
         else if (informVal.equals(new String("abort"))) {
             this.print("got ABORT MSG! taskID-->"+taskID+"\twith-->"+m.sender );
@@ -508,6 +496,27 @@ public class TransportAgent extends CommunicationAid{
         } 
     }
 
+    protected void handleStatusMessage(Message m){
+        String updateSep = "::";
+        String pairSep = ":";
+
+        String informInfo = (this.parseMessage(m, "informInfo")[0]);
+        String[] newTimes = informInfo.split(updateSep);
+        for ( int i=0; i<newTimes.length; i++ ){
+            String[] updatePair = newTimes[i].split(pairSep);
+            int taskID = Integer.parseInt( updatePair[0] );
+            double newEndTime = Double.parseDouble( updatePair[1] );
+    
+            Task taskToAbort = null;
+            synchronized(this.timeSchedule) { taskToAbort = this.timeSchedule.updateTaskEndTimeIfPossible(taskID, newEndTime); }
+            if ( taskToAbort != null ){
+                this.sendMessage(new Message(this.robotID, taskToAbort.partner, "inform", taskToAbort.taskID+this.separator+"abort"));
+                this.print("CONFLICT! sending ABORT msg. taskID-->"+taskID+"\twith-->"+m.sender );
+            } else {
+                this.print("updated without conflict-->"+taskID +"\twith-->"+ m.sender);
+            }
+        }
+    }
 
     /**
      * Periodically checks the inbox of a robot.

@@ -20,6 +20,8 @@ public class DrawAgent extends CommunicationAid{
     protected String COLOR = "\033[0;36m";
     protected double ADD_TIME2TA_TASKS = 0.0;
 
+    protected Router router;
+
     private double finalXPos;
     protected double initalXPos;
 
@@ -41,6 +43,7 @@ public class DrawAgent extends CommunicationAid{
         this.capacity = capacity;
         this.amount = capacity; // 100% full in beginning
         this.mp = mp;
+        this.router = router;
         this.pos = pos;
         this.initalXPos = pos.getX();
 
@@ -95,7 +98,7 @@ public class DrawAgent extends CommunicationAid{
                     this.sendMessage( new Message( m.receiver.get(0), m.sender, "echo", Integer.toString(taskID)));
                 }
 
-                if (m.type == "echo"){ 
+                else if (m.type == "echo"){ 
                     if ( !this.robotsInNetwork.contains(m.sender) ) this.robotsInNetwork.add(m.sender);
                 }
 
@@ -124,7 +127,10 @@ public class DrawAgent extends CommunicationAid{
                 }
 
                 else if (m.type.equals(new String("inform"))) {
-                    this.handleInformMessage(m);
+                    boolean leaveNetwork = this.handleInformMessage(m);
+                    if ( leaveNetwork == true ){
+                        //TODO leave network and boradcast goodbye msg
+                    } 
                 }
                 
             }
@@ -132,36 +138,64 @@ public class DrawAgent extends CommunicationAid{
             this.sleep(100);
         }
     }
+    
+    protected boolean handleInformMessage(Message m){
+        // this.print("in handleInfoMessage");
+        // String[] aaa = this.parseMessage(m, "", true );
+        // this.print("\tparseAll-->"+ aaa[0]);
 
-    protected void handleInformMessage(Message m){
+        // aaa = this.parseMessage(m, "taskID");
+        // this.print("\tmessageParsed-->"+ aaa[0]);
+
         int taskID = Integer.parseInt(this.parseMessage(m, "taskID")[0]);
         String informVal = this.parseMessage(m, "informVal")[0];
         
         if (informVal.equals(new String("done"))) {
-            double oreChange = Double.parseDouble(this.parseMessage(m, "", true)[2]);
+            double oreChange = Double.parseDouble(this.parseMessage(m, "informInfo")[0]);
             this.timeSchedule.removeEvent(taskID);
             this.takeOre(oreChange);
-            //synchronized(this.timeSchedule){ this.timeSchedule.printSchedule(this.COLOR); }
+            //if ( (int)this.amount <= 0 ) return true;
         }
 
-        else if (informVal.equals(new String("status"))) { //TODO change so schedule gets updated: newEndTime = Double.parseDouble(messageParts[2])
-            // this.print("in status: ---SCHEDULE---");
-            // this.timeSchedule.printSchedule(this.COLOR);
-
-            double newEndTime = Double.parseDouble(this.parseMessage(m, "", true)[2]);
-            Task taskToAbort = this.timeSchedule.updateTaskEndTimeIfPossible(taskID, newEndTime); // this function aborts task from schedule
-
-            if ( taskToAbort != null ){
-                this.sendMessage(new Message(this.robotID, taskToAbort.partner, "inform", taskToAbort.taskID+this.separator+"abort"));
-                this.print("sending ABORT msg. taskID-->"+taskID+"\twith-->"+m.sender );
-            }
-            else {this.print("updated without conflict-->"+taskID +"\twith-->"+ m.sender);}
+        else if (informVal.equals(new String("status"))) {
+            this.handleStatusMessage(m);
         }                     
 
         else if (informVal.equals(new String("abort"))) { //TODO remove task from schedule 
             this.timeSchedule.abortEvent(taskID);
             this.print("got ABORT MSG! taskID-->"+taskID+"\twith-->"+m.sender );
-        } 
+        }
+        
+        return false;
+    }
+
+    protected void handleStatusMessage(Message m){
+        //this.print("in handleStatusMessage");
+        String updateSep = "::";
+        String pairSep = ":";
+
+        String informInfo = (this.parseMessage(m, "informInfo")[0]);
+        //this.print(informInfo);
+
+        String[] newTimes = informInfo.split(updateSep);
+        for ( int i=0; i<newTimes.length; i++ ){
+            //this.print("\tnewTimes[i]-->"+ newTimes[i]);
+            String[] updatePair = newTimes[i].split(pairSep);
+            //this.print("\tupdatePair successfully split");
+
+            int taskID = Integer.parseInt( updatePair[0] );
+            double newEndTime = Double.parseDouble( updatePair[1] );
+            //this.print("\t"+ "taskID-->"+taskID+"newEndTime-->"+newEndTime);
+
+            Task taskToAbort = null;
+            synchronized(this.timeSchedule) { taskToAbort = this.timeSchedule.updateTaskEndTimeIfPossible(taskID, newEndTime); }
+            if ( taskToAbort != null ){
+                this.sendMessage(new Message(this.robotID, taskToAbort.partner, "inform", taskToAbort.taskID+this.separator+"abort"));
+                this.print("CONFLICT! sending ABORT msg. taskID-->"+taskID+"\twith-->"+m.sender );
+            } else {
+                this.print("updated without conflict-->"+taskID +"\twith-->"+ m.sender);
+            }
+        }
     }
 
     /**
@@ -278,11 +312,13 @@ public class DrawAgent extends CommunicationAid{
         double upperTimeDiff = cnpStartTime <= 0.0 ? 60.0 : 30.0;
         int timeEval = (int)this.linearDecreasingComparingFunc(t.startTime, cnpStartTime, upperTimeDiff, 100.0);
 
+        /*
         this.print("with robot-->"+m.sender +"\t dist-->"+ String.format("%.2f",t.pathDist) 
             +"\tdistance eval-->"+distEval
             +"\t cnp starttime-->"+String.format("%.2f",cnpStartTime) 
             +"\t timeDiff-->"+String.format("%.2f",Math.abs(cnpStartTime - t.startTime )) 
             +"\ttime eval-->"+timeEval);
+        */
         return oreEval + distEval + timeEval;
         
         // int offer;

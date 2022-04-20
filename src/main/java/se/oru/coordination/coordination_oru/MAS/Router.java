@@ -35,6 +35,11 @@ public class Router {
         synchronized(this.outboxes){ this.outboxes.put(robotID, outbox); }
     }
 
+    public void leaveNetwork(int robotID){
+        synchronized(this.inboxes){ this.inboxes.remove(robotID); }
+        synchronized(this.outboxes){ this.outboxes.remove(robotID); }
+    }
+
 
     public void run(){
         //TODO implement protection to check if robotID exist to router
@@ -92,7 +97,7 @@ public class Router {
             System.out.println("\033[0;35m"+"outbox r" + t.getKey() +":"+ "\033[0m");
 
             for (Message m : t.getValue()){
-                System.out.println("\033[0;35m"+" - " + m.type + ": " + m.body + ":: to r" + m.receiver+ "\033[0m");
+                System.out.println("\033[0;35m"+" - " + m.type + ": " + m.body + "\t to r" + m.receiver+ "\033[0m");
             }
         }
 

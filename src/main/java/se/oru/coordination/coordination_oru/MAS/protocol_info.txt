@@ -28,7 +28,8 @@ tag -> inform
 body -> taskID & done & ore
 
 tag -> inform
-body -> taskID & status & newEndTime
+body -> -1 & status & newEndTimes
+: newEndTimes = "taskID +':'+ newEndTime +'::'+ taskID +':'+ newEndTime..." 
 
 tag -> inform
 body -> taskID & abort
