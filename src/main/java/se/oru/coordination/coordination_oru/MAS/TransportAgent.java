@@ -209,7 +209,7 @@ public class TransportAgent extends CommunicationAid{
             for ( Task t : tasksNewTime ){
                 messageBody = messageBody +updateSep+ t.taskID +pairSep+ t.endTime;
             }
-            this.sendMessage(new Message(this.robotID, key, "inform", messageBody));
+            this.sendMessage(new Message(this.robotID, key, "inform", messageBody), this.getTime());
         }
     }
 
@@ -510,7 +510,7 @@ public class TransportAgent extends CommunicationAid{
             Task taskToAbort = null;
             synchronized(this.timeSchedule) { taskToAbort = this.timeSchedule.updateTaskEndTimeIfPossible(taskID, newEndTime); }
             if ( taskToAbort != null ){
-                this.sendMessage(new Message(this.robotID, taskToAbort.partner, "inform", taskToAbort.taskID+this.separator+"abort"));
+                this.sendMessage(new Message(this.robotID, taskToAbort.partner, "inform", taskToAbort.taskID+this.separator+"abort"), this.getTime());
                 this.print("CONFLICT! sending ABORT msg. taskID-->"+taskID+"\twith-->"+m.sender );
             } else {
                 this.print("updated without conflict-->"+taskID +"\twith-->"+ m.sender);

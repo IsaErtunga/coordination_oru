@@ -260,7 +260,7 @@ public class StorageAgent extends CommunicationAid{
         
         if (informVal.equals(new String("done"))) {
             double oreChange = Double.parseDouble(this.parseMessage(m, "", true)[2]);  
-
+            oreChange = oreChange * -1.0;
             int docId = this.robotID % 1000;
             this.fp.write(this.getTime(), this.amount, this.timeSchedule.getOreStateAtTime(this.getTime()), docId);
        
@@ -296,7 +296,7 @@ public class StorageAgent extends CommunicationAid{
             Task taskToAbort = null;
             synchronized(this.timeSchedule) { taskToAbort = this.timeSchedule.updateTaskEndTimeIfPossible(taskID, newEndTime); }
             if ( taskToAbort != null ){
-                this.sendMessage(new Message(this.robotID, taskToAbort.partner, "inform", taskToAbort.taskID+this.separator+"abort"));
+                this.sendMessage(new Message(this.robotID, taskToAbort.partner, "inform", taskToAbort.taskID+this.separator+"abort"), this.getTime());
                 this.print("CONFLICT! sending ABORT msg. taskID-->"+taskID+"\twith-->"+m.sender );
             } else {
                 this.print("updated without conflict-->"+taskID +"\twith-->"+ m.sender);

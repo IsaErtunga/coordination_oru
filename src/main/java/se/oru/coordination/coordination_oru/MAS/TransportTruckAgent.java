@@ -451,6 +451,35 @@ public class TransportTruckAgent extends CommunicationAid{
         return corners.toArray(new Pose[0]);
     }
 
+    protected void handleStatusMessage(Message m){
+        //this.print("in handleStatusMessage");
+        String updateSep = "::";
+        String pairSep = ":";
+
+        String informInfo = (this.parseMessage(m, "informInfo")[0]);
+        //this.print(informInfo);
+
+        String[] newTimes = informInfo.split(updateSep);
+        for ( int i=0; i<newTimes.length; i++ ){
+            //this.print("\tnewTimes[i]-->"+ newTimes[i]);
+            String[] updatePair = newTimes[i].split(pairSep);
+            //this.print("\tupdatePair successfully split");
+
+            int taskID = Integer.parseInt( updatePair[0] );
+            double newEndTime = Double.parseDouble( updatePair[1] );
+            //this.print("\t"+ "taskID-->"+taskID+"newEndTime-->"+newEndTime);
+
+            Task taskToAbort = null;
+            synchronized(this.timeSchedule) { taskToAbort = this.timeSchedule.updateTaskEndTimeIfPossible(taskID, newEndTime); }
+            if ( taskToAbort != null ){
+                this.sendMessage(new Message(this.robotID, taskToAbort.partner, "inform", taskToAbort.taskID+this.separator+"abort"), this.getTime());
+                this.print("CONFLICT! sending ABORT msg. taskID-->"+taskID+"\twith-->"+m.sender );
+            } else {
+                this.print("updated without conflict-->"+taskID +"\twith-->"+ m.sender);
+            }
+        }
+    }
+
     /** this function holds the logic for handeling messages with type 'inform'. 
      * 
      * @param m the message with the 'inform'-type.
@@ -463,20 +492,7 @@ public class TransportTruckAgent extends CommunicationAid{
             synchronized(this.timeSchedule){ this.timeSchedule.removeEvent(taskID); }
         }
 
-        else if (informVal.equals(new String("status"))) {
-            double newEndTime = Double.parseDouble(this.parseMessage(m, "", true)[2]);
-            Task taskToAbort = null;
-
-            synchronized(this.timeSchedule){
-                taskToAbort = this.timeSchedule.updateTaskEndTimeIfPossible(taskID, newEndTime); // this function aborts task from schedule
-            }
-            if ( taskToAbort != null ){
-                this.sendMessage(new Message(this.robotID, taskToAbort.partner, "inform", taskToAbort.taskID+this.separator+"abort"), this.getTime());
-                this.print("sending ABORT msg. taskID-->"+taskID+"\twith-->"+m.sender );
-            }
-            else {this.print("updated without conflict-->"+taskID +"\twith-->"+ m.sender);}
-
-        }
+        else if (informVal.equals(new String("status"))) this.handleStatusMessage(m);
 
         else if (informVal.equals(new String("abort"))) {
             this.print("got ABORT MSG! taskID-->"+taskID+"\twith-->"+m.sender );
