@@ -111,8 +111,8 @@ public class DrawAgent extends CommunicationAid{
                         this.print("accept received but not successfully added. sending abort msg");
                         this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
                     }
-                    this.print("---schedule---");
-                    this.timeSchedule.printSchedule(this.COLOR);
+                    // this.print("---schedule---");
+                    // this.timeSchedule.printSchedule(this.COLOR);
                 } 
 
                 else if (m.type == "decline"){
