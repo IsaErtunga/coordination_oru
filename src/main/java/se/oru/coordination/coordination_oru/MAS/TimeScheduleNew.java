@@ -45,40 +45,28 @@ public class TimeScheduleNew {
         return this.schedule.size();
     }
 
-    public boolean setEventActive(int taskID){
+    public boolean setEventActive(int taskID, boolean ignoreOreStateConflict){
         Task t = this.reserved.remove(taskID);
         if( t == null ) return false;
         t.isActive = true;
 
         boolean taskAdded = this.addEvent(t);
-        double lastOreState;
-        synchronized(this.oreState){ lastOreState = this.oreState.getLastOreState(); }
 
-        if ( taskAdded && (lastOreState <= -0.1 || lastOreState > this.capacity+0.1) ){
-            this.abortEvent(taskID);
-            synchronized(this.oreState){ this.oreState.removeState(taskID); }
-            return false;
+        if (ignoreOreStateConflict == false){
+            double lastOreState;
+            synchronized(this.oreState){ lastOreState = this.oreState.getLastOreState(); }
+
+            if ( taskAdded && (lastOreState <= -0.1 || lastOreState > this.capacity+0.1) ){
+                this.abortEvent(taskID);
+                synchronized(this.oreState){ this.oreState.removeState(taskID); }
+                return false;
+            }
         }
+        
         return taskAdded;
     }
-
-    /**
-     * Overloaded for SA agent
-     * @param taskID
-     * @param isSA
-     * @return
-     */
-    public boolean setEventActive(int taskID, boolean isSA){
-        Task t = this.reserved.remove(taskID);
-        if( t == null ) return false;
-        t.isActive = true;
-
-        boolean taskAdded = this.addEvent(t);
-        // double lastOreState;
-        // synchronized(this.oreState){
-        //     lastOreState = this.oreState.getLastOreState();
-        // }
-        return true;
+    public boolean setEventActive(int taskID){
+        return this.setEventActive(taskID, false);
     }
 
     public boolean addEvent(Task task){
