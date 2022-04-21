@@ -29,12 +29,13 @@ public class TransportTruckAgent extends CommunicationAid{
     protected final Double capacity = 40.0;
     protected Double holdingOre = 0.0;
     protected final int taskCap = 4;
+    protected double waitTime = 0.0;
 
     // Begins at 4. Will iterate through SW, NW, NE, SE
     protected int cornerState = 4;
 
     protected TimeScheduleNew timeSchedule;
-    protected long startTime;
+    // protected long startTime;
 
     public ArrayList<Message> missionList = new ArrayList<Message>();
 
@@ -81,6 +82,17 @@ public class TransportTruckAgent extends CommunicationAid{
         double STARTUP_ADD = 5.0;
         double nextTime = this.timeSchedule.getNextStartTime();
         return nextTime == -1.0 ? this.getTime()+STARTUP_ADD : nextTime;
+    }
+
+    protected void measureWaitingTime() {
+        if (this.waitTime == 0.0) {
+            this.waitTime = getTime();
+        } else {
+            // new time measure
+            this.waitTime = getTime() - this.waitTime;
+            this.fp.addWaitingTimeMeasurment(this.getTime(), this.waitTime, this.robotID);
+            this.waitTime = 0;
+        }
     }
 
     /**
@@ -255,6 +267,7 @@ public class TransportTruckAgent extends CommunicationAid{
 
 
         String startPos = this.stringifyPose(nextPose);
+        this.measureWaitingTime();
         int taskID = this.sendCNPmessage(taskStartTime, startPos, receivers);
 
 

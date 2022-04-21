@@ -275,7 +275,7 @@ public class OreStateTest {
 			}
 		};
 		storageThreadRight.start();
-		/*
+		
 		Thread storageThreadTTA = new Thread() {
 			@Override
 			public void run() {
@@ -292,14 +292,13 @@ public class OreStateTest {
 			}
 		};
 		storageThreadTTA.start();
-		*/
 
 		try { Thread.sleep(100); }
 		catch (InterruptedException e) { e.printStackTrace(); }
 	}
 
 	final int[] numTransportTruck = {9401, 9402}; 
-	final int[] iter4 = {};
+	final int[] iter4 = {0};
 	Pose[] transportTruckPoses = {TTA1pos, TTA2pos};    
 	
 	for (final int i : iter4) {

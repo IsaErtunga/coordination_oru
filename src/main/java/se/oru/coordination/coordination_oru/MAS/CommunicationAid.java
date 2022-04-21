@@ -24,6 +24,7 @@ public class CommunicationAid extends HelpFunctions{
     protected int upperTaskIDBound = 99999;
     protected String separator = ",";
     public int robotID;
+    protected long startTime;
 
     public ArrayList<Integer> robotsInNetwork = new ArrayList<Integer>();
     protected ArrayList<Message> offers = new ArrayList<Message>();
@@ -52,6 +53,7 @@ public class CommunicationAid extends HelpFunctions{
 
         }
         synchronized(this.outbox){ this.outbox.add(m); }
+        this.fp.addMessageCounter(this.getTime(), m.type);
         return taskID;
     }
 
@@ -156,7 +158,11 @@ public class CommunicationAid extends HelpFunctions{
     }
     
 
-
+    protected double getTime(){
+        long diff = System.currentTimeMillis() - this.startTime;
+        return (double)(diff)/1000.0;
+    }
+    
 
     public static void main(String[] args){
         int robotID = 3210;

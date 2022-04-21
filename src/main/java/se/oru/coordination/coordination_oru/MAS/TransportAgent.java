@@ -31,7 +31,7 @@ public class TransportAgent extends CommunicationAid{
     protected final int taskCap = 6;
 
     protected TimeScheduleNew timeSchedule;
-    protected long startTime;
+    // protected long startTime;
 
     public ArrayList<Message> missionList = new ArrayList<Message>();
 

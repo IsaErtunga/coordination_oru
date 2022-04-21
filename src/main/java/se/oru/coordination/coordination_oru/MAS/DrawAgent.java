@@ -32,7 +32,7 @@ public class DrawAgent extends CommunicationAid{
     protected boolean shiftLeft;
 
     protected TimeScheduleNew timeSchedule;
-    protected long startTime;
+    // protected long startTime;
 
     public DrawAgent(int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp){}
 

@@ -30,7 +30,7 @@ public class StorageAgent extends CommunicationAid{
 
     protected ReedsSheppCarPlanner mp;
     protected TimeScheduleNew timeSchedule;
-    protected long startTime;
+    // protected long startTime;
     protected double oreStateThreshold = 15.0;
     protected int orderNumber;
 
@@ -261,14 +261,10 @@ public class StorageAgent extends CommunicationAid{
         if (informVal.equals(new String("done"))) {
             double oreChange = Double.parseDouble(this.parseMessage(m, "informInfo")[0]);
             oreChange = oreChange * -1;
-            // int docId = this.robotID % 1000;
-            // try {
-            //     this.fp.write(this.getTime(), this.timeSchedule.getOreStateAtTime(this.getTime()), docId);
-            // } catch (IOException e) {
-            //     e.printStackTrace();
-            // }
 
-            //this.print("ORESTATE: " + this.timeSchedule.getOreStateAtTime(this.getTime()) + " AT TIME: "+ this.getTime());
+            int docId = this.robotID % 1000;
+            this.fp.write(this.getTime(), this.amount, this.timeSchedule.getOreStateAtTime(this.getTime()), docId);
+
             synchronized(this.timeSchedule){ this.timeSchedule.removeEvent(taskID); }
             this.print("---SCHEDULE---");
             this.timeSchedule.printSchedule(this.COLOR);
