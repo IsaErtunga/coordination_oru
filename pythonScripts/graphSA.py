@@ -1,13 +1,15 @@
 import matplotlib.pyplot as plt
 import csv
+import os
 
 plt.rcParams["figure.figsize"] = [7.50, 3.50]
 plt.rcParams["figure.autolayout"] = True
+dirPath = "/home/parallels/Projects/coordination_oru/testResults/testRun/"
 
 # Plots ore levels for storage agent
 def plotSAState():
     robotIDs = ["301", "302"]
-    dirPath = "/home/parallels/testRun/"
+    
     for id in robotIDs:
         path = dirPath + "OreState" + id + ".csv"
         times = []
@@ -30,10 +32,9 @@ def plotSAState():
         plt.ylabel('Ore')
         path = ""
   
-[5, 3, 6, 8, 9, 12]
 # Plot message count
 def plotMessageAmount():
-    path = "/home/parallels/testRun/Messages.csv"
+    path = dirPath + "Messages.csv"
     times = []
     messageCounter = []
     with open(path,'r') as csvfile:
@@ -57,7 +58,7 @@ def plotWaitingTimes():
     times = []
     waitingTimes = []
     robotIDs = ["9401"]
-    path = "/home/parallels/testRun/WaitingTimes" + robotIDs[0] + ".csv"
+    path = dirPath + "WaitingTimes" + robotIDs[0] + ".csv"
     with open(path,'r') as csvfile:
         plots = csv.reader(csvfile, delimiter = ',')
         for row in plots:
@@ -71,7 +72,25 @@ def plotWaitingTimes():
         plt.xlabel('Time')
         plt.ylabel('Wait Time')
 
-plotSAState()
-plotMessageAmount()
-plotWaitingTimes()
+def plotMessagesWithType():
+    labels = ['G1', 'G2', 'G3', 'G4', 'G5']
+    men_means = [20, 35, 30, 35, 27]
+    women_means = [25, 32, 34, 20, 25]
+    width = 0.35       # the width of the bars: can also be len(x) sequence
+
+    plt.figure()
+    fig, ax = plt.subplots()
+
+    ax.bar(labels, men_means, width, label='Men')
+    ax.bar(labels, women_means, width, bottom=men_means,
+        label='Women')
+
+    ax.set_ylabel('Scores')
+    ax.set_title('Scores by group and gender')
+    ax.legend()
+
+# plotSAState()
+# plotMessageAmount()
+# plotWaitingTimes()
+plotMessagesWithType()
 plt.show()
