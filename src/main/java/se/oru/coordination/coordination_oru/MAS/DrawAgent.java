@@ -103,16 +103,26 @@ public class DrawAgent extends CommunicationAid{
                 }
 
                 else if (m.type == "accept") {
-
+                    this.print("---schedule---BEFORE");
+                    this.timeSchedule.printSchedule(this.COLOR);
                     boolean eventAdded;
-                    synchronized(this.timeSchedule){ eventAdded = this.timeSchedule.setEventActive(taskID); }
+                    synchronized(this.timeSchedule){ eventAdded = this.timeSchedule.setEventActive(taskID, true); }
                     this.print("accept-msg, taskID-->"+taskID+"\twith robot-->"+m.sender+"\ttask added-->"+eventAdded);
                     if ( eventAdded == false ){
                         this.print("accept received but not successfully added. sending abort msg");
                         this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
                     }
-                    // this.print("---schedule---");
-                    // this.timeSchedule.printSchedule(this.COLOR);
+
+                    ArrayList<Task> abortTasks = this.timeSchedule.fixBrokenSchedule();
+                    for (Task t : abortTasks){
+                        this.print("CONFLICT from fixBrokenSchedule, sending ABORT msg. taskID-->"+t.taskID+"\twith-->"+t.partner);
+                        this.sendMessage(new Message(this.robotID, t.partner, "inform", t.taskID+this.separator+"abort"));
+                    }
+                    if ( abortTasks.size() > 0 ){
+                        this.print("---schedule---AFTER");
+                        this.timeSchedule.printSchedule(this.COLOR);
+                    }
+                   
                 } 
 
                 else if (m.type == "decline"){
@@ -204,7 +214,8 @@ public class DrawAgent extends CommunicationAid{
      * - Will receive a time from TA of when it can come and fetch ore. 
      */
     public boolean handleService(Message m){ 
-        double availabeOre = this.timeSchedule.getLastOreState();
+        double startTime = Double.parseDouble( this.parseMessage(m, "startTime")[0] );
+        double availabeOre = this.timeSchedule.getOreStateAtTime(startTime+5.0);
         if (availabeOre <= 0.0){ //if we dont have ore dont act 
             this.print("no ore");
             return false;   
@@ -223,8 +234,12 @@ public class DrawAgent extends CommunicationAid{
         // this.timeSchedule.printSchedule(this.COLOR);
 
         this.sendMessage(this.createOfferMsgFromTask(DAtask, offerVal, availabeOre));
-        // this.print("in handleService");
-        // this.timeSchedule.printSchedule(this.COLOR);
+        
+        // ArrayList<Task> abortTasks = this.timeSchedule.fixBrokenSchedule();
+        // for (Task t : abortTasks){
+        //     this.print("CONFLICT! sending ABORT msg. taskID-->"+t.taskID+"\twith-->"+t.partner);
+        //     this.sendMessage(new Message(this.robotID, t.partner, "inform", t.taskID+this.separator+"abort"));
+        // }
         return true;
     }
 
