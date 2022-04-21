@@ -175,9 +175,8 @@ public class TransportTruckAgent extends CommunicationAid{
 
             synchronized(this.tec){ this.tec.addMissions(this.createMission(task)); }
 
-            while (!isTaskDone(task)) {
-                this.sleep(100);
-            }
+            this.waitUntilCurrentTaskComplete(this.tec, this.robotID, 100); // locking
+
             if (task.partner != -1){
                 Message doneMessage = new Message(this.robotID, task.partner, "inform", task.taskID + this.separator + "done" + this.separator + task.ore);
                 this.sendMessage(doneMessage, false);

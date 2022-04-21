@@ -175,7 +175,7 @@ public class OreStateTest {
 	final int[] numDraw = {1101, 1102, 1103, 1104, 1105, 2101, 2102, 2103, 2104, 2105};
 	Pose[] drawPoses = { DA1posLeft, DA2posLeft, DA3posLeft, DA4posLeft, DA5posLeft,
 						 DA1posRight, DA2posRight, DA3posRight, DA4posRight, DA5posRight };
-	final int[] iter3 = {0,1,3,4,5,6,8,9};
+	final int[] iter3 = {0,1,3,4,5,6,7,8,9};
 
 	ReedsSheppCarPlanner mp = new ReedsSheppCarPlanner();
 	mp.setFootprint(footprint1, footprint2, footprint3, footprint4);
