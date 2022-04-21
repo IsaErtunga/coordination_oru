@@ -141,7 +141,9 @@ public class HelpFunctions {
     }
 
     public double linearDecreasingComparingFunc(double input, double compareVal, double upperDiffVal, double maxReturn){
-        return maxReturn - ( maxReturn * Math.abs(input - compareVal) / upperDiffVal );
+        double diff = Math.abs(input - compareVal);
+        if ( diff >= upperDiffVal ) return 0.0;
+        return maxReturn - ( maxReturn * diff / upperDiffVal );
     }
 
     public static void main(String args[]){
