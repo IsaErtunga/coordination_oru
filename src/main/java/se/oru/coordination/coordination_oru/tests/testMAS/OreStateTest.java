@@ -158,7 +158,7 @@ public class OreStateTest {
 	double SAStartOre = SAOreCapacity/4;
 
     												/*		ROUTER THREAD	*/
-	Router router = new Router();
+	Router router = new Router(startTime);
 	Thread t3 = new Thread() {
 		public void run() {
 			router.run();
@@ -292,7 +292,6 @@ public class OreStateTest {
 			}
 		};
 		storageThreadTTA.start();
-		
 
 		try { Thread.sleep(100); }
 		catch (InterruptedException e) { e.printStackTrace(); }

@@ -131,7 +131,7 @@ public class CommunicationDraw {
 	Pose SA2pos = new Pose(63.0,142.0, 0.0);
 
     												/*		ROUTER THREAD	*/
-	Router router = new Router();
+	Router router = new Router(startTime);
 	Thread t3 = new Thread() {
 		public void run() {
 			router.run();

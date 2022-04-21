@@ -139,7 +139,7 @@ public class BaseTest {
 	Pose TTA2pos = new Pose(170.0, 25.0, Math.PI);	
 
     												/*		ROUTER THREAD	*/
-	Router router = new Router();
+	Router router = new Router(startTime);
 	Thread t3 = new Thread() {
 		public void run() {
 			router.run();

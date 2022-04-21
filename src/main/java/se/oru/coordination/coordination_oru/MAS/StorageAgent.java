@@ -259,14 +259,11 @@ public class StorageAgent extends CommunicationAid{
         String informVal = this.parseMessage(m, "informVal")[0];
         
         if (informVal.equals(new String("done"))) {
-            double oreChange = Double.parseDouble(this.parseMessage(m, "informInfo")[0]);
-            oreChange = oreChange * -1;
-            // int docId = this.robotID % 1000;
-            // try {
-            //     this.fp.write(this.getTime(), this.timeSchedule.getOreStateAtTime(this.getTime()), docId);
-            // } catch (IOException e) {
-            //     e.printStackTrace();
-            // }
+            double oreChange = Double.parseDouble(this.parseMessage(m, "", true)[2]);  
+            oreChange = oreChange * -1.0;
+            int docId = this.robotID % 1000;
+            this.fp.write(this.getTime(), this.amount, this.timeSchedule.getOreStateAtTime(this.getTime()), docId);
+       
 
             //this.print("ORESTATE: " + this.timeSchedule.getOreStateAtTime(this.getTime()) + " AT TIME: "+ this.getTime());
             synchronized(this.timeSchedule){ this.timeSchedule.removeEvent(taskID); }
