@@ -15,24 +15,14 @@ import se.oru.coordination.coordination_oru.motionplanning.ompl.ReedsSheppCarPla
 import se.oru.coordination.coordination_oru.util.Missions;
 import se.oru.coordination.coordination_oru.Mission;
 
-public class DrawAgent extends CommunicationAid{
+public class DrawAgent extends BidderAgent{
     // control parameters
-    protected String COLOR = "\033[0;36m";
-    protected double ADD_TIME2TA_TASKS = 0.0;
-
-    protected Router router;
 
     private double finalXPos;
     protected double initalXPos;
+    protected double currentOreAmount;
 
-    protected Pose pos;
-    protected double amount;
-    protected double capacity; 
-    protected ReedsSheppCarPlanner mp;
     protected boolean shiftLeft;
-
-    protected TimeScheduleNew timeSchedule;
-    protected long startTime;
 
     public DrawAgent(int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp){}
 
@@ -41,14 +31,16 @@ public class DrawAgent extends CommunicationAid{
 
         this.robotID = robotID; // drawID >10'000
         this.capacity = capacity;
-        this.amount = capacity; // 100% full in beginning
+        this.initialOreAmount = capacity;
+        this.currentOreAmount = capacity;
         this.mp = mp;
         this.router = router;
-        this.pos = pos;
+        this.initialPose = pos;
         this.initalXPos = pos.getX();
+        this.COLOR = "\033[0;36m";
 
-        this.timeSchedule = new TimeScheduleNew(pos, capacity, this.amount);
-        this.startTime = startTime;
+        this.timeSchedule = new TimeScheduleNew(pos, capacity, this.initialOreAmount);
+        this.clockStartTime = startTime;
 
         router.enterNetwork(this.robotID, this.inbox, this.outbox);
         this.sendMessage(new Message(this.robotID, "hello-world", ""), true);
@@ -62,124 +54,66 @@ public class DrawAgent extends CommunicationAid{
 
     }
 
-    protected double getTime(){
-        long diff = System.currentTimeMillis() - this.startTime;
-        return (double)(diff)/1000.0;
-    }
-
     public void takeOre(double oreChange){
         oreChange = oreChange < 0.0 ? oreChange : -oreChange; // make sure sign is negative
-        this.amount += oreChange;
+        this.currentOreAmount += oreChange;
 
         double x;
-        if (this.shiftLeft) x = this.finalXPos + 32.0 * (this.amount / this.capacity);
-        else x = this.finalXPos - 32.0 * (this.amount / this.capacity);
+        if (this.shiftLeft) x = this.finalXPos + 32.0 * (this.currentOreAmount / this.capacity);
+        else x = this.finalXPos - 32.0 * (this.currentOreAmount / this.capacity);
 
-        this.pos = new Pose( x, pos.getY(), pos.getYaw() );
+        this.initialPose = new Pose( x, initialPose.getY(), initialPose.getYaw() );
     }
 
+    @Override
+    protected void handleAccept(int taskID, Message m){
+        this.print("---schedule---BEFORE");
+        this.timeSchedule.printSchedule(this.COLOR);
+        boolean eventAdded;
+        synchronized(this.timeSchedule){ eventAdded = this.timeSchedule.setEventActive(taskID, true); }
+        //this.print("accept-msg, taskID-->"+taskID+"\twith robot-->"+m.sender+"\ttask added-->"+eventAdded);
+        if ( eventAdded == false ){
+            //this.print("accept received but not successfully added. sending abort msg");
+            this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
+        }
 
-    public void listener(){
-        ArrayList<Message> inbox_copy;
-
-        while(true){
-        
-            synchronized(this.inbox){
-                inbox_copy = new ArrayList<Message>(this.inbox);
-                this.inbox.clear();
-            }
-
-            for (Message m : inbox_copy){
-                //System.out.println(m.type +"\t"+m.body);
-                int taskID = Integer.parseInt(this.parseMessage(m, "taskID")[0]);
-                
-                if (m.type == "hello-world"){ 
-                    if ( !this.robotsInNetwork.contains(m.sender) ) this.robotsInNetwork.add(m.sender);
-                    this.sendMessage( new Message( m.receiver.get(0), m.sender, "echo", Integer.toString(taskID)));
-                }
-
-                else if (m.type == "echo"){ 
-                    if ( !this.robotsInNetwork.contains(m.sender) ) this.robotsInNetwork.add(m.sender);
-                }
-
-                else if (m.type == "accept") {
-                    this.print("---schedule---BEFORE");
-                    this.timeSchedule.printSchedule(this.COLOR);
-                    boolean eventAdded;
-                    synchronized(this.timeSchedule){ eventAdded = this.timeSchedule.setEventActive(taskID, true); }
-                    this.print("accept-msg, taskID-->"+taskID+"\twith robot-->"+m.sender+"\ttask added-->"+eventAdded);
-                    if ( eventAdded == false ){
-                        this.print("accept received but not successfully added. sending abort msg");
-                        this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
-                    }
-
-                    ArrayList<Task> abortTasks = this.timeSchedule.fixBrokenSchedule();
-                    for (Task t : abortTasks){
-                        this.print("CONFLICT from fixBrokenSchedule, sending ABORT msg. taskID-->"+t.taskID+"\twith-->"+t.partner);
-                        this.sendMessage(new Message(this.robotID, t.partner, "inform", t.taskID+this.separator+"abort"));
-                    }
-                    if ( abortTasks.size() > 0 ){
-                        this.print("---schedule---AFTER");
-                        this.timeSchedule.printSchedule(this.COLOR);
-                    }
-                   
-                } 
-
-                else if (m.type == "decline"){
-                    synchronized(this.timeSchedule){
-                        boolean successfulRemove = this.timeSchedule.removeEvent(taskID);
-                        //this.print("got decline from-->"+m.sender+"\ttaskID-->"+taskID+"\tremoved-->"+successfulRemove);
-                    }
-                }
-
-                else if (m.type == "cnp-service"){
-                    this.handleService(m);
-                }
-
-                else if (m.type.equals(new String("inform"))) {
-                    boolean leaveNetwork = this.handleInformMessage(m);
-                    if ( leaveNetwork == true ){
-                        //TODO leave network and boradcast goodbye msg
-                    } 
-                }
-                
-            }
-            // Changed sleep from 1000
-            this.sleep(100);
+        ArrayList<Task> abortTasks = this.timeSchedule.fixBrokenSchedule();
+        for (Task t : abortTasks){
+            //this.print("CONFLICT from fixBrokenSchedule, sending ABORT msg. taskID-->"+t.taskID+"\twith-->"+t.partner);
+            this.sendMessage(new Message(this.robotID, t.partner, "inform", t.taskID+this.separator+"abort"));
+        }
+        if ( abortTasks.size() > 0 ){
+            //this.print("---schedule---AFTER");
+            this.timeSchedule.printSchedule(this.COLOR);
         }
     }
-    
-    protected boolean handleInformMessage(Message m){
-        // this.print("in handleInfoMessage");
-        // String[] aaa = this.parseMessage(m, "", true );
-        // this.print("\tparseAll-->"+ aaa[0]);
 
-        // aaa = this.parseMessage(m, "taskID");
-        // this.print("\tmessageParsed-->"+ aaa[0]);
+    @Override
+    protected void handleCNPauction(Message m){
+        double START_TIME_PADDING = 5.0;
+        double startTime = Double.parseDouble( this.parseMessage(m, "startTime")[0] ) +START_TIME_PADDING;
 
-        int taskID = Integer.parseInt(this.parseMessage(m, "taskID")[0]);
-        String informVal = this.parseMessage(m, "informVal")[0];
-        
-        if (informVal.equals(new String("done"))) {
-            double oreChange = Double.parseDouble(this.parseMessage(m, "informInfo")[0]);
-            this.timeSchedule.removeEvent(taskID);
-            this.takeOre(oreChange);
-            //if ( (int)this.amount <= 0 ) return true;
-        }
+        double availableOre = this.timeSchedule.getOreStateAtTime(startTime);
+        Pose agentPose = this.calculateFuturePos(startTime);
 
-        else if (informVal.equals(new String("status"))) {
-            this.handleStatusMessage(m);
-        }                     
-
-        else if (informVal.equals(new String("abort"))) { //TODO remove task from schedule 
-            this.timeSchedule.abortEvent(taskID);
-            this.print("got ABORT MSG! taskID-->"+taskID+"\twith-->"+m.sender );
-        }
-        
-        return false;
+        if (availableOre <= 0.01){ //if we dont have ore dont act 
+            this.goOffline = true;
+            this.print("no ore");
+            return;   
+        } 
+        else availableOre = availableOre >= 15.0 ? 15.0 : availableOre;
+        this.handleService(m, availableOre, agentPose);
     }
 
-    protected void handleStatusMessage(Message m){
+    @Override
+    protected void handleInformDone(int taskID, Message m){
+        double oreChange = Double.parseDouble(this.parseMessage(m, "informInfo")[0]);
+        this.timeSchedule.removeEvent(taskID);
+        this.takeOre(oreChange);
+    };
+
+    @Override
+    protected void handleInformStatus(Message m){
         //this.print("in handleStatusMessage");
         String updateSep = "::";
         String pairSep = ":";
@@ -206,13 +140,13 @@ public class DrawAgent extends CommunicationAid{
                 this.print("updated without conflict-->"+taskID +"\twith-->"+ m.sender);
             }
         }
-    }
+    };
 
     /**
      * DA responds to TA with offer that is calculated in this function. 
      * SCHEDULE:
      * - Will receive a time from TA of when it can come and fetch ore. 
-     */
+     *
     public boolean handleService(Message m){ 
         double startTime = Double.parseDouble( this.parseMessage(m, "startTime")[0] );
         double availabeOre = this.timeSchedule.getOreStateAtTime(startTime+5.0);
@@ -250,60 +184,11 @@ public class DrawAgent extends CommunicationAid{
      * @return
      */
     protected Pose calculateFuturePos(double time){
-        double oreAtTime = this.timeSchedule.getLastOreState(); //TODO this doesnt take ore into account. fix!
+        double oreAtTime = this.timeSchedule.getOreStateAtTime(time);
         double x;
         if (this.shiftLeft) x = this.finalXPos + 32.0 * (oreAtTime / this.capacity);
         else x = this.finalXPos - 32.0 * (oreAtTime / this.capacity);
-        return new Pose( x, pos.getY(), pos.getYaw() );
-    }
-
-    /**
-     * When receiving a cnp-message, this function will create a task from that message.
-     * Only used in {@link handleService}.
-     * @param m the message from the auctioneer
-     * @param ore the amount of ore the task is about
-     * @return a Task with attributes extracted from m
-     */
-    protected Task createTaskFromServiceOffer(Message m, double ore){
-        String[] mParts = this.parseMessage(m, "", true);
-
-        Pose TApos = this.posefyString(mParts[2]);
-
-        // removed for easier debug
-        // PoseSteering[] path = this.getPath( this.mp, this.pos, TApos);
-        // double pathDist = this.calculatePathDist(path);
-        // double pathTime = this.calculateDistTime(pathDist);
-
-        // this.print("pathDist-->"+pathDist+"\twith-->"+m.sender);
-
-        double pathDist = this.pos.distanceTo(TApos);
-        double pathTime = this.calculateDistTime(pathDist) + 4.0;
-
-        double taskStartTime = Double.parseDouble(mParts[3]);
-        double endTime = taskStartTime + pathTime;
-
-        Pose DApos = this.calculateFuturePos(taskStartTime);
-
-        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathTime, TApos, DApos);
-    }
-
-    /**
-     * Used to generate a response message from a task. Called from {@link handleService}
-     * after creating a task with {@link createTaskFromServiceOffer}.
-     * @param t a Task that is unactive = t.isActive = false
-     * @param offer an int that is the calculated evaluation of the service related to t
-     * @param ore a double representing the ore amount the task handels
-     * @return returns a Message with attributes extracted from the parameters
-     */
-    protected Message createOfferMsgFromTask(Task t, int offer, double ore){
-        String s = this.separator;
-
-        String TAposStr = this.stringifyPose(t.fromPose);
-        String DAposStr = this.stringifyPose(t.toPose);
-        String body = t.taskID +s+ offer +s+ TAposStr +s+ 
-                      DAposStr +s+ t.startTime +s+ (t.endTime - this.ADD_TIME2TA_TASKS) +s+ ore;
-
-        return new Message(this.robotID, t.partner, "offer", body);
+        return new Pose( x, this.initialPose.getY(), this.initialPose.getYaw() );
     }
 
     /**
@@ -313,6 +198,7 @@ public class DrawAgent extends CommunicationAid{
      * @param t the task to be evaluated how well it fits for this agent
      * @return an int with the value of this task.
      */
+    @Override
     protected int calculateOffer(Task t, Message m){
         if (t.pathDist <= 2.0) return 0;
 
@@ -335,32 +221,6 @@ public class DrawAgent extends CommunicationAid{
             +"\ttime eval-->"+timeEval);
         */
         return oreEval + distEval + timeEval;
-        
-        // int offer;
-        // if (t.pathDist > 0.5) {
-        //     double evaluatedCapacity = 100.0 * this.amount / this.capacity; 
-        //     if (this.amount / this.capacity > 0.9) {
-        //         // Ändra med t.ore. If t.ore < -15
-        //         // Draw agent is nearly full
-        //         int fullOreBonus = 1000;
-        //         offer = this.calcCDF(t.pathDist) + fullOreBonus;
-        //     }
-        //     else {
-        //         offer = this.calcCDF(t.pathDist) + (int)evaluatedCapacity;
-        //     }
-        // }
-        // else {
-        //     offer = 0;
-        // }
-        // return offer;
-    }
-
-    /**
-     * simlpe print func with color and robotID included
-     * @param s string to be printed
-     */
-    protected void print(String s){
-        System.out.println(this.COLOR+this.robotID+" TIME["+String.format("%.2f",this.getTime()) + "]\t" + s + "\033[0m");
     }
     
 }

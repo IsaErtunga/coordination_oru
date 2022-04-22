@@ -43,13 +43,15 @@ public class HelpFunctions {
         Pose[] toPoses = new Pose[] {to};
         return this.getPath(null, mp, from, toPoses);
     }
-
-    public PoseSteering[] calculatePath(ReedsSheppCarPlanner mp, Pose from, Pose to){
+    
+    public PoseSteering[] calculatePath(ReedsSheppCarPlanner mp, Pose from, Pose[] to){
         mp.setStart(from);
         mp.setGoals(to);
-        if (!mp.plan()) throw new Error ("No path between " + from + " and " + to);
-
+        if (!mp.plan()) throw new Error ("No path between " + from + " and " + to[0]);
         return mp.getPath();
+    }
+    public PoseSteering[] calculatePath(ReedsSheppCarPlanner mp, Pose from, Pose to){
+        return this.calculatePath(mp, from, new Pose[] {to});
     }
 
 
@@ -121,7 +123,6 @@ public class HelpFunctions {
      * @return
      */
     public int calcCDF(double value, int yValue) {
-        
         double lambda = 0.07;
         double e = 2.718;
        

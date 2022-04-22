@@ -72,7 +72,7 @@ public class CommunicationAid extends HelpFunctions{
         else {
             String[] attributes = {};
 
-            if (m.type == "accept" || m.type == "decline" || m.type == "echo" || m.type == "hello-world"){
+            if (m.type == "accept" || m.type == "decline" || m.type == "echo" || m.type == "hello-world" || m.type == "goodbye-world"){
                 attributes = new String[] {"taskID"};
             }
 
