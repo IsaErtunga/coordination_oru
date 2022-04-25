@@ -5,14 +5,13 @@ import com.vividsolutions.jts.geom.Coordinate;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 import se.oru.coordination.coordination_oru.Mission;
 
-public class MobileAgent extends BasicAgent{
+public class MobileAgent extends AuctioneerBidderAgent{
 
     protected TrajectoryEnvelopeCoordinatorSimulation tec;
     protected Coordinate[] rShape;
-    protected Pose startPose;
-    protected double robotSpeed;
-    protected double robotAcceleration;
-    
+    protected double robotSpeed = 20.0;
+    protected double robotAcceleration = 10.0;
+    protected int TASK_EXECUTION_PERIOD_MS = 200;
     /**
      * 
      */
@@ -27,7 +26,7 @@ public class MobileAgent extends BasicAgent{
 
         this.tec.setFootprint(this.robotID, this.rShape);
 
-        this.tec.placeRobot(this.robotID, this.startPose);
+        this.tec.placeRobot(this.robotID, this.initialPose);
         
         tec.setMotionPlanner(this.robotID, this.mp); // Motion planner
         }
@@ -38,13 +37,9 @@ public class MobileAgent extends BasicAgent{
                                         new Coordinate(xLength,-yLength),new Coordinate(-xLength,-yLength)};
     }
 
-    protected void setSchedule(){
-        this.timeSchedule = new TimeScheduleNew(this.startPose, this.capacity, this.initialOreAmount);
-    }
-
     protected void taskExecutionThread(){ // basic task execution function
         while (true) {
-            this.sleep(200);
+            this.sleep(TASK_EXECUTION_PERIOD_MS);
 
             Task task = null;
             Pose prevToPose = null;
@@ -55,12 +50,17 @@ public class MobileAgent extends BasicAgent{
 
             if (task == null) continue;
 
+            this.print("starting mission taskID-->"+task.taskID+" with -->" +task.partner + "\tat time-->"+this.getTime()+"\ttaskStartTime-->"+task.startTime);
             synchronized(this.tec){ this.tec.addMissions(this.createMission(task, prevToPose)); }
 
             this.waitUntilCurrentTaskComplete(this.robotID, 100); // locking
 
-            Message doneMessage = new Message(this.robotID, task.partner, "inform", task.taskID + this.separator + "done" +this.separator+ (-task.ore));
-            this.sendMessage(doneMessage);
+            this.print("mission DONE taskID-->"+task.taskID+" with -->" +task.partner + "\tat time-->"+this.getTime()+"\ttaskEndTime-->"+task.endTime);
+            if ( task.partner != -1 ){
+                Message doneMessage = new Message(this.robotID, task.partner, "inform", task.taskID + this.separator + "done" +this.separator+ (-task.ore));
+                this.sendMessage(doneMessage);
+            }
+            
         }
     }
 

@@ -1,8 +1,12 @@
 package se.oru.coordination.coordination_oru.MAS;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 
-public class BidderAgent extends BasicAgent{
+public class AuctioneerBidderAgent extends AuctioneerAgent{
+    
 
+    // ===================== BIDDER FUNCTIONS BELOW ===================
+    // ================================================================
+    // ================================================================
 
     /**
      * Basic offer calc func. this needs to be overwritten in final agent object
@@ -61,7 +65,7 @@ public class BidderAgent extends BasicAgent{
      * @param m the message with the service
      * @param robotID the robotID of this object
      * @return true if we send offer = we expect resp.
-     *
+     */
     protected boolean handleService(Message m, double availableOre, Pose agentPose) { 
 
         Task auctionTask = this.generateTaskFromAuction(m, agentPose, availableOre);
@@ -79,10 +83,10 @@ public class BidderAgent extends BasicAgent{
         this.sendMessage(this.generateOfferMessage(auctionTask, offerVal, availableOre));
 
         return true;
-    }*/
+    }
     
     /**
-     * only example. Needs to be overwritten
+     * example of how handleCNPauction could look using taskCap, and checking if available ore > 0
      */
     @Override
     protected void handleCNPauction(Message m){
@@ -97,19 +101,6 @@ public class BidderAgent extends BasicAgent{
         }
         if ( availableOre <= 0.01 || scheduleSize >= this.taskCap) return;
 
-        Task auctionTask = this.generateTaskFromAuction(m, pose, availableOre);
-
-        boolean taskPossible;
-        synchronized(this.timeSchedule){ taskPossible = this.timeSchedule.isTaskPossible(auctionTask); }
-        if ( !taskPossible ) return;    // task doesnt fit in schedule
-
-        int offerVal = this.calculateOffer(auctionTask, m);
-        
-        if ( offerVal <= 0 ) return;
-
-        synchronized(this.timeSchedule){ this.timeSchedule.addEvent(auctionTask); }
-
-        this.sendMessage(this.generateOfferMessage(auctionTask, offerVal, availableOre));
+        this.handleService(m, availableOre, pose);
     }
-
 }

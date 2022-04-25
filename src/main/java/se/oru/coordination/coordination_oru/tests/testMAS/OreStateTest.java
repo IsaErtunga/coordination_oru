@@ -154,8 +154,8 @@ public class OreStateTest {
 	Pose TTA1pos = new Pose(140.0, 25.0, Math.PI);
 	Pose TTA2pos = new Pose(170.0, 25.0, Math.PI);	
 
-	double SAOreCapacity = 400.0;
-	double SAStartOre = SAOreCapacity/4;
+	double SAOreCapacity = 200.0;
+	double SAStartOre = 100;
 
     												/*		ROUTER THREAD	*/
 	Router router = new Router();
@@ -175,7 +175,7 @@ public class OreStateTest {
 	final int[] numDraw = {1101, 1102, 1103, 1104, 1105, 2101, 2102, 2103, 2104, 2105};
 	Pose[] drawPoses = { DA1posLeft, DA2posLeft, DA3posLeft, DA4posLeft, DA5posLeft,
 						 DA1posRight, DA2posRight, DA3posRight, DA4posRight, DA5posRight };
-	final int[] iter3 = {0,1,3,4,5,6,8,9};
+	final int[] iter3 = {0,1,3,4};
 
 	ReedsSheppCarPlanner mp = new ReedsSheppCarPlanner();
 	mp.setFootprint(footprint1, footprint2, footprint3, footprint4);
@@ -188,7 +188,7 @@ public class OreStateTest {
 			@Override
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);
-				DrawAgent DA = new DrawAgent(numDraw[i], router, 55.0, drawPoses[i], mp, startTime, numDraw[i] < 2000 );
+				DrawAgent DA = new DrawAgent(numDraw[i], router, 100.0, drawPoses[i], mp, startTime, numDraw[i] < 2000 );
 				DA.listener();
 				
 			}
@@ -200,7 +200,7 @@ public class OreStateTest {
 
 												/*		TRANSPORT AGENT	*/
 	final int[] numTransport = {1201, 1202, 1203, 2201, 2202, 2203};
-	final int[] iter = {0,1,3,4};
+	final int[] iter = {0,1};
 	Pose[] transportPoses = { TA1posLeft, TA2posLeft, TA3posLeft, TA1posRight, TA2posRight, TA3posRight };    
 	for (final int i : iter) {
 
@@ -258,7 +258,7 @@ public class OreStateTest {
 			}
 		};
 		storageThreadLeft.start();
-		
+		/*
 		Thread storageThreadRight = new Thread() {
 			@Override
 			public void run() {
@@ -275,7 +275,7 @@ public class OreStateTest {
 			}
 		};
 		storageThreadRight.start();
-		/*
+		*/
 		Thread storageThreadTTA = new Thread() {
 			@Override
 			public void run() {
@@ -292,14 +292,14 @@ public class OreStateTest {
 			}
 		};
 		storageThreadTTA.start();
-		*/
+		
 
 		try { Thread.sleep(100); }
 		catch (InterruptedException e) { e.printStackTrace(); }
 	}
 
 	final int[] numTransportTruck = {9401, 9402}; 
-	final int[] iter4 = {};
+	final int[] iter4 = {0};
 	Pose[] transportTruckPoses = {TTA1pos, TTA2pos};    
 	
 	for (final int i : iter4) {

@@ -4,16 +4,9 @@
 package se.oru.coordination.coordination_oru.MAS;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Arrays;
 
-import org.metacsp.multi.spatioTemporal.paths.PoseSteering;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
-import se.oru.coordination.coordination_oru.MAS.Router;
 import se.oru.coordination.coordination_oru.motionplanning.ompl.ReedsSheppCarPlanner;
-
-import se.oru.coordination.coordination_oru.util.Missions;
-import se.oru.coordination.coordination_oru.Mission;
 
 public class DrawAgent extends BidderAgent{
     // control parameters
@@ -31,7 +24,7 @@ public class DrawAgent extends BidderAgent{
 
         this.robotID = robotID; // drawID >10'000
         this.capacity = capacity;
-        this.initialOreAmount = capacity;
+        this.amount= capacity;
         this.currentOreAmount = capacity;
         this.mp = mp;
         this.router = router;
@@ -39,7 +32,7 @@ public class DrawAgent extends BidderAgent{
         this.initalXPos = pos.getX();
         this.COLOR = "\033[0;36m";
 
-        this.timeSchedule = new TimeScheduleNew(pos, capacity, this.initialOreAmount);
+        this.timeSchedule = new TimeScheduleNew(pos, capacity, this.amount);
         this.clockStartTime = startTime;
 
         router.enterNetwork(this.robotID, this.inbox, this.outbox);
@@ -82,10 +75,6 @@ public class DrawAgent extends BidderAgent{
             //this.print("CONFLICT from fixBrokenSchedule, sending ABORT msg. taskID-->"+t.taskID+"\twith-->"+t.partner);
             this.sendMessage(new Message(this.robotID, t.partner, "inform", t.taskID+this.separator+"abort"));
         }
-        if ( abortTasks.size() > 0 ){
-            //this.print("---schedule---AFTER");
-            this.timeSchedule.printSchedule(this.COLOR);
-        }
     }
 
     @Override
@@ -96,86 +85,30 @@ public class DrawAgent extends BidderAgent{
         double availableOre = this.timeSchedule.getOreStateAtTime(startTime);
         Pose agentPose = this.calculateFuturePos(startTime);
 
-        if (availableOre <= 0.01){ //if we dont have ore dont act 
-            this.goOffline = true;
-            this.print("no ore");
-            return;   
-        } 
+        if ( availableOre <= 0.01 ) return;
         else availableOre = availableOre >= 15.0 ? 15.0 : availableOre;
-        this.handleService(m, availableOre, agentPose);
+
+        Task auctionTask = this.generateTaskFromAuction(m, agentPose, availableOre);
+
+        boolean taskPossible = this.timeSchedule.isTaskPossible(auctionTask); 
+        if ( taskPossible == false ) return;    // task doesnt fit in schedule
+
+        int offerVal = this.calculateOffer(auctionTask, m);
+        
+        if ( offerVal <= 0 ) return;
+
+        if ( this.timeSchedule.addEvent(auctionTask) == true){
+            this.sendMessage(this.generateOfferMessage(auctionTask, offerVal, availableOre));
+        }
     }
 
     @Override
     protected void handleInformDone(int taskID, Message m){
-        double oreChange = Double.parseDouble(this.parseMessage(m, "informInfo")[0]);
+        double oreChange = this.timeSchedule.getEvent(taskID).ore;
         this.timeSchedule.removeEvent(taskID);
-        this.takeOre(oreChange);
+        this.amount += oreChange;
+        this.print("currentOre -->"+this.amount);
     };
-
-    @Override
-    protected void handleInformStatus(Message m){
-        //this.print("in handleStatusMessage");
-        String updateSep = "::";
-        String pairSep = ":";
-
-        String informInfo = (this.parseMessage(m, "informInfo")[0]);
-        //this.print(informInfo);
-
-        String[] newTimes = informInfo.split(updateSep);
-        for ( int i=0; i<newTimes.length; i++ ){
-            //this.print("\tnewTimes[i]-->"+ newTimes[i]);
-            String[] updatePair = newTimes[i].split(pairSep);
-            //this.print("\tupdatePair successfully split");
-
-            int taskID = Integer.parseInt( updatePair[0] );
-            double newEndTime = Double.parseDouble( updatePair[1] );
-            //this.print("\t"+ "taskID-->"+taskID+"newEndTime-->"+newEndTime);
-
-            Task taskToAbort = null;
-            synchronized(this.timeSchedule) { taskToAbort = this.timeSchedule.updateTaskEndTimeIfPossible(taskID, newEndTime); }
-            if ( taskToAbort != null ){
-                this.sendMessage(new Message(this.robotID, taskToAbort.partner, "inform", taskToAbort.taskID+this.separator+"abort"));
-                this.print("CONFLICT! sending ABORT msg. taskID-->"+taskID+"\twith-->"+m.sender );
-            } else {
-                this.print("updated without conflict-->"+taskID +"\twith-->"+ m.sender);
-            }
-        }
-    };
-
-    /**
-     * DA responds to TA with offer that is calculated in this function. 
-     * SCHEDULE:
-     * - Will receive a time from TA of when it can come and fetch ore. 
-     *
-    public boolean handleService(Message m){ 
-        double startTime = Double.parseDouble( this.parseMessage(m, "startTime")[0] );
-        double availabeOre = this.timeSchedule.getOreStateAtTime(startTime+5.0);
-        if (availabeOre <= 0.0){ //if we dont have ore dont act 
-            this.print("no ore");
-            return false;   
-        } 
-        else availabeOre = availabeOre >= 15.0 ? 15.0 : availabeOre; // only give what ore we have available
-
-        Task DAtask = createTaskFromServiceOffer(m, availabeOre);
-
-        if ( !this.timeSchedule.isTaskPossible(DAtask) ) return false;    // task doesnt fit in schedule
-        int offerVal = this.calculateOffer(DAtask, m);
-
-        if ( offerVal <= 0 ) return false;
-        if (! this.timeSchedule.addEvent(DAtask) ) return false;
-        
-        // this.print("--- schedule ---");
-        // this.timeSchedule.printSchedule(this.COLOR);
-
-        this.sendMessage(this.createOfferMsgFromTask(DAtask, offerVal, availabeOre));
-        
-        // ArrayList<Task> abortTasks = this.timeSchedule.fixBrokenSchedule();
-        // for (Task t : abortTasks){
-        //     this.print("CONFLICT! sending ABORT msg. taskID-->"+t.taskID+"\twith-->"+t.partner);
-        //     this.sendMessage(new Message(this.robotID, t.partner, "inform", t.taskID+this.separator+"abort"));
-        // }
-        return true;
-    }
 
     /**
      * Function that determines if DrawAgent moves right or left
@@ -213,13 +146,12 @@ public class DrawAgent extends BidderAgent{
         double upperTimeDiff = cnpStartTime <= 0.0 ? 60.0 : 30.0;
         int timeEval = (int)this.linearDecreasingComparingFunc(t.startTime, cnpStartTime, upperTimeDiff, 100.0);
 
-        /*
-        this.print("with robot-->"+m.sender +"\t dist-->"+ String.format("%.2f",t.pathDist) 
-            +"\tdistance eval-->"+distEval
+        this.print("with robot-->"+m.sender +" dist-->"+ String.format("%.2f",t.pathDist) 
+            +" distanceEval-->"+distEval
             +"\t cnp starttime-->"+String.format("%.2f",cnpStartTime) 
-            +"\t timeDiff-->"+String.format("%.2f",Math.abs(cnpStartTime - t.startTime )) 
-            +"\ttime eval-->"+timeEval);
-        */
+            +" timeDiff-->"+String.format("%.2f",Math.abs(cnpStartTime - t.startTime )) 
+            +" timeEval-->"+timeEval);
+        
         return oreEval + distEval + timeEval;
     }
     

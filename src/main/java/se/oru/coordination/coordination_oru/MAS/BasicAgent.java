@@ -14,7 +14,7 @@ public class BasicAgent extends HelpFunctions{
     protected ReedsSheppCarPlanner mp;
     protected Pose initialPose;
     protected double capacity; // how much ore this agent can carry.
-    protected double initialOreAmount; // how much ore this agent can carry.
+    protected double amount; // how much ore this agent can carry.
     protected String COLOR = "";
 
     // for communication
@@ -124,6 +124,12 @@ public class BasicAgent extends HelpFunctions{
         return (double)(diff)/1000.0;
     }
 
+    protected double getNextTime(){
+        double STARTUP_ADD = 5.0;
+        double nextTime = this.timeSchedule.getNextStartTime();
+        return nextTime == -1.0 ? this.getTime()+STARTUP_ADD : nextTime;
+    }
+
     /**
      * Helper function to get the right receivers.
      * Called in the initial communication phase. 
@@ -133,9 +139,7 @@ public class BasicAgent extends HelpFunctions{
      */
     public ArrayList<Integer> getReceivers(String receiverType) {
         /* ex: 1110:  first 1 = block 1, second 1 = transportAgent, third 1 = unique id
-
         agentType: 1=DA, 2=TA, 3=SA, 4TTA
-
         2310, block2, SA, id=10
         */
         int block = this.robotID / 1000;
@@ -154,7 +158,7 @@ public class BasicAgent extends HelpFunctions{
         } else if (receiverType.equals("TRANSPORTTRUCK")) {
             networkCopy.removeIf(i -> (i%1000)/100 != 4);
         }
-        
+
         return networkCopy;
     }
 
@@ -164,7 +168,8 @@ public class BasicAgent extends HelpFunctions{
             if ( this.goOffline ){
                 this.sendMessage(new Message(this.robotID, "goodbye-world", ""), true );
                 this.sleep(5000);
-                this.router.leaveNetwork(this.robotID);
+                this.goOffline = false;
+                //this.router.leaveNetwork(this.robotID);
             }
             synchronized(this.inbox){
                 inbox_copy = new ArrayList<Message>(this.inbox);
@@ -190,10 +195,7 @@ public class BasicAgent extends HelpFunctions{
                    this.handleAccept(taskID, m);
 
                 } else if ( m.type.equals(new String("decline")) ){
-                    synchronized(this.timeSchedule){
-                        boolean successfulRemove = this.timeSchedule.removeEvent(taskID);
-                        this.print("got decline from-->"+m.sender+"\ttaskID-->"+taskID+"\tremoved-->"+successfulRemove);
-                    }
+                    this.handleDecline(taskID, m);
 
                 } else if ( m.type.equals(new String("cnp-service")) ){
                     this.handleCNPauction(m);
@@ -225,10 +227,60 @@ public class BasicAgent extends HelpFunctions{
         }
     }
 
+    /**
+     * This is basic handle of accept msg. This can be overwritten
+     * @param taskID taskID of m
+     * @param m message with accept
+     */
+    protected void handleAccept(int taskID, Message m){
+        boolean eventAdded;
+        synchronized(this.timeSchedule){ eventAdded = this.timeSchedule.setEventActive(taskID); }
+        this.print("accept-msg, taskID-->"+taskID+"\twith robot-->"+m.sender+"\ttask added-->"+eventAdded);
+        if ( eventAdded == false ){
+            this.print("accept received but not successfully added. sending abort msg");
+            this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
+        }
+    }
 
-    protected void handleAccept(int taskID, Message m){};
-    protected void handleInformDone(int taskID, Message m){};
-    protected void handleInformStatus(Message m){};
+    /**
+     * basic handle of decline msg. remove task from schedule.
+     * @param taskID task id of msg
+     * @param m message with decline type
+     */
+    protected void handleDecline(int taskID, Message m){
+        synchronized(this.timeSchedule){ this.timeSchedule.removeEvent(taskID); }
+    }
+    
+    /**
+     * can/should be overwritten. basic will try fit new time into schedule. send abort to later task if overlapp
+     * @param m
+     */
+    protected void handleInformStatus(Message m){
+        String updateSep = "::";
+        String pairSep = ":";
+
+        String informInfo = (this.parseMessage(m, "informInfo")[0]);
+        String[] newTimes = informInfo.split(updateSep);
+        for ( int i=0; i<newTimes.length; i++ ){
+            String[] updatePair = newTimes[i].split(pairSep);
+            int taskID = Integer.parseInt( updatePair[0] );
+            double newEndTime = Double.parseDouble( updatePair[1] );
+    
+            Task taskToAbort = null;
+            synchronized(this.timeSchedule) { taskToAbort = this.timeSchedule.updateTaskEndTimeIfPossible(taskID, newEndTime); }
+            if ( taskToAbort != null ){
+                this.sendMessage(new Message(this.robotID, taskToAbort.partner, "inform", taskToAbort.taskID+this.separator+"abort"));
+                this.print("CONFLICT! sending ABORT msg. taskID-->"+taskID+"\twith-->"+m.sender );
+            } else {
+                this.print("updated without conflict-->"+taskID +"\twith-->"+ m.sender);
+            }
+        }
+    }
+
+    /**
+     * function that needs to be defined.
+     */
+    protected void handleInformDone(int taskID, Message m){}; // needs to be overwritten
     protected void handleCNPauction(Message m){};
 
 }

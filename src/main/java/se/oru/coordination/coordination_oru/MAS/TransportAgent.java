@@ -2,13 +2,11 @@ package se.oru.coordination.coordination_oru.MAS;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Arrays;
 import java.util.Collections;
 import java.lang.Math;
 
 import com.vividsolutions.jts.geom.Coordinate;
 
-import org.metacsp.multi.spatioTemporal.paths.PoseSteering;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 
 import se.oru.coordination.coordination_oru.simulation2D.TrajectoryEnvelopeCoordinatorSimulation;
@@ -161,7 +159,7 @@ public class TransportAgent extends CommunicationAid{
             synchronized(this.timeSchedule){
                 this.timeSchedule.changeOreStateEndTime(task.taskID, nextStartTime);
                 newEndTimes = this.timeSchedule.compressSchedule(nextStartTime);
-                this.timeSchedule.printSchedule(this.COLOR);
+                //this.timeSchedule.printSchedule(this.COLOR);
             }
             this.print("starting mission taskID-->"+task.taskID+" with -->" +task.partner + "\tat time-->"+this.getTime()+"\ttaskStartTime-->"+task.startTime);
             this.print("from pose-->"+prevToPose.toString() +"\tto pose-->"+ task.toPose.toString());
@@ -391,7 +389,7 @@ public class TransportAgent extends CommunicationAid{
         this.sendMessage(this.createOfferMsgFromTask(SATask, offerVal, availabeOre));
 
         this.print("in handleService");
-        this.timeSchedule.printSchedule(this.COLOR);
+        //this.timeSchedule.printSchedule(this.COLOR);
         return true;
     }
 
@@ -543,9 +541,11 @@ public class TransportAgent extends CommunicationAid{
                     if ( !this.robotsInNetwork.contains(m.sender) ) this.robotsInNetwork.add(m.sender);
                     this.sendMessage( new Message( m.receiver.get(0), m.sender, "echo", Integer.toString(taskID)));
                 }
-                
-                else if ( m.type.equals(new String("goodbye-world")) ){ 
-                    this.robotsInNetwork.remove(m.sender);
+
+                else if ( m.type.equals(new String("goodbye-world")) ){
+                    for (int i=0; i<this.robotsInNetwork.size(); i++){
+                        if ( this.robotsInNetwork.get(i) == m.sender ) this.robotsInNetwork.remove(i);
+                    } 
 
                 }
 

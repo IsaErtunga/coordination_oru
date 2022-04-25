@@ -15,29 +15,16 @@ import se.oru.coordination.coordination_oru.motionplanning.ompl.ReedsSheppCarPla
 import se.oru.coordination.coordination_oru.ConstantAccelerationForwardModel;
 
 
-public class TransportTruckAgent extends CommunicationAid{
+public class TransportTruckAgent extends MobileAgent{
     //Control parameters
-    protected double TIME_WAITING_FOR_OFFERS = 3.0;
-    protected String COLOR = "\033[1;94m";
 
     protected HashMap<String, PoseSteering[]> pStorage;
-    protected TrajectoryEnvelopeCoordinatorSimulation tec;
-    protected ReedsSheppCarPlanner mp;
-
-    protected Coordinate[] rShape;
-    protected Pose startPose;
-    protected final Double capacity = 40.0;
-    protected Double holdingOre = 0.0;
-    protected final int taskCap = 4;
 
     // Begins at 4. Will iterate through SW, NW, NE, SE
     protected int cornerState = 4;
 
-    protected TimeScheduleNew timeSchedule;
-    protected long startTime;
-
     public ArrayList<Message> missionList = new ArrayList<Message>();
-
+    
 
     public TransportTruckAgent(int id){this.robotID = id;}   // for testing
 
@@ -53,58 +40,35 @@ public class TransportTruckAgent extends CommunicationAid{
         this.robotID = r_id;
         this.tec = tec;
         this.mp = mp;
-        this.startPose = startPos;
-        this.startTime = startTime;
+        this.initialPose = startPos;
+        this.clockStartTime = startTime;
         this.pStorage = pathStorage;
+        this.COLOR = "\033[1;94m";
+        this.capacity = 40.0;
+
+        // settings 
+        this.TASK_EXECUTION_PERIOD_MS = 200;
+        this.taskCap = 4;
+        this.robotAcceleration = 10.0;
+        this.robotSpeed = 20.0;
 
         this.timeSchedule = new TimeScheduleNew(startPos, this.capacity, 0.0);
+
+        this.setRobotSize(5.0, 3.7);
 
         // enter network and broadcast our id to others.
         router.enterNetwork(this);
         this.sendMessage(new Message(this.robotID, "hello-world", ""), true);
-                
-        double xl = 5.0;
-	    double yl = 3.7;
-        this.rShape = new Coordinate[] {new Coordinate(-xl,yl),new Coordinate(xl,yl),
-                                        new Coordinate(xl,-yl),new Coordinate(-xl,-yl)};
-
+        
     }
 
-
-    protected double getTime(){
-        //System.out.println(this.robotID+"\ttime---> "+(System.currentTimeMillis() - this.startTime));
-        long diff = System.currentTimeMillis() - this.startTime;
-        return (double)(diff)/1000.0;
-    }
-
-    protected double getNextTime(){
-        double STARTUP_ADD = 5.0;
-        double nextTime = this.timeSchedule.getNextStartTime();
-        return nextTime == -1.0 ? this.getTime()+STARTUP_ADD : nextTime;
-    }
-
-    /**
-     * Updates which corner the TTA is on.
-     */
-    protected int incrementCornerState() {
-        if (this.cornerState == 4) {
-            this.cornerState = 1;
-        } 
-        else {
-            this.cornerState = this.cornerState + 1;
-        }
-        System.out.println("CORNER STATE: "+ this.cornerState);
-        return this.cornerState;
-    }
-
-
-    /**
+     /**
      * 
      */
     public void start(){
         TransportTruckAgent This = this;
 
-        This.addRobotToSimulation();
+        this.addRobotToSimulation();
 
         Thread listenerThread = new Thread() {
             public void run() {
@@ -120,191 +84,25 @@ public class TransportTruckAgent extends CommunicationAid{
         };
         stateThread.start();
 
-        this.executeTasks();
+        this.taskExecutionThread();
     }
 
     /**
-     * 
+     * Updates which corner the TTA is on.
      */
-    public void addRobotToSimulation(){
-        // add robot to simulation prep...
-        double MAX_ACCEL = 10.0;
-	    double MAX_VEL = 20.0;
-        synchronized(this.tec){
-            this.tec.setForwardModel(this.robotID, new ConstantAccelerationForwardModel(
-                MAX_ACCEL, 
-                MAX_VEL, 
-                this.tec.getTemporalResolution(), 
-                this.tec.getControlPeriod(), 
-                this.tec.getRobotTrackingPeriodInMillis(this.robotID)));
-
-            this.tec.setFootprint(this.robotID, this.rShape);
-
-            this.tec.placeRobot(this.robotID, this.startPose);
-
-            // Motion planner
-            tec.setMotionPlanner(this.robotID, this.mp);
+    protected int incrementCornerState() {
+        if (this.cornerState == 4) {
+            this.cornerState = 1;
+        } 
+        else {
+            this.cornerState = this.cornerState + 1;
         }
+        this.print("CORNER STATE: "+ this.cornerState);
+        //System.out.println("CORNER STATE: "+ this.cornerState);
+        return this.cornerState;
     }
 
-
-    /**
-     * Compare robot pose to task end pose to see if Task is finished
-     * @param task
-     * @return
-     */
-    protected Boolean isTaskDone (Task task) {
-        // Distance from robots actual position to task goal pose
-        synchronized(this.tec){ return this.tec.isFree(robotID); }
-    }
-
-    /**
-     * Function enabling TA to execute the tasks in its schedule. 
-     * TODO Add functionality for knowing if robot managed to complete a task or not. 
-     */
-    protected void executeTasks () {
-        while (true) {
-            this.sleep(500);
-
-            int size;
-            synchronized(this.timeSchedule){size = this.timeSchedule.getSize(); }
-
-            Task task = null;
-            synchronized(this.timeSchedule){ task = this.timeSchedule.getNextEvent(); }
-            if (task == null) continue;
-
-            synchronized(this.tec){ this.tec.addMissions(this.createMission(task)); }
-
-            this.waitUntilCurrentTaskComplete(this.tec, this.robotID, 100); // locking
-
-            if (task.partner != -1){
-                Message doneMessage = new Message(this.robotID, task.partner, "inform", task.taskID + this.separator + "done" + this.separator + task.ore);
-                this.sendMessage(doneMessage, false);
-            }            
-        }
-    }
-
-    protected void initialState() {
-        double oreLevelThreshold = 1.0;
-        while (true) {
-            double lastOreState;
-            synchronized(this.timeSchedule){
-                lastOreState = this.timeSchedule.getLastOreState();
-            }
-            
-            if (lastOreState <= oreLevelThreshold) { 
-                // book task to get ore
-                Message bestOffer = this.offerService(this.getNextTime());
-
-                if (bestOffer.isNull){ 
-                    this.sleep(200);
-                    continue;
-                }
-    
-                Task task = this.createTaskFromOfferMessage(bestOffer);
-
-                boolean taskAdded;
-                synchronized(this.timeSchedule){ taskAdded = this.timeSchedule.addEvent(task); }
-                this.print("<-------------");
-                this.timeSchedule.printSchedule(this.COLOR);
-                if ( taskAdded != true ){ // if false then task no longer possible, send abort msg to task partner
-                    this.print("TASK ABORTED");
-                    this.sendMessage(new Message(this.robotID, task.partner, "inform", Integer.toString(task.taskID)+this.separator+"abort"));
-                }
-    
-            }
-
-            else {
-                // Deliver ore 
-                Task deliverTask = createDeliverTask();
-                boolean taskAdded;
-                synchronized(this.timeSchedule){ taskAdded = this.timeSchedule.addEvent(deliverTask); }
-
-                if ( taskAdded != true ){ // if false then task no longer possible, send abort msg to task partner
-                    this.print("TASK ABORTED");
-                    this.sendMessage(new Message(this.robotID, deliverTask.partner, "inform", deliverTask.taskID+this.separator+"abort"));
-                }
-                // this.timeSchedule.printSchedule("");
-            }
-
-            this.sleep(500);
-        }
-
-    }
-
-    /** offerService is called when a robot want to plan in a new task to execute.
-     * 
-     * @param robotID id of robot{@link TransportTruckAgent} calling this
-     */
-    public Message offerService(double taskStartTime) {
-
-        // Get correct receivers
-        ArrayList<Integer> receivers = this.getReceivers(this.robotID, this.robotsInNetwork, "STORAGE");
-
-        if (receivers.size() <= 0) return new Message();
-        
-        this.offers.clear();
-        
-        Pose nextPose;
-        int scheduleSize;
-        synchronized(this.timeSchedule){
-            nextPose = this.timeSchedule.getNextPose();
-            scheduleSize = this.timeSchedule.getSize();
-        }
-        if ( scheduleSize > this.taskCap ) return new Message();
-
-
-        String startPos = this.stringifyPose(nextPose);
-        int taskID = this.sendCNPmessage(taskStartTime, startPos, receivers);
-
-
-        double time = this.waitForAllOffersToCome(receivers.size());
-        this.print("time waited for offers-->"+time);
-    
-        Message bestOffer = this.handleOffers(taskID); //extract best offer
-
-        if (!bestOffer.isNull){        
-            Message acceptMessage = new Message(robotID, bestOffer.sender, "accept", Integer.toString(taskID) );
-            this.sendMessage(acceptMessage);
-
-            receivers.removeIf(i -> i==bestOffer.sender);
-
-            if (receivers.size() > 0){
-                Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));
-                this.sendMessage(declineMessage);
-            }
-        }
-        return bestOffer;
-    }
-
-    /** This function is locking. will wait for offers from all recipients to arrive OR return on the time delay.
-     * 
-     * @param nrOfReceivers an int with the number of recipients of the cnp message sent. 
-     * @return a double with the time it took before exiting this function.
-     */
-    protected double waitForAllOffersToCome(int nrOfReceivers){
-        double before = this.getTime();
-
-        while ( this.offers.size() < nrOfReceivers && this.getTime() - before <= this.TIME_WAITING_FOR_OFFERS){
-            this.sleep(50);
-        }
-        return (this.getTime() - before);
-    }
-
-    /**
-     * Helper function for structuring and sending a CNP message. 
-     * TODO needs to be changed in various ways. And maybe moved to communicationAid.
-     * @param startTime
-     * @param receivers
-     * @return taskID
-     */
-    public int sendCNPmessage(double taskStartTime, String startPos, ArrayList<Integer> receivers) {
-        // taskID & agentID & pos & startTime 
-        String startTimeStr = Double.toString(taskStartTime);
-        String body = this.robotID + this.separator + startPos + this.separator + startTimeStr;
-        Message m = new Message(this.robotID, receivers, "cnp-service", body);
-        return this.sendMessage(m, true);
-    }
+ 
 
     /** //TODO looks good for now. will use timeSchedule.evaluateTimeSlot() in future
      * 
@@ -369,19 +167,11 @@ public class TransportTruckAgent extends CommunicationAid{
         return bestOffer;
     }
 
-
-    /**
-     * 
-     * @param message
-     * @return Task
-     */
-    protected Task createTaskFromOfferMessage(Message m) {
-        String[] mParts = this.parseMessage(m, "", true);
-        // replace intexes
-        
-        // Task(int taskID, int partner, boolean isActive, double ore, double startTime, double endTime, double dist, Pose fromPose, Pose toPose) {
-        return new Task(Integer.parseInt(mParts[0]), m.sender, true, Double.parseDouble(mParts[6]), Double.parseDouble(mParts[4]),
-                        Double.parseDouble(mParts[5]), this.posefyString(mParts[2]), this.posefyString(mParts[3]));
+    @Override
+    public Mission createMission(Task task, Pose prevToPose) {
+        Pose[] toPose = this.navigateCorrectly(task, task.ore > 0.0);
+        PoseSteering[] path = this.getPath(this.pStorage, this.mp, prevToPose, toPose);
+        return new Mission( this.robotID, path );
     }
 
     /**
@@ -401,19 +191,6 @@ public class TransportTruckAgent extends CommunicationAid{
         double endTime = taskStartTime + pathTime;
         Task deliverTask = new Task(this.tID(), -1, true, -this.capacity, taskStartTime, endTime, endTime, robotPos, deliveryPos);
         return deliverTask;
-    }
-
-    /**
-     * 
-     * @param startPose
-     * @param endPose
-     * @return
-     */
-    public Mission createMission(Task task) {
-        Pose fromPose = task.fromPose;
-        Pose[] toPose = this.navigateCorrectly(task, task.ore > 0.0);
-        PoseSteering[] path = this.getPath(this.pStorage, this.mp, fromPose, toPose);
-        return new Mission( this.robotID, path );
     }
 
     /**
@@ -440,102 +217,97 @@ public class TransportTruckAgent extends CommunicationAid{
         return corners.toArray(new Pose[0]);
     }
 
-    /** this function holds the logic for handeling messages with type 'inform'. 
+    /** offerService is called when a robot want to plan in a new task to execute.
      * 
-     * @param m the message with the 'inform'-type.
+     * @param robotID id of robot{@link TransportTruckAgent} calling this
      */
-    protected void handleInformMessage(Message m){
-        int taskID = Integer.parseInt(this.parseMessage(m, "taskID")[0]);
-        String informVal = this.parseMessage(m, "informVal")[0];
+    public Message offerService(double taskStartTime) {
+        this.print("in offerService");
+        // Get correct receivers
+        ArrayList<Integer> receivers = this.getReceivers("STORAGE");
+
+        if (receivers.size() <= 0) return new Message();
+        this.print("receivers > 0");
+
+        this.offers.clear();
         
-        if (informVal.equals(new String("done"))) {
-            synchronized(this.timeSchedule){ this.timeSchedule.removeEvent(taskID); }
+        Pose nextPose;
+        int scheduleSize;
+        synchronized(this.timeSchedule){
+            nextPose = this.timeSchedule.getNextPose();
+            scheduleSize = this.timeSchedule.getSize();
         }
+        if ( scheduleSize > this.taskCap ) return new Message();
+        this.print("taskCap < scSize");
 
-        else if (informVal.equals(new String("status"))) {
-            double newEndTime = Double.parseDouble(this.parseMessage(m, "", true)[2]);
-            Task taskToAbort = null;
 
+        String startPos = this.stringifyPose(nextPose);
+        int taskID = this.sendCNPmessage(taskStartTime, startPos, receivers);
+
+
+        double time = this.waitForAllOffersToCome(receivers.size(), taskID);
+        this.print("time waited for offers-->"+time);
+    
+        Message bestOffer = this.handleOffers(taskID); //extract best offer
+
+        if (!bestOffer.isNull){        
+            Message acceptMessage = new Message(robotID, bestOffer.sender, "accept", Integer.toString(taskID) );
+            this.sendMessage(acceptMessage);
+
+            receivers.removeIf(i -> i==bestOffer.sender);
+
+            if (receivers.size() > 0){
+                Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));
+                this.sendMessage(declineMessage);
+            }
+        }
+        return bestOffer;
+    }
+
+    protected void initialState() {
+        double oreLevelThreshold = 1.0;
+        while (true) {
+            this.sleep(500);
+
+            double lastOreState;
             synchronized(this.timeSchedule){
-                taskToAbort = this.timeSchedule.updateTaskEndTimeIfPossible(taskID, newEndTime); // this function aborts task from schedule
+                lastOreState = this.timeSchedule.getLastOreState();
             }
-            if ( taskToAbort != null ){
-                this.sendMessage(new Message(this.robotID, taskToAbort.partner, "inform", taskToAbort.taskID+this.separator+"abort"));
-                this.print("sending ABORT msg. taskID-->"+taskID+"\twith-->"+m.sender );
-            }
-            else {this.print("updated without conflict-->"+taskID +"\twith-->"+ m.sender);}
+            
+            if (lastOreState <= oreLevelThreshold) { 
+                // book task to get ore
+                Message bestOffer = this.offerService(this.getNextTime());
 
-        }
-
-        else if (informVal.equals(new String("abort"))) {
-            this.print("got ABORT MSG! taskID-->"+taskID+"\twith-->"+m.sender );
-            synchronized(this.timeSchedule){
-                this.timeSchedule.abortEvent(taskID);
+                if (bestOffer.isNull) continue;
                 
-            }
-        } 
-    }
+                Task task = this.generateTaskFromOffer(bestOffer);
 
-    /**
-     * Periodically checks the inbox of a robot.
-     * Reacts to different messages depending on their message type.
-     * -------------------------------------------------------------
-     * if type == hello-world: add sending robot to its network
-     * if type == res-offer: 
-     * if type == accept: see taskHandler function. 
-     */
-    public void listener(){
-        ArrayList<Message> inbox_copy;
-
-        while(true){
-        
-            synchronized(inbox){
-                inbox_copy = new ArrayList<Message>(this.inbox);
-                this.inbox.clear();
+                boolean taskAdded;
+                synchronized(this.timeSchedule){ taskAdded = this.timeSchedule.addEvent(task); }
+                if ( taskAdded != true ){ // if false then task no longer possible, send abort msg to task partner
+                    this.print("TASK ABORTED");
+                    this.sendMessage(new Message(this.robotID, task.partner, "inform", Integer.toString(task.taskID)+this.separator+"abort"));
+                }
+                this.print("initialState -- lastOreState < threashold");
+                this.timeSchedule.printSchedule(this.COLOR);
             }
 
-            for (Message m : inbox_copy){
-                //TODO fix new msg type 'echo' to respond to 'hello-world'.
-                // this will help us remove this.activeTasks
-                int taskID = Integer.parseInt(this.parseMessage(m, "taskID")[0]);
-                
-                if (m.type == "hello-world"){ 
-                    if ( !this.robotsInNetwork.contains(m.sender) ) this.robotsInNetwork.add(m.sender);
-                    this.sendMessage( new Message( m.receiver.get(0), m.sender, "echo", Integer.toString(taskID)));
-                }
+            else {
+                this.print("initialState -- in else");
+                this.timeSchedule.printSchedule(this.COLOR);
+                // Deliver ore 
+                Task deliverTask = createDeliverTask();
+                boolean taskAdded;
+                synchronized(this.timeSchedule){ taskAdded = this.timeSchedule.addEvent(deliverTask); }
 
-                if (m.type == "echo"){ 
-                    if ( !this.robotsInNetwork.contains(m.sender) ) this.robotsInNetwork.add(m.sender);
+                if ( taskAdded != true ){ // if false then task no longer possible, send abort msg to task partner
+                    this.print("TASK ABORTED");
+                    this.sendMessage(new Message(this.robotID, deliverTask.partner, "inform", deliverTask.taskID+this.separator+"abort"));
                 }
-
-
-                else if (m.type == "decline"){
-                    //remove task from activeTasks
-                    synchronized(this.timeSchedule){
-                        boolean successfulRemove = this.timeSchedule.removeEvent(taskID);
-                        this.print("got decline taskID-->"+taskID+"\tremoved-->"+successfulRemove);
-                    }
-                }
-                
-                else if (m.type == "offer"){
-                    this.offers.add(m);
-                }
-
-                else if (m.type.equals(new String("inform"))) {
-                    this.handleInformMessage(m);
-                }
+                // this.timeSchedule.printSchedule("");
             }
-                    
-            try { Thread.sleep(100); }
-            catch (InterruptedException e) { e.printStackTrace(); }
+
+            
         }
     }
-
-    /**simlpe print func with color and robotID included
-     * @param s string to be printed
-     */
-    protected void print(String s){
-        System.out.println("\033[0;35m"+this.robotID+"\t" + s + "\033[0m");
-    }
-
 }
