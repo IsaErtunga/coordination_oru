@@ -79,7 +79,7 @@ public class DrawAgent extends BidderAgent{
 
     @Override
     protected void handleCNPauction(Message m){
-        double START_TIME_PADDING = 5.0;
+        double START_TIME_PADDING = 4.0;
         double startTime = Double.parseDouble( this.parseMessage(m, "startTime")[0] ) +START_TIME_PADDING;
 
         double availableOre = this.timeSchedule.getOreStateAtTime(startTime);

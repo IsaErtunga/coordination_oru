@@ -88,8 +88,8 @@ public class StorageAgent extends AuctioneerBidderAgent{
         this.COLOR = "\033[1;33m";
 
         // settings
-        this.TIME_WAITING_FOR_OFFERS = 5.0;
-        this.taskCap = 10;
+        this.TIME_WAITING_FOR_OFFERS = 3.0;
+        this.taskCap = 6;
         this.ORE_LEVEL_LOWER = 0.1 * this.capacity < 60.0 ? 60.0 : 0.1 * this.capacity; // TTA cap 40.0 * 1.5
         this.ORE_LEVEL_UPPER = 0.8 * this.capacity;
 
@@ -256,14 +256,14 @@ public class StorageAgent extends AuctioneerBidderAgent{
 
     public void status () {
         while(true) {
-            this.sleep(2000);
+            this.sleep(500);
 
             double oreLevel = this.timeSchedule.getLastOreState();
 
             if (oreLevel < 0.9 * capacity) { // plan future tasks
                 // this.print("in status");
                 // this.timeSchedule.printSchedule(this.COLOR);
-                if ( this.timeSchedule.getSize() > this.taskCap ) continue;
+                // if ( this.timeSchedule.getSize() > this.taskCap ) continue;
 
                 Message bestOffer = this.offerService(this.getNextTime());
 

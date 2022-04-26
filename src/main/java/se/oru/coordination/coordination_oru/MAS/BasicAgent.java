@@ -130,6 +130,20 @@ public class BasicAgent extends HelpFunctions{
         return nextTime == -1.0 ? this.getTime()+STARTUP_ADD : nextTime;
     }
 
+    protected double[] translateTAtaskTimesToOccupyTimes(double sTime, double eTime){
+        double occupancyPadding = 3.5;
+        double retSTime;
+        double retETime;
+        
+        retSTime = eTime - occupancyPadding;
+        retETime = eTime + occupancyPadding;
+        return new double[] {retSTime, retETime};
+    }
+    protected double[] translateTAtaskTimesToOccupyTimes(Task task){
+        return this.translateTAtaskTimesToOccupyTimes(task.startTime, task.endTime);
+    }
+
+
     /**
      * Helper function to get the right receivers.
      * Called in the initial communication phase. 

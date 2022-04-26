@@ -44,6 +44,7 @@ public class AuctioneerBidderAgent extends AuctioneerAgent{
         return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathTime, auctioneerPose, ourPose);
     }
 
+
     /**
      * Used to generate a response message from a task. Called from {@link handleService}
      * after creating a task with {@link createTaskFromServiceOffer}.

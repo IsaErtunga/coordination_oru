@@ -5,6 +5,11 @@ import com.vividsolutions.jts.geom.Coordinate;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 import se.oru.coordination.coordination_oru.Mission;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Collections;
+import java.lang.Math;
+
 public class MobileAgent extends AuctioneerBidderAgent{
 
     protected TrajectoryEnvelopeCoordinatorSimulation tec;
@@ -12,9 +17,7 @@ public class MobileAgent extends AuctioneerBidderAgent{
     protected double robotSpeed = 20.0;
     protected double robotAcceleration = 10.0;
     protected int TASK_EXECUTION_PERIOD_MS = 200;
-    /**
-     * 
-     */
+    
     public void addRobotToSimulation(){
         synchronized(this.tec){
         this.tec.setForwardModel(this.robotID, new ConstantAccelerationForwardModel(
@@ -53,7 +56,7 @@ public class MobileAgent extends AuctioneerBidderAgent{
             this.print("starting mission taskID-->"+task.taskID+" with -->" +task.partner + "\tat time-->"+this.getTime()+"\ttaskStartTime-->"+task.startTime);
             synchronized(this.tec){ this.tec.addMissions(this.createMission(task, prevToPose)); }
 
-            this.waitUntilCurrentTaskComplete(this.robotID, 100); // locking
+            this.waitUntilCurrentTaskComplete(100); // locking
 
             this.print("mission DONE taskID-->"+task.taskID+" with -->" +task.partner + "\tat time-->"+this.getTime()+"\ttaskEndTime-->"+task.endTime);
             if ( task.partner != -1 ){
@@ -79,12 +82,45 @@ public class MobileAgent extends AuctioneerBidderAgent{
      * @param task
      * @return
      */
-    protected void waitUntilCurrentTaskComplete (int agentID, int cycleSleepTimeMs) {
+    protected void waitUntilCurrentTaskComplete (int cycleSleepTimeMs) {
         while ( true ){
-            synchronized(tec){
-                if ( tec.isFree(agentID) == true ) break;
+            synchronized(this.tec){
+                if ( this.tec.isFree(this.robotID) == true ) break;
             }
             this.sleep(cycleSleepTimeMs);
+        }
+    }
+
+    /**
+     * function used to send new task times to 
+     * @param tasksToUpdate
+     * @param isLater
+     */
+    protected void sendInformStatusMessages(ArrayList<Task> tasksToUpdate, boolean isLater){
+        if ( isLater ) Collections.reverse(tasksToUpdate);
+        String updateSep = "::";
+        String pairSep = ":";
+
+        HashMap<Integer, ArrayList<Task>> taskMap = new HashMap<Integer, ArrayList<Task>>();
+        
+        for ( Task t : tasksToUpdate ){
+            ArrayList<Task> agentTasks = taskMap.get(t.partner);
+            if ( agentTasks == null ) agentTasks = new ArrayList<Task>();
+                
+            agentTasks.add(t);
+            taskMap.put(t.partner, agentTasks);
+        }
+
+        for (int key : taskMap.keySet()) {
+            ArrayList<Task> tasksNewTime = taskMap.get(key);
+            Task firstElement = tasksNewTime.remove(0);
+
+            String messageBody = "0" +this.separator+ "status" +this.separator+ firstElement.taskID + pairSep + firstElement.endTime;
+
+            for ( Task t : tasksNewTime ){
+                messageBody = messageBody +updateSep+ t.taskID +pairSep+ t.endTime;
+            }
+            this.sendMessage(new Message(this.robotID, key, "inform", messageBody));
         }
     }
 
