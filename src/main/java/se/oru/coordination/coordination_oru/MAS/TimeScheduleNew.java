@@ -149,6 +149,32 @@ public class TimeScheduleNew {
     }
 
     /**
+     * 
+     * @param nextStartTime
+     * @return
+     */
+    public ArrayList<Task> update(double prevEndTime){
+        ArrayList<Task> tasks2inform = new ArrayList<Task>();
+        int scheduleSize = this.schedule.size();
+
+        int i = 0;
+        while ( i < scheduleSize ){
+            Task next = this.schedule.get(i);
+            if ( prevEndTime > next.startTime ) {
+                double taskLength = next.endTime - next.startTime;
+                next.startTime = prevEndTime;
+                next.endTime = prevEndTime + taskLength;
+                prevEndTime = next.endTime;
+                tasks2inform.add(next);
+
+            } else break; 
+
+            i++;
+        }
+        return tasks2inform;
+    }
+
+    /**
      * will check if new times of task can be updated. if it doesnt work with task after, the task after will be aborted.
      * if it doesnt work with task before, it will abort the task to be updated. always prio tasks closer in future.
      * @param taskID id of task to be updated
@@ -189,16 +215,29 @@ public class TimeScheduleNew {
         return taskToAbort;
     }
 
-    /*
-    private Task getTaskAtTime(double sTime, double eTime){
-        ArrayList<Task> tasksAtTime = new ArrayList<Task>();
-        for ( Task t : this.schedule ){
-            if ( t.startTime >= time && t.endTime <= time ) tasksAtTime.add(t);
-        }
-        return tasksAtTime;
-    }
-    */
+    /**
+     * this func will find a slot in the schedule were the ore-level is low and return the start & end time of that slot.
+     * @param slotSize the size needed for the slot
+     * @param maxOreAmount the max amount of ore allowed at a slot in order to return it.
+     * @return
+     */
+    public double[] getSlotToFill(double slotSize, double maxOreAmount){
+        double[] returnSlot = new double[] {};
+        if ( this.schedule.size() <= 1 ) return returnSlot;
 
+        Task prev = this.schedule.get(0);
+        for ( int i=1; i<this.schedule.size(); i++ ){
+            Task curr = this.schedule.get(i);
+
+            if ( curr.startTime - prev.endTime >= slotSize ){ // if slot between prev and curr is >= slotSize
+                double oreAtTime;
+                synchronized(this.oreState){ oreAtTime = this.oreState.getStateAtTime( (curr.startTime-prev.endTime/2.0) + prev.startTime); } // get ore in that slot
+                if ( oreAtTime <= maxOreAmount ) return new double[] {prev.endTime, curr.startTime}; // if ore at that time is lower than maxOreAmount
+            }
+            prev = curr;
+        }
+        return returnSlot;
+    }
 
     public boolean removeEvent(int taskID){
         for (Task t : this.schedule){
@@ -217,6 +256,10 @@ public class TimeScheduleNew {
     public boolean abortEvent(int taskID){
         synchronized(this.oreState){ this.oreState.removeState(taskID); }
         return this.removeEvent(taskID);
+    }
+
+    public double markEventDone(int taskID){
+        synchronized(this.oreState){ return this.oreState.markStateDone(taskID); }
     }
 
     public Task getNextEvent(){
@@ -261,6 +304,17 @@ public class TimeScheduleNew {
 
     public boolean changeOreStateEndTime(int taskID, double newEndTIme){
         synchronized(this.oreState){return this.oreState.changeState(taskID, newEndTIme); }        
+    }
+
+    /**
+     * will return the task of the first fail in the oreState. If found in oreState but not in ts, return null.
+     * @return
+     */
+    public Task getFirstOreStateFail(){
+        int taskIDwhereBroken = -1;
+        synchronized(this.oreState){ taskIDwhereBroken = this.oreState.getFirstFail(); }
+        if ( taskIDwhereBroken != -1 ) return this.getEvent(taskIDwhereBroken);
+        return null;
     }
     //---------------------------------------------------------
 
@@ -311,9 +365,14 @@ public class TimeScheduleNew {
     }
 
 
-    public int evaluateEventSlot(){
-
-        return 0;
+    public double evaluateEventSlot(double startT, double endT, int robotID){
+        double nearestTime = 99999.0;
+        for ( Task t : this.schedule ){
+            if ( t.partner == robotID ) continue; 
+            if ( t.startTime < startT && startT - t.startTime < nearestTime) nearestTime = startT - t.startTime;
+            if ( t.endTime > endT && t.endTime - endT < nearestTime) nearestTime = t.endTime - endT;
+        }
+        return nearestTime == 99999.0 ? -1.0 : nearestTime;
     }
 
     public static void main(String[] args){

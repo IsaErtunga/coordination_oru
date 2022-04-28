@@ -1,6 +1,7 @@
 package se.oru.coordination.coordination_oru.MAS;
 import se.oru.coordination.coordination_oru.motionplanning.ompl.ReedsSheppCarPlanner;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
+import com.vividsolutions.jts.geom.Coordinate;
 
 import java.util.ArrayList;
 import java.util.Random;
@@ -30,6 +31,11 @@ public class BasicAgent extends HelpFunctions{
     public Random rand = new Random(System.currentTimeMillis());
     protected long clockStartTime;
     protected TimeScheduleNew timeSchedule;
+    protected double occupancyPadding = 0.0;
+    protected double agentVelocity = 5.6;
+    protected double TAcapacity;
+    protected double TTAcapacity;
+
 
     // for auction
     protected ArrayList<Message> offers = new ArrayList<Message>();
@@ -130,17 +136,25 @@ public class BasicAgent extends HelpFunctions{
         return nextTime == -1.0 ? this.getTime()+STARTUP_ADD : nextTime;
     }
 
-    protected double[] translateTAtaskTimesToOccupyTimes(double sTime, double eTime){
-        double occupancyPadding = 3.5;
+    protected double[] translateTAtaskTimesToOccupyTimes(double sTime, double eTime, double padding){
         double retSTime;
         double retETime;
         
-        retSTime = eTime - occupancyPadding;
-        retETime = eTime + occupancyPadding;
+        retSTime = eTime - padding;
+        retETime = eTime + padding;
         return new double[] {retSTime, retETime};
     }
-    protected double[] translateTAtaskTimesToOccupyTimes(Task task){
-        return this.translateTAtaskTimesToOccupyTimes(task.startTime, task.endTime);
+    protected double[] translateTAtaskTimesToOccupyTimes(Task task, double padding){
+        return this.translateTAtaskTimesToOccupyTimes(task.startTime, task.endTime, padding);
+    }
+    
+    protected void generateMotionPlanner(String yamlMapFile, double turning, Coordinate[] footPrint){
+        ReedsSheppCarPlanner motionPlanner = new ReedsSheppCarPlanner();
+        motionPlanner.setFootprint(footPrint[0], footPrint[1], footPrint[2], footPrint[3]);
+        motionPlanner.setTurningRadius(turning); 				//default is 1.0
+        motionPlanner.setDistanceBetweenPathPoints(2.0); 	//default is 0.5 
+        motionPlanner.setMap(yamlMapFile);
+        this.mp = motionPlanner;
     }
 
 
@@ -278,7 +292,7 @@ public class BasicAgent extends HelpFunctions{
         for ( int i=0; i<newTimes.length; i++ ){
             String[] updatePair = newTimes[i].split(pairSep);
             int taskID = Integer.parseInt( updatePair[0] );
-            double newEndTime = Double.parseDouble( updatePair[1] );
+            double newEndTime = Double.parseDouble( updatePair[1] ) + this.occupancyPadding;
     
             Task taskToAbort = null;
             synchronized(this.timeSchedule) { taskToAbort = this.timeSchedule.updateTaskEndTimeIfPossible(taskID, newEndTime); }

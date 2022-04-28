@@ -29,15 +29,11 @@ import se.oru.coordination.coordination_oru.MAS.StorageAgent;
 import se.oru.coordination.coordination_oru.MAS.DrawAgent;
 import se.oru.coordination.coordination_oru.MAS.Message;
 import se.oru.coordination.coordination_oru.MAS.OreState;
+import se.oru.coordination.coordination_oru.MAS.NewMapData;
 
-public class OreStateTest {
+public class NewMapTesting {
 
 	public static void main(String[] args) throws InterruptedException {
- 
-	
-	// Max acceleration and velocity
-	double MAX_ACCEL = 10.0;
-	double MAX_VEL = 20.0;
 
 	// final ArrayList<Integer> robotsInUse = new ArrayList<Integer>();
 
@@ -46,8 +42,8 @@ public class OreStateTest {
 	//Instantiate a trajectory envelope coordinator
 	// Dont know the difference between this and icaps
 	// TODO learn what this is.
-	final TrajectoryEnvelopeCoordinatorSimulation tec = new TrajectoryEnvelopeCoordinatorSimulation(MAX_VEL,MAX_ACCEL);
-	tec.setBreakDeadlocks(true, true, true);
+	final TrajectoryEnvelopeCoordinatorSimulation tec = new TrajectoryEnvelopeCoordinatorSimulation(20.0,20.0);
+	//tec.setBreakDeadlocks(true, true, true);
 	tec.setQuiet(true);
 
 	//Provide a heuristic for determining orderings thru critical sections
@@ -83,14 +79,15 @@ public class OreStateTest {
 	tec.startInference();
 
 	// viz map file
-	final String yamlFile = "maps/map_2_blocks.yaml";
+	final String yamlFile = "maps/MineMap2Block.yaml";
 	// final String yamlFile = "maps/test-map_complete.yaml";
 	// yamlFile = "maps/test-map.yaml";	
 
 	//Set up a simple GUI
 	BrowserVisualization viz = new BrowserVisualization();
 	viz.setMap(yamlFile);
-	viz.setInitialTransform(4.0, 1.0, 1.0);
+	viz.setInitialTransform(2.0, 1.0, 1.0); // good for MineMap2Block (i think)
+
 	tec.setVisualization(viz);
 
 	//If set to true, attempts to make simulated robots slow down at cusps (this is buggy, but only affects
@@ -121,43 +118,12 @@ public class OreStateTest {
 
     final long startTime = System.currentTimeMillis();
 
-	Pose DA1posLeft = new Pose(36.0, 35.0, Math.PI);
-	Pose DA2posLeft = new Pose(36.0, 55.0, Math.PI);
-	Pose DA3posLeft = new Pose(36.0, 75.0, Math.PI);
-	Pose DA4posLeft = new Pose(36.0, 135.0, Math.PI);
-	Pose DA5posLeft = new Pose(36.0, 155.0, Math.PI);
-
-	Pose DA1posRight = new Pose(305.0, 35.0, 0.0);	
-	Pose DA2posRight = new Pose(305.0, 75.0, 0.0);
-	Pose DA3posRight = new Pose(305.0, 115.0, 0.0);
-	Pose DA4posRight = new Pose(305.0, 155.0, 0.0);
-	Pose DA5posRight = new Pose(305.0, 175.0, 0.0);
-
-	Pose TA1posLeft = new Pose(50.0,20.0, Math.PI/2);
-	Pose TA2posLeft = new Pose(50.0,190.0, 3*Math.PI/2);	
-	Pose TA3posLeft = new Pose(50.0,100.0, 3*Math.PI/2);
-
-	// Pose TA1posRight = new Pose(292.0,20.0, Math.PI/2);
-	Pose TA1posRight = new Pose(292.0,20.0, Math.PI/2);
-	Pose TA2posRight = new Pose(292.0,190.0, 3*Math.PI/2);	
-	Pose TA3posRight = new Pose(292.0,100.0, 3*Math.PI/2);
-
-	Pose SA1posLeft = new Pose(63.0,68.0, 0.0);	
-	Pose SA2posLeft = new Pose(63.0,142.0, 0.0);
-
-	Pose SA1posRight = new Pose(280.0, 68.0, Math.PI);	
-	Pose SA2posRight = new Pose(280.0, 142.0, Math.PI);	
-
-	Pose SA1posTTA = new Pose(85.0, 68.0, Math.PI);	
-	Pose SA2posTTA = new Pose(85.0, 142.0, Math.PI);	
-
-	Pose TTA1pos = new Pose(140.0, 25.0, Math.PI);
-	Pose TTA2pos = new Pose(170.0, 25.0, Math.PI);	
 
 	double SAOreCapacity = 200.0;
 	double SAStartOre = 0.0;
 
-    												/*		ROUTER THREAD	*/
+	
+    												//		ROUTER THREAD
 	Router router = new Router();
 	Thread t3 = new Thread() {
 		public void run() {
@@ -165,13 +131,15 @@ public class OreStateTest {
 		}
 	};
 	t3.start();
+	/*
 
 	//================= PATH STORAGE ======================
 	HashMap<String, PoseSteering[]> pathStorage = new HashMap<String, PoseSteering[]>();
 	//================= PATH STORAGE ======================
 
-
-													/*		DRAW AGENT	*/
+	*/
+										/*		DRAW AGENT	*/
+	/*
 	final int[] numDraw = {1101, 1102, 1103, 1104, 1105, 2101, 2102, 2103, 2104, 2105};
 	Pose[] drawPoses = { DA1posLeft, DA2posLeft, DA3posLeft, DA4posLeft, DA5posLeft,
 						 DA1posRight, DA2posRight, DA3posRight, DA4posRight, DA5posRight };
@@ -188,7 +156,7 @@ public class OreStateTest {
 			@Override
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);
-				DrawAgent DA = new DrawAgent(numDraw[i], router, 100.0, drawPoses[i], mp, startTime );
+				DrawAgent DA = new DrawAgent(numDraw[i], router, 100.0, drawPoses[i], mp, startTime, numDraw[i] < 2000 );
 				DA.listener();
 				
 			}
@@ -198,37 +166,175 @@ public class OreStateTest {
 		catch (InterruptedException e) { e.printStackTrace(); }
 	}
 
+	
+
 												/*		TRANSPORT AGENT	*/
-	final int[] numTransport = {1201, 1202, 1203, 2201, 2202, 2203};
-	final int[] iter = {0,1,2};
-	Pose[] transportPoses = { TA1posLeft, TA2posLeft, TA3posLeft, TA1posRight, TA2posRight, TA3posRight };    
-	for (final int i : iter) {
 
-		// Thread for each robot object
-        Thread t = new Thread() {
-            
-            @Override
+	// ReedsSheppCarPlanner rsp = new ReedsSheppCarPlanner();
+	// rsp.setFootprint(footprint1, footprint2, footprint3, footprint4);
+	// rsp.setTurningRadius(1.0); 				//default is 1.0
+	// rsp.setDistanceBetweenPathPoints(2.0); 	//default is 0.5 
+	// rsp.setMap(yamlFile);
+
+	NewMapData MAP_DATA = new NewMapData();
+
+	Pose startDAb1 = new Pose(20.0, 15.0, Math.PI); // good // 34.0 interval between drawAgents
+	Pose endDAb1 = new Pose(100.0, 15.0, Math.PI); // good
+	Pose spawn1b1 = new Pose(116.0, 16.0, Math.PI/2); // good
+	Pose SA1b1 = new Pose(139.0, 121.0, 0.0);  // good // 129.0 interval between lower and upper SA
+
+	Pose startP = new Pose(329.0, 44.0, Math.PI/2); 
+	//Pose toP = new Pose(116.0, 16.0, Math.PI/2);
+
+	//================= PATH STORAGE ======================
+	HashMap<String, PoseSteering[]> pathStorage = new HashMap<String, PoseSteering[]>();
+	//================= PATH STORAGE ======================
+
+	
+	int[] TAs = new int[]{};
+	int[] DAs = new int[]{};
+	int nrOfStorages = 1;
+	int[] TTAs = new int[]{9401};
+
+	boolean spawnSAblock1 = false;
+	boolean spawnSAblock2 = false;
+	boolean spawnSAbaseLvl = true;
+
+	for (final int agentID : DAs){
+		Thread t = new Thread() {
+			@Override
 			public void run() {
-                this.setPriority(Thread.MAX_PRIORITY);
+				this.setPriority(Thread.MAX_PRIORITY);	
 
-				//Instantiate a simple motion planner (no map given here, otherwise provide yaml file)
-				ReedsSheppCarPlanner rsp = new ReedsSheppCarPlanner();
-				rsp.setFootprint(footprint1, footprint2, footprint3, footprint4);
-				rsp.setTurningRadius(2.0); 				//default is 1.0
-				rsp.setMap(yamlFile);
+				DrawAgent DA = new DrawAgent(agentID, router, MAP_DATA, startTime, yamlFile );
+				DA.listener();
+			}
+		};
+		t.start();
+	}
 
-				// TransportAgent r = new TransportAgent( numTransport[i], tec, rsp, transportPoses[i], router, startTime );
-				// r.start();
+	for (final int agentID : TAs){
+		Thread t = new Thread() {
+			@Override
+			public void run() {
+				this.setPriority(Thread.MAX_PRIORITY);	
+
+				TransportAgent r = new TransportAgent( agentID, tec, MAP_DATA, router, startTime, yamlFile );
+				r.start();
 
 			}
-                
+				
 		};
-        t.start();
-		// try { Thread.sleep(100); }
-		// catch (InterruptedException e) { e.printStackTrace(); }
-    }
+		t.start();
+	}
 
+	int[] block1  = new int[]{1301, 1302};
+	int[] block2  = new int[]{2301, 2302};
+	int[] baseLvl = new int[]{9301, 9302};
+
+	for (int index= 0; index< nrOfStorages; index++){
+		final int i = index;
+		OreState oreState = new OreState(MAP_DATA.getCapacity(block1[i]), MAP_DATA.getStartOre(block1[i]));
+
+		if ( spawnSAblock1 ){			// spawning SA on block 1
+			Thread t = new Thread() {
+				@Override
+				public void run() {
+					this.setPriority(Thread.MAX_PRIORITY);	
+	
+					StorageAgent SA = new StorageAgent(block1[i], router, startTime, MAP_DATA, yamlFile, oreState, pathStorage);
+					SA.start();
+				}
+			};
+			t.start();
+		}
+		if ( spawnSAblock2 ){			// spawning SA on block 2
+			Thread t = new Thread() {
+				@Override
+				public void run() {
+					this.setPriority(Thread.MAX_PRIORITY);	
+	
+					StorageAgent SA = new StorageAgent(block2[i], router, startTime, MAP_DATA, yamlFile, oreState, pathStorage);
+					SA.start();
+	
+				}
+					
+			};
+			t.start();
+		}
+		if ( spawnSAbaseLvl ){			// spawning SA on base lvl
+			Thread t = new Thread() {
+				@Override
+				public void run() {
+					this.setPriority(Thread.MAX_PRIORITY);	
+	
+					StorageAgent SA = new StorageAgent(baseLvl[i], router, startTime, MAP_DATA, yamlFile, oreState, pathStorage);
+					SA.start();
+				}
+			};
+			t.start();
+		}
+	}
+
+	for (final int agentID : TTAs){
+		Thread t = new Thread() {
+			@Override
+			public void run() {
+				this.setPriority(Thread.MAX_PRIORITY);	
+
+				TransportTruckAgent TTA = new TransportTruckAgent( agentID, tec, MAP_DATA, router, startTime, yamlFile, pathStorage);
+				TTA.start();
+
+			}
+				
+		};
+		t.start();
+	}
+	
+
+	
+	/*
+	for ( int i=0; i<nrTAblock1; i++ ){
+		// Thread for each robot object
+		Thread t = new Thread() {
+					
+			@Override
+			public void run() {
+				this.setPriority(Thread.MAX_PRIORITY);	
+
+				TransportAgent r = new TransportAgent( 1201, tec, rsp, startP, router, startTime );
+				r.start();
+
+			}
+				
+		};
+		t.start();
+	}
+	
+	try { Thread.sleep(1000); }
+	catch (InterruptedException e) { e.printStackTrace(); }
+	*/
+	/*
+	rsp.setStart(TAstart2b1);
+	rsp.setGoals(mDat.getPose(1104));
+	if (!rsp.plan()) throw new Error ("No path between " + TAstart2b1 + " and " + mDat.getPose(1104));
+	PoseSteering[] path = rsp.getPath();
+	double accumulatedDist = 0.0;
+	for (int i=0; i< path.length-1; i++) {
+		Pose p1 = path[i].getPose();
+		Pose p2 = path[i+1].getPose();
+
+		double deltaS = p1.distanceTo(p2);
+		accumulatedDist += deltaS;
+	}
+	double robotVel = 5.6; // 5.6m/s = 20km/s
+	double estTime = accumulatedDist/robotVel;
+	System.out.println("path points-->"+path.length+"\t path dist est-->"+ accumulatedDist+"\t estTime-->"+estTime);
+	System.out.println("euclidean dist-->"+(startP.distanceTo(toP)));
+	tec.addMissions(new Mission(1202, path));
+	*/
 													/*		STORAGE AGENT	*/
+													/*
 	final int[] leftNumStorages = {1301, 1302};
 	final int[] rightNumStorages = {2301, 2302};
 	final int[] TTANumStorages = {9301, 9302};
@@ -237,7 +343,7 @@ public class OreStateTest {
 	Pose[] RightStoragePoses = {SA1posRight, SA2posRight};
 	Pose[] TTAStoragePoses = {SA1posTTA, SA2posTTA};
 
-	final int[] iter2 = {0};
+	final int[] iter2 = {0,1};
 
 	for (final int i : iter2) {
 		OreState oreState = new OreState(SAOreCapacity, SAStartOre);
@@ -292,12 +398,12 @@ public class OreStateTest {
 			}
 		};
 		storageThreadTTA.start();
-		*/
+		
 
 		try { Thread.sleep(100); }
 		catch (InterruptedException e) { e.printStackTrace(); }
 	}
-
+	
 	final int[] numTransportTruck = {9401, 9402}; 
 	final int[] iter4 = {};
 	Pose[] transportTruckPoses = {TTA1pos, TTA2pos};    
@@ -317,8 +423,8 @@ public class OreStateTest {
 				rsp.setTurningRadius(1.0); 				//default is 1.0
 				rsp.setMap(yamlFile);
 
-				//TransportTruckAgent TTA = new TransportTruckAgent(numTransportTruck[i], tec, rsp, transportTruckPoses[i], router, startTime, pathStorage);
-				//TTA.start();
+				TransportTruckAgent TTA = new TransportTruckAgent(numTransportTruck[i], tec, rsp, transportTruckPoses[i], router, startTime, pathStorage);
+				TTA.start();
 
 			}
                 
@@ -327,6 +433,7 @@ public class OreStateTest {
 		try { Thread.sleep(8000); }
 		catch (InterruptedException e) { e.printStackTrace(); }
     }
+	*/
 
 }
 

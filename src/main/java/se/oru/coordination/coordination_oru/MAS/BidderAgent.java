@@ -2,7 +2,7 @@ package se.oru.coordination.coordination_oru.MAS;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 
 public class BidderAgent extends BasicAgent{
-
+    protected int rejectionCount = 0;
 
     /**
      * Basic offer calc func. this needs to be overwritten in final agent object
@@ -28,12 +28,22 @@ public class BidderAgent extends BasicAgent{
      * @return a Task with attributes extracted from m
      */
     protected Task generateTaskFromAuction(Message m, Pose ourPose, double ore){
-        double TIME_ADD = 4.0;
         String[] mParts = this.parseMessage(m, "", true);
 
         Pose auctioneerPose = this.posefyString(mParts[2]);
         double pathDist = ourPose.distanceTo(auctioneerPose);
-        double pathTime = this.calculateDistTime(pathDist) + TIME_ADD;
+        double pathTime = this.calculateDistTime(pathDist, this.agentVelocity);
+        double taskStartTime = Double.parseDouble(mParts[3]);
+        double endTime = taskStartTime + pathTime;
+
+        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathTime, auctioneerPose, ourPose);
+    }
+    protected Task generateTaskFromAuction(Message m, Pose ourPose, Pose initPose, double ore){
+        String[] mParts = this.parseMessage(m, "", true);
+
+        Pose auctioneerPose = this.posefyString(mParts[2]);
+        double pathDist = ourPose.distanceTo(initPose) + initPose.distanceTo(auctioneerPose);
+        double pathTime = this.calculateDistTime(pathDist);
         double taskStartTime = Double.parseDouble(mParts[3]);
         double endTime = taskStartTime + pathTime;
 

@@ -17,27 +17,27 @@ import se.oru.coordination.coordination_oru.ConstantAccelerationForwardModel;
 
 public class TransportAgent extends MobileAgent{
 
-    public TransportAgent(int id){this.robotID = id;}   // for testing
-
-    public TransportAgent(  int r_id, TrajectoryEnvelopeCoordinatorSimulation tec,
-                        ReedsSheppCarPlanner mp, Pose startPos, Router router){}
-
-    public TransportAgent(  int r_id, TrajectoryEnvelopeCoordinatorSimulation tec, ReedsSheppCarPlanner mp, Pose startPos,
-                            Router router, long startTime){
+    public TransportAgent(  int r_id, TrajectoryEnvelopeCoordinatorSimulation tec, NewMapData mapInfo,
+                            Router router, long startTime, String yamlFileString){
         
         this.print("in constructor");
         this.robotID = r_id;
         this.tec = tec;
-        this.mp = mp;
-        this.initialPose = startPos;
+        this.initialPose = mapInfo.getPose(r_id);
         this.clockStartTime = startTime;
-        this.setRobotSize(4.0, 2.8);
+
+        this.setRobotSpeedAndAcc(this.agentVelocity, 20.0);
+        this.rShape = mapInfo.getAgentSize(r_id);
+        this.generateMotionPlanner(yamlFileString, mapInfo.getTurningRad(2), this.rShape);
+        this.agentVelocity = mapInfo.getVelocity(2);
+
         this.taskCap = 4;
-        this.capacity = 15.0;
+        this.capacity = mapInfo.getCapacity(r_id);
         this.COLOR = "\033[0;32m";
         this.TIME_WAITING_FOR_OFFERS = 3.0;
 
-        this.timeSchedule = new TimeScheduleNew(startPos, this.capacity, 0.0);
+        this.timeSchedule = new TimeScheduleNew(this.initialPose, this.capacity, mapInfo.getStartOre(r_id));
+
 
         // enter network and broadcast our id to others.
         router.enterNetwork(this);
@@ -84,7 +84,6 @@ public class TransportAgent extends MobileAgent{
         while (true) {
             this.sleep(200);
 
-            ArrayList<Task> newEndTimes;
             Task task = null;
             Pose prevToPose = null;
             
@@ -94,29 +93,42 @@ public class TransportAgent extends MobileAgent{
             }
             if (task == null) continue;
 
-            // update schedule to actual start of mission and send inform msg to all tasks affected.
+
             double now = this.getTime();
-            double nextStartTime = task.endTime - task.startTime + now;
-            synchronized(this.timeSchedule){
-                this.timeSchedule.printSchedule(this.COLOR);
-                this.timeSchedule.changeOreStateEndTime(task.taskID, nextStartTime);
-                newEndTimes = this.timeSchedule.compressSchedule(nextStartTime);
+            ArrayList<Task> newEndTimes;
+            
+            double timeBeforeMissionStarts = task.startTime - now;
+            if ( timeBeforeMissionStarts > 1.1 ){
+                this.print("starting sleep for-->"+timeBeforeMissionStarts);
+                this.sleep( (int)((timeBeforeMissionStarts-1.0)*1000.0) ); 
+                this.print("done sleeping");
             }
 
+            // start mission
+            synchronized(this.tec){ this.tec.addMissions(this.createMission(task, prevToPose)); }
+            this.timeSchedule.printSchedule(this.COLOR);
             this.print("starting mission taskID-->"+task.taskID+" with -->" +task.partner + "\tat time-->"+this.getTime()+"\ttaskStartTime-->"+task.startTime);
             this.print("from pose-->"+prevToPose.toString() +"\tto pose-->"+ task.toPose.toString());
-            task.startTime = now;
-            task.endTime = nextStartTime;
-            newEndTimes.add(0, task);
 
-            // start next task
-            synchronized(this.tec){ this.tec.addMissions(this.createMission(task, prevToPose)); }
+            // send inform update if needed
+            if ( timeBeforeMissionStarts < 0.0 ) { // if we started mission late
 
-            // send inform msgs informing of new times.
-            this.sendInformStatusMessages( newEndTimes, (now - task.startTime > 0.0) ); 
-            
+                double nextStartTime = task.endTime - task.startTime + now;
+                task.startTime = now;
+                task.endTime = nextStartTime;
+
+                synchronized(this.timeSchedule){
+                    newEndTimes = this.timeSchedule.update(nextStartTime);
+                    this.timeSchedule.changeOreStateEndTime(task.taskID, nextStartTime);
+                }
+                newEndTimes.add(0, task);
+
+                // send inform msgs informing of new times.
+                this.sendInformStatusMessages( newEndTimes, (now - task.startTime > 0.0) ); 
+            }
+
             // wait for mission to be done.
-            this.waitUntilCurrentTaskComplete(100); // locking
+            this.waitUntilCurrentTaskComplete(300); // locking
             
             this.print("mission DONE taskID-->"+task.taskID+" with -->" +task.partner + "\tat time-->"+this.getTime()+"\ttaskEndTime-->"+task.endTime);
             Message doneMessage = new Message(this.robotID, task.partner, "inform", task.taskID + this.separator + "done" + "," + task.ore);
@@ -235,12 +247,18 @@ public class TransportAgent extends MobileAgent{
         String[] mParts = this.parseMessage(m, "", true);
 
         Pose SApos = this.posefyString(mParts[2]);
-        double pathDist = ourPose.distanceTo(SApos);
-        double pathTime = this.calculateDistTime(pathDist) + 5.0;
+        //double pathDist = ourPose.distanceTo(SApos);
+        double pathDist = this.calculatePathDist(this.calculatePath(this.mp, ourPose, SApos) );
+        double pathTime = this.calculateDistTime(pathDist, this.agentVelocity);
+        double auctionTimeRequest = Double.parseDouble( mParts[3] );
+
+        double ourNextTimeAvailable;
+        synchronized(this.timeSchedule){ ourNextTimeAvailable = this.timeSchedule.getNextStartTime(); }
+        double ourPossibleTimeAtTask = ourNextTimeAvailable + pathTime;
 
         double taskStartTime;
-        synchronized(this.timeSchedule){ taskStartTime = this.timeSchedule.getNextStartTime(); }
-        
+        if ( auctionTimeRequest > ourPossibleTimeAtTask) taskStartTime = auctionTimeRequest - pathTime;
+        else taskStartTime = ourNextTimeAvailable;
         double endTime = taskStartTime + pathTime;
 
         return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathTime, ourPose, SApos);
@@ -253,12 +271,11 @@ public class TransportAgent extends MobileAgent{
      */
     @Override
     protected void handleCNPauction(Message m){
+        this.print("in handleCNPauction");
         double availabeOre;
-        int scheduleSize;
         Pose pos;
         synchronized(this.timeSchedule){
             availabeOre = this.timeSchedule.getLastOreState();
-            scheduleSize = this.timeSchedule.getSize();
             pos = this.timeSchedule.getNextPose();
         }
         if (availabeOre <= 0.01) return;
@@ -279,6 +296,13 @@ public class TransportAgent extends MobileAgent{
         this.sendMessage(this.generateOfferMessage(SATask, offerVal, availabeOre));
     }
 
+    @Override
+    protected void handleDecline(int taskID, Message m){
+        this.print("in handleDecline");
+
+        synchronized(this.timeSchedule){ this.timeSchedule.removeEvent(taskID); }
+    }
+
     /**
      * Calculates and returns offer based on distance and ore-level
      *   OLD:   
@@ -292,24 +316,25 @@ public class TransportAgent extends MobileAgent{
         if ( t.pathDist < 2.0 ) return 0;
 
         // ore eval [1000, 0]
-        int oreEval = Math.abs(t.ore) > 14.9 ? 1000 : (int)this.linearDecreasingComparingFunc(Math.abs(t.ore), 15.0, 15.0, 500.0);
+        int oreEval = Math.abs(t.ore) > this.capacity-0.1 ? 1000 : (int)this.linearDecreasingComparingFunc(Math.abs(t.ore), this.capacity, this.capacity, 500.0);
         
         // dist evaluation [1000, 0]
         int distEval = (int)this.concaveDecreasingFunc(t.fromPose.distanceTo(t.toPose), 1000.0, 120.0); // [1000, 0]
 
         // time bonus [500, 0]
-        double cnpStartTime = Double.parseDouble(this.parseMessage(m, "startTime")[0]);
-        double upperTimeDiff = cnpStartTime <= 0.0 ? 60.0 : 30.0;
-        int timeEval = (int)this.linearDecreasingComparingFunc(t.startTime, cnpStartTime, upperTimeDiff, 500.0);  
+        double cnpEndTime = Double.parseDouble(this.parseMessage(m, "startTime")[0]);
+        double upperTimeDiff = cnpEndTime <= 0.0 ? 60.0 : 30.0;
+        int timeEval = (int)this.linearDecreasingComparingFunc(t.endTime, cnpEndTime, upperTimeDiff, 500.0);  
+
+        //TODO how long we have to sleep is part of equation
         
         //TODO add eval for using middle space of map. using middle space is BAD
 
         this.print("with robot-->"+m.sender +"\t dist-->"+ String.format("%.2f",t.pathDist) 
                         +"\tdistance eval-->"+distEval
-                        +"\t cnp starttime-->"+String.format("%.2f",cnpStartTime) 
-                        +"\t timeDiff-->"+String.format("%.2f",Math.abs(cnpStartTime - t.startTime )) 
+                        +"\t cnp endTime-->"+String.format("%.2f",cnpEndTime) 
+                        +"\t timeDiff-->"+String.format("%.2f",Math.abs(cnpEndTime - t.startTime )) 
                         +"\ttime eval-->"+timeEval);
         return oreEval + distEval + timeEval;
-       
     }   
 }

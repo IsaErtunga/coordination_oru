@@ -22,7 +22,7 @@ public class TransportTruckAgent extends MobileAgent{
 
     // Begins at 4. Will iterate through SW, NW, NE, SE
     protected int cornerState = 4;
-
+    protected Pose deliveryPos;
     public ArrayList<Message> missionList = new ArrayList<Message>();
     
 
@@ -31,30 +31,32 @@ public class TransportTruckAgent extends MobileAgent{
     public TransportTruckAgent(  int r_id, TrajectoryEnvelopeCoordinatorSimulation tec,
                         ReedsSheppCarPlanner mp, Pose startPos, Router router){}
 
-    public TransportTruckAgent( int r_id, TrajectoryEnvelopeCoordinatorSimulation tec,ReedsSheppCarPlanner mp,
-                                Pose startPos, Router router, long startTime, HashMap<String, PoseSteering[]> pathStorage){
-            
-                            System.out.println("#######################");
-                            System.out.println(r_id +" -- constructor");
+    public TransportTruckAgent( int r_id, TrajectoryEnvelopeCoordinatorSimulation tec, NewMapData mapInfo, Router router,
+                                long startTime, String yamlFileString, HashMap<String, PoseSteering[]> pathStorage){
+        
+        this.print("constructor");
         
         this.robotID = r_id;
-        this.tec = tec;
-        this.mp = mp;
-        this.initialPose = startPos;
-        this.clockStartTime = startTime;
-        this.pStorage = pathStorage;
         this.COLOR = "\033[1;94m";
-        this.capacity = 40.0;
+        this.tec = tec;
+        this.initialPose = mapInfo.getPose(r_id);
+        this.clockStartTime = startTime;
+
+        this.agentVelocity = mapInfo.getVelocity(4);
+        this.setRobotSpeedAndAcc(this.agentVelocity, 20.0);
+        this.rShape = mapInfo.getAgentSize(r_id);
+        this.generateMotionPlanner(yamlFileString, mapInfo.getTurningRad(4), this.rShape);
+        this.deliveryPos = mapInfo.getPose(-1);
+
+        this.pStorage = pathStorage;
+        this.capacity = mapInfo.getCapacity(r_id);
 
         // settings 
         this.TASK_EXECUTION_PERIOD_MS = 200;
         this.taskCap = 4;
-        this.robotAcceleration = 10.0;
-        this.robotSpeed = 20.0;
 
-        this.timeSchedule = new TimeScheduleNew(startPos, this.capacity, 0.0);
+        this.timeSchedule = new TimeScheduleNew(this.initialPose, this.capacity, mapInfo.getStartOre(r_id));
 
-        this.setRobotSize(5.0, 3.7);
 
         // enter network and broadcast our id to others.
         router.enterNetwork(this);
@@ -183,13 +185,13 @@ public class TransportTruckAgent extends MobileAgent{
         synchronized(this.timeSchedule) {
             robotPos = this.timeSchedule.getNextPose();
         }
-        Pose deliveryPos = new Pose(245.0, 105.0, Math.PI);	
-        PoseSteering[] path = this.getPath(this.pStorage, this.mp, robotPos, deliveryPos);
+        //Pose deliveryPos = new Pose(245.0, 105.0, Math.PI);	
+        PoseSteering[] path = this.getPath(this.pStorage, this.mp, robotPos, this.deliveryPos);
         double pathDist = this.calculatePathDist(path);
         double pathTime = this.calculateDistTime(pathDist);
         double taskStartTime = this.getNextTime();
         double endTime = taskStartTime + pathTime;
-        Task deliverTask = new Task(this.tID(), -1, true, -this.capacity, taskStartTime, endTime, endTime, robotPos, deliveryPos);
+        Task deliverTask = new Task(this.tID(), -1, true, -this.capacity, taskStartTime, endTime, endTime, robotPos, this.deliveryPos);
         return deliverTask;
     }
 

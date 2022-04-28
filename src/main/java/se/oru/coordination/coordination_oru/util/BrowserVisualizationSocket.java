@@ -21,7 +21,7 @@ public class BrowserVisualizationSocket extends WebSocketAdapter {
 	public static BufferedImage map = null;
 	public static double resolution = 1;
 	public static Coordinate origin = null;
-	public static double initialScale = 1;
+	public static double initialScale = 2; // changed
 	public static Coordinate initialTranslation = null;
 		
     @Override

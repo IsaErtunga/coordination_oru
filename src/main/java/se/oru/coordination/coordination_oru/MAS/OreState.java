@@ -3,17 +3,20 @@ package se.oru.coordination.coordination_oru.MAS;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import javax.naming.InitialContext;
+
 public class OreState {
     class State{
         double t;
         double currOre;
         double deltaOre;
         int taskID;
-
+        boolean isDone = false;
     }
 
     private ArrayList<State> oreStateArray = new ArrayList<State>();
     private double oreCapacity;
+    private double amount;
     
     /**
      * constructor that generates an initial state with time--> -1.0
@@ -23,7 +26,10 @@ public class OreState {
      */
     public OreState(double oreCapacity, double startOre){
         this.oreCapacity = oreCapacity;
-        addState( createState(-1, -1.0, startOre) );
+        State initState = createState(-1, -1.0, startOre);
+        initState.isDone = true;
+        this.amount += startOre;
+        addState( initState );
     }
 
     /**
@@ -37,6 +43,14 @@ public class OreState {
             if ( s.taskID == taskID) return s;
         }
         return null; // no state found
+    }
+
+    public double getOreFromState(int taskID){
+        return this.getState(taskID).currOre;
+    }
+
+    public double getAmount(){
+        return this.amount;
     }
 
     /**
@@ -134,6 +148,15 @@ public class OreState {
             ore = ore + s.deltaOre;
             s.currOre = ore;
         }
+    }
+
+    public double markStateDone(int taskID){
+        State s = this.getState(taskID);
+        if ( s != null && s.isDone == false){
+            s.isDone = true;
+            this.amount += s.deltaOre;
+        }
+        return this.amount;
     }
 
     /**

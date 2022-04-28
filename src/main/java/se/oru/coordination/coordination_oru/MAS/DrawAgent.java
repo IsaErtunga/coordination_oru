@@ -13,49 +13,34 @@ public class DrawAgent extends BidderAgent{
 
     private double finalXPos;
     protected double initalXPos;
-    protected double currentOreAmount;
-
-    protected boolean shiftLeft;
+    protected double paddingFactor = 1.3;
 
     public DrawAgent(int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp){}
 
     public DrawAgent(   int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp,
-                        long startTime, boolean shiftLeft){
+                        long startTime){} // old, not used anymore
+    public DrawAgent( int robotID, Router router, NewMapData mapInfo, long startTime, String yamlFileString){
 
-        this.robotID = robotID; // drawID >10'000
-        this.capacity = capacity;
-        this.amount= capacity;
-        this.currentOreAmount = capacity;
-        this.mp = mp;
-        this.router = router;
-        this.initialPose = pos;
-        this.initalXPos = pos.getX();
+        this.print("in constructor");
+        this.robotID = robotID;
         this.COLOR = "\033[0;36m";
 
-        this.timeSchedule = new TimeScheduleNew(pos, capacity, this.amount);
+        this.capacity = mapInfo.getCapacity(robotID);
+        this.amount= mapInfo.getStartOre(robotID);
+        this.generateMotionPlanner(yamlFileString, mapInfo.getTurningRad(robotID), mapInfo.getAgentSize(2));
+        this.agentVelocity = mapInfo.getVelocity(2); // 2 is for TA beacuse it only interacts with TA's
+        this.TAcapacity = mapInfo.getCapacity(2);
+        this.initialPose = mapInfo.getPose(robotID);
+        this.initalXPos = this.initialPose.getX();
+        this.finalXPos = this.initalXPos - 80.0;
+
+        this.timeSchedule = new TimeScheduleNew(this.initialPose, this.capacity, this.amount);
         this.clockStartTime = startTime;
 
+        this.router = router;
         router.enterNetwork(this.robotID, this.inbox, this.outbox);
         this.sendMessage(new Message(this.robotID, "hello-world", ""), true);
-
-        this.shiftLeft = shiftLeft;
-        if (shiftLeft) {
-            this.finalXPos = this.initalXPos - 32.0;
-        } else {
-            this.finalXPos = this.initalXPos + 32.0;
-        }
-
-    }
-
-    public void takeOre(double oreChange){
-        oreChange = oreChange < 0.0 ? oreChange : -oreChange; // make sure sign is negative
-        this.currentOreAmount += oreChange;
-
-        double x;
-        if (this.shiftLeft) x = this.finalXPos + 32.0 * (this.currentOreAmount / this.capacity);
-        else x = this.finalXPos - 32.0 * (this.currentOreAmount / this.capacity);
-
-        this.initialPose = new Pose( x, initialPose.getY(), initialPose.getYaw() );
+        
     }
 
     @Override
@@ -79,36 +64,62 @@ public class DrawAgent extends BidderAgent{
 
     @Override
     protected void handleCNPauction(Message m){
-        double START_TIME_PADDING = 4.0;
-        double startTime = Double.parseDouble( this.parseMessage(m, "startTime")[0] ) +START_TIME_PADDING;
+        this.print("cnp msg received");
+        double startTime = Double.parseDouble( this.parseMessage(m, "startTime")[0] );
 
         double availableOre = this.timeSchedule.getOreStateAtTime(startTime);
         Pose agentPose = this.calculateFuturePos(startTime);
 
         if ( availableOre <= 0.01 ) return;
-        else availableOre = availableOre >= 15.0 ? 15.0 : availableOre;
+        else availableOre = availableOre >= this.TAcapacity ? this.TAcapacity : availableOre;
 
-        Task auctionTask = this.generateTaskFromAuction(m, agentPose, availableOre);
+        Task auctionTask = this.generateTaskFromAuction(m, agentPose, this.initialPose, availableOre);
 
-        boolean taskPossible = this.timeSchedule.isTaskPossible(auctionTask); 
+        // ========= EXPERIMENTAL =========
+        double padding = this.calculateDistTime(agentPose.distanceTo(this.initialPose), this.agentVelocity)*this.paddingFactor;
+        double[] timeUsingResource = this.translateTAtaskTimesToOccupyTimes(auctionTask, padding);
+        boolean taskPossible = this.timeSchedule.isTaskPossible(auctionTask.taskID, timeUsingResource[0], timeUsingResource[1]);         
         if ( taskPossible == false ) return;    // task doesnt fit in schedule
 
         int offerVal = this.calculateOffer(auctionTask, m);
-        
         if ( offerVal <= 0 ) return;
 
-        if ( this.timeSchedule.addEvent(auctionTask) == true){
-            this.sendMessage(this.generateOfferMessage(auctionTask, offerVal, availableOre));
-        }
+        this.sendMessage(this.generateOfferMessage(auctionTask, offerVal, availableOre));
+        auctionTask.startTime = timeUsingResource[0];
+        auctionTask.endTime = timeUsingResource[1];
+        this.timeSchedule.addEvent(auctionTask);
+        // ================================
     }
 
     @Override
     protected void handleInformDone(int taskID, Message m){
-        double oreChange = this.timeSchedule.getEvent(taskID).ore;
-        this.timeSchedule.removeEvent(taskID);
-        this.amount += oreChange;
+        synchronized(this.timeSchedule){ this.amount = this.timeSchedule.markEventDone(taskID); }
         this.print("currentOre -->"+this.amount);
-    };
+    }
+
+    @Override
+    protected void handleInformStatus(Message m){
+        String updateSep = "::";
+        String pairSep = ":";
+
+        String informInfo = (this.parseMessage(m, "informInfo")[0]);
+        String[] newTimes = informInfo.split(updateSep);
+        for ( int i=0; i<newTimes.length; i++ ){
+            String[] updatePair = newTimes[i].split(pairSep);
+            Task task = this.timeSchedule.getEvent(Integer.parseInt( updatePair[0] )); //altered
+            double padding = task.toPose.distanceTo(this.initialPose)*this.paddingFactor; // added
+            double newEndTime = Double.parseDouble( updatePair[1] ) + padding;  // altered
+    
+            Task taskToAbort = null;
+            synchronized(this.timeSchedule) { taskToAbort = this.timeSchedule.updateTaskEndTimeIfPossible(task.taskID, newEndTime); }
+            if ( taskToAbort != null ){
+                this.sendMessage(new Message(this.robotID, taskToAbort.partner, "inform", taskToAbort.taskID+this.separator+"abort"));
+                this.print("CONFLICT! sending ABORT msg. taskID-->"+taskToAbort.taskID+"\twith-->"+taskToAbort.partner );
+            } else {
+                this.print("updated without conflict-->"+task.taskID +"\twith-->"+ m.sender);
+            }
+        }
+    }
 
     /**
      * Function that determines if DrawAgent moves right or left
@@ -118,9 +129,7 @@ public class DrawAgent extends BidderAgent{
      */
     protected Pose calculateFuturePos(double time){
         double oreAtTime = this.timeSchedule.getOreStateAtTime(time);
-        double x;
-        if (this.shiftLeft) x = this.finalXPos + 32.0 * (oreAtTime / this.capacity);
-        else x = this.finalXPos - 32.0 * (oreAtTime / this.capacity);
+        double x = this.finalXPos + 80.0 * (oreAtTime / this.capacity);
         return new Pose( x, this.initialPose.getY(), this.initialPose.getYaw() );
     }
 
@@ -136,7 +145,7 @@ public class DrawAgent extends BidderAgent{
         if (t.pathDist <= 2.0) return 0;
 
         // ore eval [1000, 0]
-        int oreEval = Math.abs(t.ore) > 14.9 ? 1000 : (int)this.linearDecreasingComparingFunc(Math.abs(t.ore), 15.0, 15.0, 500.0);
+        int oreEval = Math.abs(t.ore) > this.TAcapacity-0.1 ? 1000 : (int)this.linearDecreasingComparingFunc(Math.abs(t.ore), this.TAcapacity, this.TAcapacity, 500.0);
         
         // dist evaluation [1000, 0]
         int distEval = (int)this.concaveDecreasingFunc(t.fromPose.distanceTo(t.toPose), 1000.0, 120.0); // [1000, 0]
@@ -146,13 +155,20 @@ public class DrawAgent extends BidderAgent{
         double upperTimeDiff = cnpStartTime <= 0.0 ? 60.0 : 30.0;
         int timeEval = (int)this.linearDecreasingComparingFunc(t.startTime, cnpStartTime, upperTimeDiff, 100.0);
 
+        // congestion eval [500, 0]
+        double nearTaskT = this.timeSchedule.evaluateEventSlot(t.startTime, t.endTime, t.partner);
+        nearTaskT = nearTaskT == -1.0 ? 30.0 : nearTaskT < 30.0 ? nearTaskT : 30.0;
+        int congestionEval = (int)this.linearIncreasingComparingFunc(nearTaskT, 0.0, 30.0, 500.0);
+
+
         this.print("with robot-->"+m.sender +" dist-->"+ String.format("%.2f",t.pathDist) 
             +" distanceEval-->"+distEval
             +"\t cnp starttime-->"+String.format("%.2f",cnpStartTime) 
             +" timeDiff-->"+String.format("%.2f",Math.abs(cnpStartTime - t.startTime )) 
-            +" timeEval-->"+timeEval);
+            +"\t nearTaskT-->"+String.format("%.2f",nearTaskT) 
+            +" congEnval-->"+congestionEval);
         
-        return oreEval + distEval + timeEval;
+        return oreEval + distEval + timeEval + congestionEval;
     }
     
 }

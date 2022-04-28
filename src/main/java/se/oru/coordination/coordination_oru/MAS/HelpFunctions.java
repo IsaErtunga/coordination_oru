@@ -69,8 +69,11 @@ public class HelpFunctions {
         return accumulatedDist;
     }
 
+    public double calculateDistTime(double dist, double vel_factor){
+        return dist / vel_factor;
+    }
     public double calculateDistTime(double dist){
-        return dist * 0.068;
+        return this.calculateDistTime(dist, 5.6);
     }
 
     /**
@@ -145,6 +148,12 @@ public class HelpFunctions {
         double diff = Math.abs(input - compareVal);
         if ( diff >= upperDiffVal ) return 0.0;
         return maxReturn - ( maxReturn * diff / upperDiffVal );
+    }
+
+    public double linearIncreasingComparingFunc(double input, double compareVal, double upperDiffVal, double maxReturn){
+        double diff = Math.abs(input - compareVal);
+        if ( diff >= upperDiffVal ) return maxReturn;
+        return ( maxReturn * diff / upperDiffVal );
     }
 
     public static void main(String args[]){

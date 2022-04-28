@@ -28,10 +28,15 @@ public class Task {
     // SA
     double ore;
 
-    Pose SW = new Pose(95.0, 25.0, Math.PI);	
-	Pose NW = new Pose(95.0, 190.0, Math.PI);	
-	Pose NE = new Pose(235.0, 190.0, Math.PI);		
-	Pose SE = new Pose(235.0, 25.0, Math.PI);	
+    Pose SW = new Pose(329.0, 44.0, Math.PI/2); // ok
+    Pose NW = new Pose(329.0, 331.0, Math.PI/2); // ok
+    Pose NE = new Pose(494.0, 331.0, 3*Math.PI/2); // ok
+    Pose SE = new Pose(494.0, 44.0, 3*Math.PI/2); // ok
+
+    // Pose SW = new Pose(95.0, 25.0, Math.PI);	
+	// Pose NW = new Pose(95.0, 190.0, Math.PI);	
+	// Pose NE = new Pose(235.0, 190.0, Math.PI);		
+	// Pose SE = new Pose(235.0, 25.0, Math.PI);	
     Pose[] corners = {SW, NW, NE, SE};
 
     Task(int taskID, float expiryTime, String status, double ore) {

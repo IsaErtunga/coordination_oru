@@ -7,6 +7,7 @@ public class AuctioneerBidderAgent extends AuctioneerAgent{
     // ===================== BIDDER FUNCTIONS BELOW ===================
     // ================================================================
     // ================================================================
+    protected int rejectionCount = 0;
 
     /**
      * Basic offer calc func. this needs to be overwritten in final agent object

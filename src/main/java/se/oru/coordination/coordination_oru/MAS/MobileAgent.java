@@ -31,13 +31,17 @@ public class MobileAgent extends AuctioneerBidderAgent{
 
         this.tec.placeRobot(this.robotID, this.initialPose);
         
-        tec.setMotionPlanner(this.robotID, this.mp); // Motion planner
+        this.tec.setMotionPlanner(this.robotID, this.mp); // Motion planner
         }
     }
-
-    protected void setRobotSize(double xLength, double yLength){
-        this.rShape = new Coordinate[] {new Coordinate(-xLength,yLength),new Coordinate(xLength,yLength),
-                                        new Coordinate(xLength,-yLength),new Coordinate(-xLength,-yLength)};
+    
+    protected void setRobotSpeedAndAcc(double speed, double acc){
+        this.robotSpeed = speed;
+        this.robotAcceleration = acc;
+        synchronized(this.tec){
+            this.tec.setRobotMaxVelocity(this.robotID, speed);
+            this.tec.setRobotMaxAcceleration(this.robotID, acc);
+        }
     }
 
     protected void taskExecutionThread(){ // basic task execution function
@@ -82,13 +86,15 @@ public class MobileAgent extends AuctioneerBidderAgent{
      * @param task
      * @return
      */
-    protected void waitUntilCurrentTaskComplete (int cycleSleepTimeMs) {
+    protected double waitUntilCurrentTaskComplete (int cycleSleepTimeMs) {
+        double now = this.getTime();
         while ( true ){
             synchronized(this.tec){
                 if ( this.tec.isFree(this.robotID) == true ) break;
             }
             this.sleep(cycleSleepTimeMs);
         }
+        return this.getTime() - now;
     }
 
     /**
