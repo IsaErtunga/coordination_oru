@@ -7,7 +7,6 @@ import org.metacsp.multi.spatioTemporal.paths.Pose;
 
 public class TimeScheduleNew {
     // control parameters
-    private static double tSensitivity = 0.0;
     private static int unchangeableTaskCount = 0;
 
     private double capacity; 
@@ -16,14 +15,14 @@ public class TimeScheduleNew {
     private HashMap<Integer, Task> reserved = new HashMap<Integer, Task>();
     public OreState oreState = null;
 
-    public TimeScheduleNew(Pose startPos, double oreCapacity, double startOre){
+    public TimeScheduleNew(Pose startPos, double oreCapacity, double startOre){ // constructor for all agent except SA
         this.oreState = new OreState(oreCapacity, startOre);
         this.capacity = oreCapacity;
         Task initialTask = new Task(-1.0, -1.0);
         initialTask.toPose = startPos;
         this.currentTask = initialTask;
     }
-    public TimeScheduleNew(OreState os, Pose startPos, double oreCapacity, double startOre){
+    public TimeScheduleNew(OreState os, Pose startPos, double oreCapacity, double startOre){ // constructor for SA
         this.oreState = os;
         Task initialTask = new Task(-1.0, -1.0);
         initialTask.toPose = startPos;
@@ -39,6 +38,48 @@ public class TimeScheduleNew {
         Task t = this.getLastTask();
         if ( t != null ) return t.endTime;
         return -1.0;
+    }
+
+    /**
+     * will retrive the next possible slot were an SA might be able to fit in a delivery of ore from a TA.
+     * @param nearTimeBound double holdign a time. the function will only retrive a slot after this time.
+     * @param slotSize the slot size required to return that slot
+     * @return a double representing the time in the middle of a timeslot.
+     */
+    public double getNextEarliestTime(double nearTimeBound, double slotSize){
+
+        // if schedule is empty
+        if ( this.schedule.size() < 1 ) { // if sc is empty
+            return nearTimeBound + slotSize/2;
+
+        } else if ( this.schedule.size() == 1 ){ // if sc has 1 task in it
+            Task t = this.schedule.get(0);
+            if ( nearTimeBound < t.startTime && nearTimeBound + slotSize < t.startTime) { // if slot exist before task
+                return nearTimeBound + slotSize/2;
+                
+            } else if ( nearTimeBound > t.endTime ){ // if slot exist after task
+                return nearTimeBound + slotSize/2;
+
+            } else {
+                return t.endTime + slotSize/2; // if nearTimeBound is within task, return slot after 
+            }
+
+        } else { // if sc is has more than 1 task
+            
+            Task prev = this.schedule.get(0);
+            if ( nearTimeBound +slotSize < prev.startTime ) return nearTimeBound + slotSize/2; // if slot exist before first task in sc
+            for ( int i=1; i<this.schedule.size(); i++ ){
+                Task next = this.schedule.get(i);
+                if ( prev.endTime > nearTimeBound && next.startTime - prev.endTime > slotSize ){ // if slot exist between two tasks in sc
+                    return prev.endTime + slotSize/2;
+                }
+                prev = next;
+            }
+        }
+        // if we havent returned anything and we reach here, then return slot after last task
+        Task lastTask = this.schedule.get(this.schedule.size()-1);
+        if ( nearTimeBound < lastTask.endTime ) return lastTask.endTime + slotSize/2;
+        return nearTimeBound + slotSize/2;
     }
 
     public int getSize(){
@@ -121,6 +162,7 @@ public class TimeScheduleNew {
       * @param nextStartTime is the calculated next starttime for the next task.
       * @return an array of tasks to be informed of the new times.
       */
+    /*
     public ArrayList<Task> compressSchedule(double nextStartTime){
         ArrayList<Task> tasks2inform = new ArrayList<Task>();
         final int startIndex = this.unchangeableTaskCount;
@@ -147,6 +189,7 @@ public class TimeScheduleNew {
         }
         return tasks2inform;
     }
+    */
 
     /**
      * 
@@ -221,7 +264,7 @@ public class TimeScheduleNew {
      * @param maxOreAmount the max amount of ore allowed at a slot in order to return it.
      * @return
      */
-    public double[] getSlotToFill(double slotSize, double maxOreAmount){
+    public double[] getSlotToFill( double slotSize, double maxOreAmount){
         double[] returnSlot = new double[] {};
         if ( this.schedule.size() <= 1 ) return returnSlot;
 

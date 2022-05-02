@@ -36,7 +36,7 @@ public class DrawAgent extends BidderAgent{
 
         this.timeSchedule = new TimeScheduleNew(this.initialPose, this.capacity, this.amount);
         this.clockStartTime = startTime;
-        
+
         this.print("initiated");
         this.router = router;
         router.enterNetwork(this.robotID, this.inbox, this.outbox);
@@ -44,10 +44,10 @@ public class DrawAgent extends BidderAgent{
         
     }
 
+
     @Override
     protected void handleAccept(int taskID, Message m){
-        this.print("---schedule---BEFORE");
-        this.timeSchedule.printSchedule(this.COLOR);
+        this.print("-- in handleAccept");
         boolean eventAdded;
         synchronized(this.timeSchedule){ eventAdded = this.timeSchedule.setEventActive(taskID, true); }
         //this.print("accept-msg, taskID-->"+taskID+"\twith robot-->"+m.sender+"\ttask added-->"+eventAdded);
@@ -55,21 +55,26 @@ public class DrawAgent extends BidderAgent{
             //this.print("accept received but not successfully added. sending abort msg");
             this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
         }
+        this.timeSchedule.printSchedule(this.COLOR);
 
-        ArrayList<Task> abortTasks = this.timeSchedule.fixBrokenSchedule();
-        for (Task t : abortTasks){
-            //this.print("CONFLICT from fixBrokenSchedule, sending ABORT msg. taskID-->"+t.taskID+"\twith-->"+t.partner);
-            this.sendMessage(new Message(this.robotID, t.partner, "inform", t.taskID+this.separator+"abort"));
-        }
+
+        // ============= removed so DA's dont send abort msg to TA if they book an earlier task =========================
+        // ArrayList<Task> abortTasks = this.timeSchedule.fixBrokenSchedule();
+        // for (Task t : abortTasks){
+        //     //this.print("CONFLICT from fixBrokenSchedule, sending ABORT msg. taskID-->"+t.taskID+"\twith-->"+t.partner);
+        //     this.sendMessage(new Message(this.robotID, t.partner, "inform", t.taskID+this.separator+"abort"));
+        // }
     }
 
     @Override
     protected void handleCNPauction(Message m){
-        this.print("cnp msg received");
         double startTime = Double.parseDouble( this.parseMessage(m, "startTime")[0] );
 
-        double availableOre = this.timeSchedule.getOreStateAtTime(startTime);
-        Pose agentPose = this.calculateFuturePos(startTime);
+        // ============= removed so DA's dont send abort msg to TA if they book an earlier task =========================
+        //double availableOre = this.timeSchedule.getOreStateAtTime(startTime); 
+        //Pose agentPose = this.calculateFuturePos(startTime);
+        double availableOre = this.timeSchedule.getLastOreState();
+        Pose agentPose = this.calculateFuturePos(this.timeSchedule.getNextStartTime());
 
         if ( availableOre <= 0.01 ) return;
         else availableOre = availableOre >= this.TAcapacity ? this.TAcapacity : availableOre;
@@ -120,6 +125,8 @@ public class DrawAgent extends BidderAgent{
                 this.print("updated without conflict-->"+task.taskID +"\twith-->"+ m.sender);
             }
         }
+        this.print("--in handleInformStatus, AFTER ");
+        this.timeSchedule.printSchedule(this.COLOR);
     }
 
     /**

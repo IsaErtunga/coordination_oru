@@ -234,7 +234,7 @@ public class BasicAgent extends HelpFunctions{
                     this.handleInform(taskID, m);
 
                 } else if (m.type.equals(new String("offer")) ){
-                this.offers.add(m);
+                    synchronized(this.offers) { this.offers.add(m); }
                 }
             }
             // Changed sleep from 1000

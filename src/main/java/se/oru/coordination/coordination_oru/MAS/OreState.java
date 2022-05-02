@@ -153,7 +153,7 @@ public class OreState {
     public double markStateDone(int taskID){
         State s = this.getState(taskID);
         if ( s != null && s.isDone == false){
-            s.isDone = true;
+            s.isDone = true;            
             this.amount += s.deltaOre;
         }
         return this.amount;

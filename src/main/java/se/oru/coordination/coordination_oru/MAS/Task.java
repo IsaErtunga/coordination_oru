@@ -10,20 +10,18 @@ import se.oru.coordination.coordination_oru.Mission;
 
 public class Task {
     int taskID;
-    float expiryTime;
-    String status;
-    boolean isSaTask;
-
     double startTime;
     double endTime;
     boolean isActive;
     double pathDist;
-
-    // TA
-    Mission mission;
     int partner;
     Pose fromPose;
     Pose toPose;
+
+    // cascading TA
+    Task taskDA = null;
+    Task taskSA = null;
+
 
     // SA
     double ore;
@@ -42,8 +40,6 @@ public class Task {
     Task(int taskID, float expiryTime, String status, double ore) {
         // Constructor for SA
         this.taskID = taskID;
-        this.expiryTime = expiryTime;
-        this.status = status;
         this.ore = ore;
     }
 
@@ -83,6 +79,7 @@ public class Task {
     }
 
 
+    // ================ for tests ================
     Task(double start, double end){
         this(start, end, 0);
     }
@@ -93,6 +90,7 @@ public class Task {
         this.taskID = taskID;
         this.isActive = true;
     }
+    // ===========================================
 
     public void printTask() {
         String sep = ", ";

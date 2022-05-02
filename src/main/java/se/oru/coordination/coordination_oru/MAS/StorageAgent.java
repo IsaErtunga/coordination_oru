@@ -48,10 +48,10 @@ public class StorageAgent extends AuctioneerBidderAgent{
 
         this.timeSchedule = new TimeScheduleNew(oreState, this.initialPose, this.capacity, this.amount);
         this.clockStartTime = startTime;
-        this.occupancyPadding = 4.0;
+        this.occupancyPadding = 5.0;
 
         // settings
-        this.TIME_WAITING_FOR_OFFERS = 3.0;
+        this.TIME_WAITING_FOR_OFFERS = 10.0;
         this.taskCap = 2;
         this.ORE_LEVEL_LOWER = 0.2 * this.capacity < 60.0 ? 60.0 : 0.1 * this.capacity; // TTA cap 40.0 * 1.5
         this.ORE_LEVEL_UPPER = 0.8 * this.capacity;
@@ -85,6 +85,8 @@ public class StorageAgent extends AuctioneerBidderAgent{
     public Message handleOffers(int taskID) {
         Message bestOffer = new Message();
         int bestOfferVal = 0;
+        boolean debug = true;
+        if(debug) this.print("-- in handleOffers");
 
         ArrayList<Message> offersCopy = new ArrayList<Message>(this.offers);
         
@@ -93,6 +95,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
             if ( Integer.parseInt(mParts[0]) != taskID ) continue; // sort out offer not part of current auction(taskID)
 
             int offerVal = Integer.parseInt(mParts[1]);
+            if(debug) this.print("\tofferVal-->"+offerVal);
 
             // ========= EXPERIMENTAL =========
             double tStart = Double.parseDouble(mParts[4]);
@@ -101,9 +104,11 @@ public class StorageAgent extends AuctioneerBidderAgent{
             double startTime = occupiedTimes[0];
             double endTime = occupiedTimes[1];
             // ================================
-
+            if(debug) this.print("\tisTaskPossible("+taskID+", "+startTime+", "+endTime+")-->"+(this.timeSchedule.isTaskPossible(taskID, startTime, endTime)));
             if( this.timeSchedule.isTaskPossible(taskID, startTime, endTime) ) {
+                if(debug) this.print("\t\t"+offerVal+">"+bestOfferVal+"-->"+(offerVal > bestOfferVal));
                 if (offerVal > bestOfferVal){
+                    if(debug) this.print("\t\t\tnew retOffer with-->"+m.sender);
                     bestOfferVal = offerVal;
                     bestOffer = new Message(m);
                 }
@@ -294,27 +299,25 @@ public class StorageAgent extends AuctioneerBidderAgent{
         double ORE_NOW_PERCENT = 0.4;
         double ORE_STATE_PERCENT = 0.4;
         double ORE_FUTURE_PERCENT = 0.85;
-        double TIMESLOT_ADD = 2.0;
         while (true){
             this.sleep(3000);
 
-            if ( this.occupancyPadding > 2.0 ) this.occupancyPadding += -0.02;
+            //if ( this.occupancyPadding > 2.0 ) this.occupancyPadding += -0.02;
 
             double lastOreState;
             double[] timeSlot;
             double nextStartTime;
-            int scSize;
             synchronized(this.timeSchedule){
-                scSize = this.timeSchedule.getSize();
-                nextStartTime = this.timeSchedule.getNextStartTime();
-                lastOreState = this.timeSchedule.getLastOreState();
-                timeSlot = this.timeSchedule.getSlotToFill(this.occupancyPadding*2 +TIMESLOT_ADD, ORE_STATE_PERCENT*this.capacity);
+                if ( this.timeSchedule.getSize() > this.taskCap) continue;
+                //timeSlot = this.timeSchedule.getSlotToFill(this.occupancyPadding*2 +TIMESLOT_ADD, ORE_STATE_PERCENT*this.capacity);
             }
 
             double auctionTime = -1.0;
-            if ( this.amount < 0.4*this.capacity && scSize < this.taskCap) { // if we really need ore now
-                auctionTime = nextStartTime +this.occupancyPadding*2;
-                this.print("get ore now");
+            if ( this.amount < 0.4*this.capacity ) { // if we really need ore now
+                synchronized(this.timeSchedule){
+                    auctionTime = this.timeSchedule.getNextEarliestTime(this.getTime()+10.0, this.occupancyPadding*2.2);
+                }
+                this.print("get ore now. auction request time-->"+auctionTime);
             
             }
             /* else if ( timeSlot.length > 1 ){ // if we really need ore at some point

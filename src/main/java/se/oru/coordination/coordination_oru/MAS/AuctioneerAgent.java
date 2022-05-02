@@ -6,12 +6,16 @@ public class AuctioneerAgent extends BasicAgent{
     protected double TIME_WAITING_FOR_OFFERS = 3.0;
 
 
-    protected Task generateTaskFromOffer(Message offerMsg){
+    protected Task generateTaskFromOffer(Message offerMsg, boolean setToActive){
         String[] msgParts = parseMessage(offerMsg, "", true);
         // replace intexes
-        return new Task(Integer.parseInt(msgParts[0]), offerMsg.sender, true, Double.parseDouble(msgParts[6]), Double.parseDouble(msgParts[4]),
+        return new Task(Integer.parseInt(msgParts[0]), offerMsg.sender, setToActive, Double.parseDouble(msgParts[6]), Double.parseDouble(msgParts[4]),
                         Double.parseDouble(msgParts[5]), this.posefyString(msgParts[2]), this.posefyString(msgParts[3]));
     }
+    protected Task generateTaskFromOffer(Message offerMsg){
+        return this.generateTaskFromOffer(offerMsg, true);
+    }
+
 
 
     /** This function is locking. will wait for offers from all recipients to arrive OR return on the time delay.

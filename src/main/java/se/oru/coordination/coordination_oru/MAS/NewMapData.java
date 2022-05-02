@@ -81,8 +81,8 @@ public class NewMapData {
     public double getVelocity(int robotType){
         if ( robotType > 1000 ) robotType = (robotType % 1000) / 100;
 
-        if ( robotType == 2 ) return 5.6*4;
-        if ( robotType == 4 ) return 5.6*2.0;
+        if ( robotType == 2 ) return 5.6*2;
+        if ( robotType == 4 ) return 5.6;
 
         return -1.0;
     }
