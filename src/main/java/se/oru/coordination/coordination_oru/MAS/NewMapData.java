@@ -23,7 +23,7 @@ public class NewMapData {
 
             } else if ( type == 3 ){
                 if ( uniqueID == 1 ) return new Pose(139.0, 121.0, 0.0); // good -- SA1b1
-                else if ( uniqueID == 2 ) return new Pose(139.0, 250.0, 0.0); // good -- SA1b1
+                else if ( uniqueID == 2 ) return new Pose(139.0, 250.0, 0.0); // good -- SA2b1
             }
 
         } else if ( block == 9 ){
@@ -54,15 +54,12 @@ public class NewMapData {
     }
 
     public double getStartOre(int robotID){
-        int block = robotID / 1000;
         int type = (robotID % 1000) / 100;
-        int uniqueID = (robotID % 1000) % 100;
 
-        if ( type == 1 ) return this.getCapacity(robotID);
+        if ( type == 1 ) return this.getCapacity(type);
         if ( type == 2 ) return 0.0;
-        if ( type == 3 ) return this.getCapacity(type)/2;
-
-
+        if ( type == 3 ) return 100.0;
+        if ( type == 4 ) return 0.0;
         return 0.0;
     }
 
@@ -70,7 +67,7 @@ public class NewMapData {
         if ( agentType > 1000 ) agentType = (agentType % 1000) / 100;
 
         if ( agentType == 1 ) return 30.0;
-        if ( agentType == 3 ) return 200.0;
+        if ( agentType == 3 ) return 1000.0;
         if ( agentType == 2 ) return 14.0;
         if ( agentType == 4 ) return 50.0;
 
@@ -84,7 +81,7 @@ public class NewMapData {
     public double getVelocity(int robotType){
         if ( robotType > 1000 ) robotType = (robotType % 1000) / 100;
 
-        if ( robotType == 2 ) return 5.6;
+        if ( robotType == 2 ) return 5.6*4;
         if ( robotType == 4 ) return 5.6*2.0;
 
         return -1.0;

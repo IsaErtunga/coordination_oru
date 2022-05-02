@@ -26,12 +26,13 @@ public class HelpFunctions {
         if ( paths != null ) synchronized(paths){ path = paths.get(pathID); }
 
         if (path != null) return path;
-
-        mp.setStart(from);
-        mp.setGoals(to);
-        if (!mp.plan()) throw new Error ("No path between " + from + " and " + to);
-
-        path = mp.getPath();
+        synchronized(mp){
+            mp.setStart(from);
+            mp.setGoals(to);
+            if (!mp.plan()) throw new Error ("No path between " + from + " and " + to);
+            path = mp.getPath();
+        }
+        
         if ( paths != null ) synchronized(paths){ paths.put(pathID, path); }
         return path;
     }
@@ -45,10 +46,12 @@ public class HelpFunctions {
     }
     
     public PoseSteering[] calculatePath(ReedsSheppCarPlanner mp, Pose from, Pose[] to){
-        mp.setStart(from);
-        mp.setGoals(to);
-        if (!mp.plan()) throw new Error ("No path between " + from + " and " + to[0]);
-        return mp.getPath();
+        synchronized(mp){
+            mp.setStart(from);
+            mp.setGoals(to);
+            if (!mp.plan()) throw new Error ("No path between " + from + " and " + to[0]);
+            return mp.getPath();
+        }
     }
     public PoseSteering[] calculatePath(ReedsSheppCarPlanner mp, Pose from, Pose to){
         return this.calculatePath(mp, from, new Pose[] {to});
@@ -140,7 +143,7 @@ public class HelpFunctions {
     }
 
     public double concaveDecreasingFunc(double input, double yValueAt0, double refrenceMaxInput){
-        if ( input > 2.0 || input <= refrenceMaxInput  ) return yValueAt0 * Math.pow(input / refrenceMaxInput -1.0, 2.0);
+        if ( input <= refrenceMaxInput -1.0 ) return yValueAt0 * Math.pow(input / refrenceMaxInput -1.0, 2.0);
         return 0.0;
     }
 

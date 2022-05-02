@@ -20,11 +20,10 @@ public class TransportAgent extends MobileAgent{
     public TransportAgent(  int r_id, TrajectoryEnvelopeCoordinatorSimulation tec, NewMapData mapInfo,
                             Router router, long startTime, String yamlFileString){
         
-        this.print("in constructor");
         this.robotID = r_id;
+        this.COLOR = "\033[0;32m";
         this.tec = tec;
         this.initialPose = mapInfo.getPose(r_id);
-        this.clockStartTime = startTime;
 
         this.setRobotSpeedAndAcc(this.agentVelocity, 20.0);
         this.rShape = mapInfo.getAgentSize(r_id);
@@ -33,12 +32,12 @@ public class TransportAgent extends MobileAgent{
 
         this.taskCap = 4;
         this.capacity = mapInfo.getCapacity(r_id);
-        this.COLOR = "\033[0;32m";
         this.TIME_WAITING_FOR_OFFERS = 3.0;
 
+        this.clockStartTime = startTime;
         this.timeSchedule = new TimeScheduleNew(this.initialPose, this.capacity, mapInfo.getStartOre(r_id));
 
-
+        this.print("initiated");
         // enter network and broadcast our id to others.
         router.enterNetwork(this);
         this.sendMessage(new Message(this.robotID, "hello-world", ""), true);
@@ -92,20 +91,18 @@ public class TransportAgent extends MobileAgent{
                 task = this.timeSchedule.getNextEvent();
             }
             if (task == null) continue;
+            Mission taskMission = this.createMission(task, prevToPose);
 
-
-            double now = this.getTime();
-            ArrayList<Task> newEndTimes;
-            
+            double now = this.getTime();            
             double timeBeforeMissionStarts = task.startTime - now;
-            if ( timeBeforeMissionStarts > 1.1 ){
+            if ( timeBeforeMissionStarts > 0.5 ){
                 this.print("starting sleep for-->"+timeBeforeMissionStarts);
-                this.sleep( (int)((timeBeforeMissionStarts-1.0)*1000.0) ); 
+                this.sleep( (int)((timeBeforeMissionStarts-0.5)*1000.0) ); 
                 this.print("done sleeping");
             }
 
             // start mission
-            synchronized(this.tec){ this.tec.addMissions(this.createMission(task, prevToPose)); }
+            synchronized(this.tec){ this.tec.addMissions(taskMission); }
             this.timeSchedule.printSchedule(this.COLOR);
             this.print("starting mission taskID-->"+task.taskID+" with -->" +task.partner + "\tat time-->"+this.getTime()+"\ttaskStartTime-->"+task.startTime);
             this.print("from pose-->"+prevToPose.toString() +"\tto pose-->"+ task.toPose.toString());
@@ -116,7 +113,7 @@ public class TransportAgent extends MobileAgent{
                 double nextStartTime = task.endTime - task.startTime + now;
                 task.startTime = now;
                 task.endTime = nextStartTime;
-
+                ArrayList<Task> newEndTimes;
                 synchronized(this.timeSchedule){
                     newEndTimes = this.timeSchedule.update(nextStartTime);
                     this.timeSchedule.changeOreStateEndTime(task.taskID, nextStartTime);
@@ -168,6 +165,9 @@ public class TransportAgent extends MobileAgent{
                 if ( taskAdded == false ){ // if false then task no longer possible, send abort msg to task partner
                     this.print("in initialState: task NOT added with-->"+task.partner+"\t taskID-->"+task.taskID);
                     this.sendMessage(new Message(this.robotID, task.partner, "inform", task.taskID+this.separator+"abort"));
+                } else {
+                    this.print("task added in initialState");
+                    synchronized(this.timeSchedule){ this.timeSchedule.printSchedule(this.COLOR); }
                 }
 
                 // this.print("in initialState: --- schedule ---");
@@ -245,11 +245,11 @@ public class TransportAgent extends MobileAgent{
     @Override
     protected Task generateTaskFromAuction(Message m, Pose ourPose, double ore){
         String[] mParts = this.parseMessage(m, "", true);
-
+        double time_padding = 2.0;
         Pose SApos = this.posefyString(mParts[2]);
         //double pathDist = ourPose.distanceTo(SApos);
         double pathDist = this.calculatePathDist(this.calculatePath(this.mp, ourPose, SApos) );
-        double pathTime = this.calculateDistTime(pathDist, this.agentVelocity);
+        double pathTime = this.calculateDistTime(pathDist, this.agentVelocity) + time_padding;
         double auctionTimeRequest = Double.parseDouble( mParts[3] );
 
         double ourNextTimeAvailable;
@@ -261,7 +261,7 @@ public class TransportAgent extends MobileAgent{
         else taskStartTime = ourNextTimeAvailable;
         double endTime = taskStartTime + pathTime;
 
-        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathTime, ourPose, SApos);
+        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathDist, ourPose, SApos);
     }
 
     /** handleService is called from within a TA, when a TA did a {@link offerService}

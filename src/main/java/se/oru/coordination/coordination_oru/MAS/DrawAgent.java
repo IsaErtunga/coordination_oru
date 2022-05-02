@@ -19,15 +19,15 @@ public class DrawAgent extends BidderAgent{
 
     public DrawAgent(   int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp,
                         long startTime){} // old, not used anymore
-    public DrawAgent( int robotID, Router router, NewMapData mapInfo, long startTime, String yamlFileString){
+    public DrawAgent( int robotID, Router router, NewMapData mapInfo, long startTime, ReedsSheppCarPlanner mp){
 
-        this.print("in constructor");
         this.robotID = robotID;
         this.COLOR = "\033[0;36m";
 
         this.capacity = mapInfo.getCapacity(robotID);
         this.amount= mapInfo.getStartOre(robotID);
-        this.generateMotionPlanner(yamlFileString, mapInfo.getTurningRad(robotID), mapInfo.getAgentSize(2));
+
+        this.mp = mp;
         this.agentVelocity = mapInfo.getVelocity(2); // 2 is for TA beacuse it only interacts with TA's
         this.TAcapacity = mapInfo.getCapacity(2);
         this.initialPose = mapInfo.getPose(robotID);
@@ -36,7 +36,8 @@ public class DrawAgent extends BidderAgent{
 
         this.timeSchedule = new TimeScheduleNew(this.initialPose, this.capacity, this.amount);
         this.clockStartTime = startTime;
-
+        
+        this.print("initiated");
         this.router = router;
         router.enterNetwork(this.robotID, this.inbox, this.outbox);
         this.sendMessage(new Message(this.robotID, "hello-world", ""), true);
@@ -148,7 +149,7 @@ public class DrawAgent extends BidderAgent{
         int oreEval = Math.abs(t.ore) > this.TAcapacity-0.1 ? 1000 : (int)this.linearDecreasingComparingFunc(Math.abs(t.ore), this.TAcapacity, this.TAcapacity, 500.0);
         
         // dist evaluation [1000, 0]
-        int distEval = (int)this.concaveDecreasingFunc(t.fromPose.distanceTo(t.toPose), 1000.0, 120.0); // [1000, 0]
+        int distEval = (int)this.concaveDecreasingFunc(t.pathDist, 1000.0, 350.0); // [1000, 0]
 
         // time bonus [100, 0]
         double cnpStartTime = Double.parseDouble(this.parseMessage(m, "startTime")[0]);

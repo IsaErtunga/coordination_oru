@@ -31,17 +31,16 @@ public class StorageAgent extends AuctioneerBidderAgent{
     public StorageAgent(int r_id, Router router, double capacity, double startOre, Pose startPos,long startTime, 
                         ReedsSheppCarPlanner mp, OreState oreState, HashMap<String, PoseSteering[]> pathStorage){}
 
-    public StorageAgent(int r_id, Router router, long startTime, NewMapData mapInfo, String yamlFileString,
-                        OreState oreState, HashMap<String, PoseSteering[]> pathStorage){  
-
-        this.print("STORAGE AGENT INITIATED");
+    public StorageAgent(int r_id, Router router, long startTime, NewMapData mapInfo, OreState oreState,
+                        HashMap<String, PoseSteering[]> pathStorage, ReedsSheppCarPlanner mp){  
 
         this.robotID = r_id;
         this.COLOR = "\033[1;33m";
         this.capacity = mapInfo.getCapacity(r_id);
         this.amount = mapInfo.getStartOre(r_id);
         this.initialPose = mapInfo.getPose(r_id);
-        this.generateMotionPlanner(yamlFileString, mapInfo.getTurningRad(4), mapInfo.getAgentSize(4)); // 4 is for TTA
+        //this.generateMotionPlanner(yamlFileString, mapInfo.getTurningRad(4), mapInfo.getAgentSize(4)); // 4 is for TTA
+        this.mp = mp;
         this.agentVelocity = mapInfo.getVelocity(4);
         this.TTAcapacity = mapInfo.getCapacity(4);
 
@@ -59,6 +58,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
 
         this.pStorage = pathStorage;
 
+        this.print("initiated");
         router.enterNetwork(this);
         this.sendMessage(new Message(this.robotID, "hello-world", ""), true);
     }
@@ -296,7 +296,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
         double ORE_FUTURE_PERCENT = 0.85;
         double TIMESLOT_ADD = 2.0;
         while (true){
-            this.sleep(300);
+            this.sleep(3000);
 
             if ( this.occupancyPadding > 2.0 ) this.occupancyPadding += -0.02;
 

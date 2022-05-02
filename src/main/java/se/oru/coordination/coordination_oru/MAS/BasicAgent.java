@@ -149,10 +149,12 @@ public class BasicAgent extends HelpFunctions{
     }
     
     protected void generateMotionPlanner(String yamlMapFile, double turning, Coordinate[] footPrint){
+        this.print(yamlMapFile);
+        this.print(turning+"");
         ReedsSheppCarPlanner motionPlanner = new ReedsSheppCarPlanner();
         motionPlanner.setFootprint(footPrint[0], footPrint[1], footPrint[2], footPrint[3]);
         motionPlanner.setTurningRadius(turning); 				//default is 1.0
-        motionPlanner.setDistanceBetweenPathPoints(2.0); 	//default is 0.5 
+        motionPlanner.setDistanceBetweenPathPoints(0.5); 	//default is 0.5 
         motionPlanner.setMap(yamlMapFile);
         this.mp = motionPlanner;
     }

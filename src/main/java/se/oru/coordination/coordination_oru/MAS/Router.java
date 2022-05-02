@@ -47,7 +47,7 @@ public class Router {
         ArrayList<Message> outputMessages = new ArrayList<Message>();
 
         while(true){
-            //this.print();
+            this.print();
 
             synchronized(this.outboxes){ 
                 
