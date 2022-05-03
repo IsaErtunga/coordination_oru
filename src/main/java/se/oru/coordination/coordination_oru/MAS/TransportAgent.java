@@ -17,20 +17,22 @@ import se.oru.coordination.coordination_oru.ConstantAccelerationForwardModel;
 
 public class TransportAgent extends MobileAgent{
 
+    protected double TIME_WAITING_ORESTATE_CHANGE = 4.0;
+
     public TransportAgent(  int r_id, TrajectoryEnvelopeCoordinatorSimulation tec, NewMapData mapInfo,
-                            Router router, long startTime, String yamlFileString){
+                            Router router, long startTime, ReedsSheppCarPlanner mp){
         
         this.robotID = r_id;
         this.COLOR = "\033[0;32m";
         this.tec = tec;
         this.initialPose = mapInfo.getPose(r_id);
 
+        this.agentVelocity = mapInfo.getVelocity(2);
         this.setRobotSpeedAndAcc(this.agentVelocity, 20.0);
         this.rShape = mapInfo.getAgentSize(r_id);
-        this.generateMotionPlanner(yamlFileString, mapInfo.getTurningRad(2), this.rShape);
-        this.agentVelocity = mapInfo.getVelocity(2);
+        this.mp = mp;
 
-        this.taskCap = 4;
+        this.taskCap = 3;
         this.capacity = mapInfo.getCapacity(r_id);
         this.TIME_WAITING_FOR_OFFERS = 3.0;
 
@@ -80,6 +82,7 @@ public class TransportAgent extends MobileAgent{
      */
     @Override
     protected void taskExecutionThread () {
+        ArrayList<String> times = new ArrayList<String>();
         while (true) {
             this.sleep(200);
 
@@ -104,8 +107,9 @@ public class TransportAgent extends MobileAgent{
             // start mission
             synchronized(this.tec){ this.tec.addMissions(taskMission); }
             this.timeSchedule.printSchedule(this.COLOR);
-            this.print("starting mission taskID-->"+task.taskID+" with -->" +task.partner + "\tat time-->"+this.getTime()+"\ttaskStartTime-->"+task.startTime);
-            this.print("from pose-->"+prevToPose.toString() +"\tto pose-->"+ task.toPose.toString());
+            times.add("taskStart: "+String.format("%.2f",task.startTime)+" == actualStart: "+String.format("%.2f",this.getTime()));
+            //this.print("starting mission taskID-->"+task.taskID+" with -->" +task.partner + "\tat time-->"+this.getTime()+"\ttaskStartTime-->"+task.startTime);
+            //this.print("from pose-->"+prevToPose.toString() +"\tto pose-->"+ task.toPose.toString());
 
             // send inform update if needed
             if ( timeBeforeMissionStarts < 0.0 ) { // if we started mission late
@@ -126,12 +130,22 @@ public class TransportAgent extends MobileAgent{
 
             // wait for mission to be done.
             this.waitUntilCurrentTaskComplete(300); // locking
-            
-            this.print("mission DONE taskID-->"+task.taskID+" with -->" +task.partner + "\tat time-->"+this.getTime()+"\ttaskEndTime-->"+task.endTime);
+            times.add("taskEnd: "+String.format("%.2f",task.endTime)+" == acutalEnd: "+String.format("%.2f",this.getTime()));
+            //this.print("mission DONE taskID-->"+task.taskID+" with -->" +task.partner + "\tat time-->"+this.getTime()+"\ttaskEndTime-->"+task.endTime);
             Message doneMessage = new Message(this.robotID, task.partner, "inform", task.taskID + this.separator + "done" + "," + task.ore);
             this.sendMessage(doneMessage);
 
+            for ( String s : times ){
+                this.print(s);
+            }
         }
+    }
+
+    @Override
+    protected void handleDecline(int taskID, Message m){
+        this.print("in handleDecline");
+
+        synchronized(this.timeSchedule){ this.timeSchedule.removeEvent(taskID); }
     }
 
     protected void initialState() {
@@ -247,8 +261,8 @@ public class TransportAgent extends MobileAgent{
         String[] mParts = this.parseMessage(m, "", true);
         double time_padding = 2.0;
         Pose SApos = this.posefyString(mParts[2]);
-        //double pathDist = ourPose.distanceTo(SApos);
-        double pathDist = this.calculatePathDist(this.calculatePath(this.mp, ourPose, SApos) );
+
+        double pathDist = this.basicPathDistEstimate(ourPose, SApos);
         double pathTime = this.calculateDistTime(pathDist, this.agentVelocity) + time_padding;
         double auctionTimeRequest = Double.parseDouble( mParts[3] );
 
@@ -264,22 +278,33 @@ public class TransportAgent extends MobileAgent{
         return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathDist, ourPose, SApos);
     }
 
+    @Override 
+    protected void handleCNPauction(Message m){
+        TransportAgent TA = this;
+        Thread cnpThread = new Thread() {
+            public void run() {
+                TA.handleCNPauctionThread(m);
+            }
+        };
+        cnpThread.start();
+    }
+
     /** handleService is called from within a TA, when a TA did a {@link offerService}
      * @param m the message with the service
      * @param robotID the robotID of this object
      * @return true if we send offer = we expect resp.
      */
-    @Override
-    protected void handleCNPauction(Message m){
-        this.print("in handleCNPauction");
-        double availabeOre;
-        Pose pos;
-        synchronized(this.timeSchedule){
-            availabeOre = this.timeSchedule.getLastOreState();
-            pos = this.timeSchedule.getNextPose();
+    protected void handleCNPauctionThread(Message m){
+        double availabeOre = 0.0;
+        double now = this.getTime();
+        while ( availabeOre < 0.1 && this.getTime() - now < this.TIME_WAITING_ORESTATE_CHANGE ){
+            this.sleep(100);
+            synchronized(this.timeSchedule){ availabeOre = this.timeSchedule.getLastOreState(); }
         }
         if (availabeOre <= 0.01) return;
 
+        Pose pos;
+        synchronized(this.timeSchedule){ pos = this.timeSchedule.getNextPose(); }
         Task SATask = this.generateTaskFromAuction(m, pos, availabeOre);
 
         boolean taskPossible;
@@ -296,12 +321,7 @@ public class TransportAgent extends MobileAgent{
         this.sendMessage(this.generateOfferMessage(SATask, offerVal, availabeOre));
     }
 
-    @Override
-    protected void handleDecline(int taskID, Message m){
-        this.print("in handleDecline");
-
-        synchronized(this.timeSchedule){ this.timeSchedule.removeEvent(taskID); }
-    }
+    
 
     /**
      * Calculates and returns offer based on distance and ore-level
@@ -333,7 +353,7 @@ public class TransportAgent extends MobileAgent{
         this.print("with robot-->"+m.sender +"\t dist-->"+ String.format("%.2f",t.pathDist) 
                         +"\tdistance eval-->"+distEval
                         +"\t cnp endTime-->"+String.format("%.2f",cnpEndTime) 
-                        +"\t timeDiff-->"+String.format("%.2f",Math.abs(cnpEndTime - t.startTime )) 
+                        +"\t timeDiff-->"+String.format("%.2f",Math.abs(cnpEndTime - t.endTime )) 
                         +"\ttime eval-->"+timeEval);
         return oreEval + distEval + timeEval;
     }   

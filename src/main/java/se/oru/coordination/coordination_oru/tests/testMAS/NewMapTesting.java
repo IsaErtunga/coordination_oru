@@ -99,16 +99,17 @@ public class NewMapTesting {
 	//================= SIMULATION SETTINGS ======================
 
 	//================= MOTION PLANNERS ======================
-	ReedsSheppCarPlanner motionPlannerSA = new ReedsSheppCarPlanner();
-	motionPlannerSA.setFootprint(MAP_DATA.getAgentSize(4));
-	motionPlannerSA.setTurningRadius(0.5); 				//default is 1.0
-	motionPlannerSA.setDistanceBetweenPathPoints(0.5); 	//default is 0.5 
-	motionPlannerSA.setMap(yamlFile);
-	ReedsSheppCarPlanner motionPlannerDA = new ReedsSheppCarPlanner();
-	motionPlannerDA.setFootprint(MAP_DATA.getAgentSize(2));
-	motionPlannerDA.setTurningRadius(0.5); 				//default is 1.0
-	motionPlannerDA.setDistanceBetweenPathPoints(0.5); 	//default is 0.5 
-	motionPlannerDA.setMap(yamlFile);
+	
+	ReedsSheppCarPlanner TAmotionPlanner = new ReedsSheppCarPlanner();
+	TAmotionPlanner.setFootprint(MAP_DATA.getAgentSize(2));
+	TAmotionPlanner.setTurningRadius(2.0); 				//default is 1.0
+	TAmotionPlanner.setDistanceBetweenPathPoints(0.5); 	//default is 0.5 
+	TAmotionPlanner.setMap(yamlFile);
+	ReedsSheppCarPlanner TTAmotionPlanner = new ReedsSheppCarPlanner();
+	TTAmotionPlanner.setFootprint(MAP_DATA.getAgentSize(4));
+	TTAmotionPlanner.setTurningRadius(2.0); 				//default is 1.0
+	TTAmotionPlanner.setDistanceBetweenPathPoints(0.5); 	//default is 0.5 
+	TTAmotionPlanner.setMap(yamlFile);
 	//================= MOTION PLANNERS ======================
 
 	//================= PATH STORAGE ======================
@@ -116,14 +117,14 @@ public class NewMapTesting {
 	//================= PATH STORAGE ======================
 
 	
-	int[] TAs = new int[]{};
-	int[] DAs = new int[]{};
+	int[] TAs = new int[]{1201, 1202,1203};
+	int[] DAs = new int[]{1103,1105,1107,1108,1109};
 	int nrOfStorages = 2;
-	int[] TTAs = new int[]{9401, 9402};
+	int[] TTAs = new int[]{};
 
-	boolean spawnSAblock1 = false;
+	boolean spawnSAblock1 = true;
 	boolean spawnSAblock2 = false;
-	boolean spawnSAbaseLvl = true;
+	boolean spawnSAbaseLvl = false;
 
 	for (final int agentID : DAs){
 		try { Thread.sleep(500); }
@@ -133,7 +134,7 @@ public class NewMapTesting {
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);	
 
-				DrawAgent DA = new DrawAgent(agentID, router, MAP_DATA, startTime, motionPlannerDA );
+				DrawAgent DA = new DrawAgent(agentID, router, MAP_DATA, startTime, TAmotionPlanner );
 				DA.listener();
 			}
 		};
@@ -149,7 +150,7 @@ public class NewMapTesting {
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);	
 
-				TransportAgent r = new TransportAgent( agentID, tec, MAP_DATA, router, startTime, yamlFile );
+				TransportAgent r = new TransportAgent( agentID, tec, MAP_DATA, router, startTime, TAmotionPlanner );
 				r.start();
 
 			}
@@ -174,7 +175,7 @@ public class NewMapTesting {
 				public void run() {
 					this.setPriority(Thread.MAX_PRIORITY);	
 	
-					StorageAgent SA = new StorageAgent(block1[i], router, startTime, MAP_DATA, oreState, pathStorage, motionPlannerSA);
+					StorageAgent SA = new StorageAgent(block1[i], router, startTime, MAP_DATA, oreState, pathStorage, TTAmotionPlanner);
 					SA.start();
 				}
 			};
@@ -189,7 +190,7 @@ public class NewMapTesting {
 				public void run() {
 					this.setPriority(Thread.MAX_PRIORITY);	
 	
-					StorageAgent SA = new StorageAgent(block2[i], router, startTime, MAP_DATA, oreState, pathStorage, motionPlannerSA);
+					StorageAgent SA = new StorageAgent(block2[i], router, startTime, MAP_DATA, oreState, pathStorage, TTAmotionPlanner);
 					SA.start();
 	
 				}
@@ -206,7 +207,7 @@ public class NewMapTesting {
 				public void run() {
 					this.setPriority(Thread.MAX_PRIORITY);	
 	
-					StorageAgent SA = new StorageAgent(baseLvl[i], router, startTime, MAP_DATA, oreState, pathStorage, motionPlannerSA);
+					StorageAgent SA = new StorageAgent(baseLvl[i], router, startTime, MAP_DATA, oreState, pathStorage, TTAmotionPlanner);
 					SA.start();
 				}
 			};
@@ -222,7 +223,7 @@ public class NewMapTesting {
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);	
 
-				TransportTruckAgent TTA = new TransportTruckAgent( agentID, tec, MAP_DATA, router, startTime, yamlFile, pathStorage);
+				TransportTruckAgent TTA = new TransportTruckAgent( agentID, tec, MAP_DATA, router, startTime, TTAmotionPlanner, pathStorage);
 				TTA.start();
 
 			}

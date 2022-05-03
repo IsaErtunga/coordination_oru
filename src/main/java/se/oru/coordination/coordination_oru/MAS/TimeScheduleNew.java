@@ -239,6 +239,45 @@ public class TimeScheduleNew {
         return returnSlot;
     }
 
+    /**
+     * will retrive the next possible slot were an SA might be able to fit in a delivery of ore from a TA.
+     * @param nearTimeBound double holdign a time. the function will only retrive a slot after this time.
+     * @param slotSize the slot size required to return that slot
+     * @return a double representing the time in the middle of a timeslot.
+     */
+    public double getNextEarliestTime(double nearTimeBound, double slotSize){
+        if ( this.schedule.size() < 1 ) { // if sc is empty
+            return nearTimeBound + slotSize/2;
+
+        } else if ( this.schedule.size() == 1 ){ // if sc has 1 task in it
+            Task t = this.schedule.get(0);
+            if ( nearTimeBound < t.startTime && nearTimeBound + slotSize < t.startTime) { // if slot exist before task
+                return nearTimeBound + slotSize/2;
+
+            } else if ( nearTimeBound > t.endTime ){ // if slot exist after task
+                return nearTimeBound + slotSize/2;
+
+            } else {
+                return t.endTime + slotSize/2; // if nearTimeBound is within task, return slot after 
+            }
+
+        } else { // if sc is has more than 1 task
+            Task prev = this.schedule.get(0);
+            if ( nearTimeBound +slotSize < prev.startTime ) return nearTimeBound + slotSize/2; // if slot exist before first task in sc
+            for ( int i=1; i<this.schedule.size(); i++ ){
+                Task next = this.schedule.get(i);
+                if ( prev.endTime > nearTimeBound && next.startTime - prev.endTime > slotSize ){ // if slot exist between two tasks in sc
+                    return prev.endTime + slotSize/2;
+                }
+                prev = next;
+            }
+        }
+        // if we havent returned anything and we reach here, then return slot after last task
+        Task lastTask = this.schedule.get(this.schedule.size()-1);
+        if ( nearTimeBound < lastTask.endTime ) return lastTask.endTime + slotSize/2;
+        return nearTimeBound + slotSize/2;
+    }
+
     public boolean removeEvent(int taskID){
         for (Task t : this.schedule){
             if ( t.taskID == taskID ){
@@ -369,8 +408,8 @@ public class TimeScheduleNew {
         double nearestTime = 99999.0;
         for ( Task t : this.schedule ){
             if ( t.partner == robotID ) continue; 
-            if ( t.startTime < startT && startT - t.startTime < nearestTime) nearestTime = startT - t.startTime;
-            if ( t.endTime > endT && t.endTime - endT < nearestTime) nearestTime = t.endTime - endT;
+            if ( t.startTime < startT && startT - t.endTime < nearestTime) nearestTime = startT - t.endTime;
+            if ( t.endTime > endT && t.startTime - endT < nearestTime) nearestTime = t.startTime - endT;
         }
         return nearestTime == 99999.0 ? -1.0 : nearestTime;
     }

@@ -66,7 +66,7 @@ public class NewMapData {
     public double getCapacity(int agentType){
         if ( agentType > 1000 ) agentType = (agentType % 1000) / 100;
 
-        if ( agentType == 1 ) return 30.0;
+        if ( agentType == 1 ) return 100.0;
         if ( agentType == 3 ) return 1000.0;
         if ( agentType == 2 ) return 14.0;
         if ( agentType == 4 ) return 50.0;
@@ -81,8 +81,8 @@ public class NewMapData {
     public double getVelocity(int robotType){
         if ( robotType > 1000 ) robotType = (robotType % 1000) / 100;
 
-        if ( robotType == 2 ) return 5.6*4;
-        if ( robotType == 4 ) return 5.6*2.0;
+        if ( robotType == 2 ) return 5.6;
+        if ( robotType == 4 ) return this.getVelocity(2)/2;
 
         return -1.0;
     }

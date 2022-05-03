@@ -57,6 +57,9 @@ public class HelpFunctions {
         return this.calculatePath(mp, from, new Pose[] {to});
     }
 
+    public double basicPathDistEstimate(Pose from, Pose to){
+        return Math.abs( from.getX() - to.getX() ) + Math.abs( from.getY() - to.getY() );
+    }
 
     public double calculatePathDist(PoseSteering[] path) {
         double accumulatedDist = 0.0;
