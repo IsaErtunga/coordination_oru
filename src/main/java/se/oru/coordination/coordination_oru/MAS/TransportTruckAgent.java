@@ -24,6 +24,13 @@ public class TransportTruckAgent extends MobileAgent{
     protected int cornerState = 4;
     protected Pose deliveryPos;
     public ArrayList<Message> missionList = new ArrayList<Message>();
+
+    Pose SW = new Pose(329.0, 44.0, Math.PI/2); // ok
+    Pose NW = new Pose(329.0, 331.0, Math.PI/2); // ok
+    Pose NE = new Pose(494.0, 331.0, 3*Math.PI/2); // ok
+    Pose SE = new Pose(494.0, 44.0, 3*Math.PI/2); // ok
+	
+    Pose[] corners = {SW, NW, NE, SE};
     
 
     public TransportTruckAgent(int id){this.robotID = id;}   // for testing
@@ -134,35 +141,6 @@ public class TransportTruckAgent extends MobileAgent{
                         offerVal = val;
                         bestOffer = new Message(m);
                     }
-                    //int SAOrderNumber = m.sender - 5000;
-
-                    // if (val > offerVal) {
-                    //     if (val < offerVal * 1.1) {
-                    //         // If only 10% larger or less
-                    //         if (SAOrderNumber > SAOrderVAl) {
-                    //             // Check precedence
-                    //             offerVal = val;
-                    //             SAOrderVAl = SAOrderNumber;
-                    //             bestOffer = new Message(m);
-                    //         }
-                    //     }
-                    //     else {
-                    //         offerVal = val;
-                    //         SAOrderVAl = SAOrderNumber;
-                    //         bestOffer = new Message(m);
-                    //     }
-                    // }
-                    // else {
-                    //     if (val > offerVal * 0.9) {
-                    //         // If only 10% smaller or less
-                    //         if (SAOrderNumber > SAOrderVAl) {
-                    //             // Check precedence
-                    //             offerVal = val;
-                    //             SAOrderVAl = SAOrderNumber;
-                    //             bestOffer = new Message(m);
-                    //         }
-                    //     }
-                    // }
                 }
             }
         }
@@ -212,7 +190,7 @@ public class TransportTruckAgent extends MobileAgent{
         }
 
         while (this.cornerState != lastCorner) {
-            corners.add(task.corners[this.incrementCornerState()-1]);
+            corners.add(this.corners[this.incrementCornerState()-1]);
         }
         corners.add(task.toPose);
         

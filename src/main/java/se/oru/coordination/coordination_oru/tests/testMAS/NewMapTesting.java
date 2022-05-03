@@ -116,14 +116,14 @@ public class NewMapTesting {
 	//================= PATH STORAGE ======================
 
 	
-	int[] TAs = new int[]{1201, 1202};
+	int[] TAs = new int[]{};
 	int[] DAs = new int[]{1103,1104,1105,1106};
-	int nrOfStorages = 1;
-	int[] TTAs = new int[]{};
+	int nrOfStorages = 2;
+	int[] TTAs = new int[]{9401};
 
-	boolean spawnSAblock1 = true;
+	boolean spawnSAblock1 = false;
 	boolean spawnSAblock2 = false;
-	boolean spawnSAbaseLvl = false;
+	boolean spawnSAbaseLvl = true;
 
 	for (final int agentID : DAs){
 		try { Thread.sleep(500); }
