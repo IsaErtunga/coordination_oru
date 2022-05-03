@@ -48,7 +48,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
 
         this.timeSchedule = new TimeScheduleNew(oreState, this.initialPose, this.capacity, this.amount);
         this.clockStartTime = startTime;
-        this.occupancyPadding = 5.0;
+        this.occupancyPadding = 7.0;
 
         // settings
         this.TIME_WAITING_FOR_OFFERS = 10.0;

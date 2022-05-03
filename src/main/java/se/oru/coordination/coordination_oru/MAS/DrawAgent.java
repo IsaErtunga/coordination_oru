@@ -169,8 +169,8 @@ public class DrawAgent extends BidderAgent{
 
         // congestion eval [500, 0]
         double nearTaskT = this.timeSchedule.evaluateEventSlot(t.startTime, t.endTime, t.partner);
-        nearTaskT = nearTaskT == -1.0 ? 30.0 : nearTaskT < 30.0 ? nearTaskT : 30.0;
-        int congestionEval = (int)this.linearIncreasingComparingFunc(nearTaskT, 0.0, 30.0, 500.0);
+        nearTaskT = nearTaskT == -1.0 ? 60.0 : nearTaskT < 60.0 ? nearTaskT : 60.0;
+        int congestionEval = (int)this.linearIncreasingComparingFunc(nearTaskT, 0.0, 60.0, 500.0);
 
 
         this.print("with robot-->"+m.sender +" dist-->"+ String.format("%.2f",t.pathDist) 
