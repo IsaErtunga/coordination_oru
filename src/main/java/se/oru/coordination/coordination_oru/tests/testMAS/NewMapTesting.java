@@ -1,42 +1,32 @@
 package se.oru.coordination.coordination_oru.tests.testMAS;
 
-import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Comparator;
 import java.util.HashMap;
 
-import org.metacsp.multi.spatioTemporal.paths.Pose;
-import org.metacsp.multi.spatioTemporal.paths.PoseSteering;
-import org.sat4j.ExitCode;
-
 import com.vividsolutions.jts.geom.Coordinate;
 
-import se.oru.coordination.coordination_oru.ConstantAccelerationForwardModel;
+import org.metacsp.multi.spatioTemporal.paths.PoseSteering;
+
 import se.oru.coordination.coordination_oru.CriticalSection;
-import se.oru.coordination.coordination_oru.Mission;
 import se.oru.coordination.coordination_oru.RobotAtCriticalSection;
 import se.oru.coordination.coordination_oru.RobotReport;
+import se.oru.coordination.coordination_oru.MAS.DrawAgent;
+import se.oru.coordination.coordination_oru.MAS.NewMapData;
+import se.oru.coordination.coordination_oru.MAS.OreState;
+import se.oru.coordination.coordination_oru.MAS.Router;
+import se.oru.coordination.coordination_oru.MAS.StorageAgent;
+import se.oru.coordination.coordination_oru.MAS.TransportAgent;
+import se.oru.coordination.coordination_oru.MAS.TransportTruckAgent;
 import se.oru.coordination.coordination_oru.motionplanning.ompl.ReedsSheppCarPlanner;
 import se.oru.coordination.coordination_oru.simulation2D.TrajectoryEnvelopeCoordinatorSimulation;
 import se.oru.coordination.coordination_oru.util.BrowserVisualization;
-import se.oru.coordination.coordination_oru.util.JTSDrawingPanelVisualization;
-import se.oru.coordination.coordination_oru.util.Missions;
-
-import se.oru.coordination.coordination_oru.MAS.TransportAgent;
-import se.oru.coordination.coordination_oru.MAS.TransportTruckAgent;
-import se.oru.coordination.coordination_oru.MAS.Router;
-import se.oru.coordination.coordination_oru.MAS.StorageAgent;
-import se.oru.coordination.coordination_oru.MAS.DrawAgent;
-import se.oru.coordination.coordination_oru.MAS.Message;
-import se.oru.coordination.coordination_oru.MAS.OreState;
-import se.oru.coordination.coordination_oru.MAS.NewMapData;
 
 public class NewMapTesting {
 
 	public static void main(String[] args) throws InterruptedException {
 
 	final TrajectoryEnvelopeCoordinatorSimulation tec = new TrajectoryEnvelopeCoordinatorSimulation(20.0,20.0);
-	//tec.setBreakDeadlocks(true, true, true);
+	tec.setBreakDeadlocks(false, false, false);
 	tec.setQuiet(true);
 
 	//Provide a heuristic for determining orderings thru critical sections
@@ -112,13 +102,25 @@ public class NewMapTesting {
 	//================= MOTION PLANNERS ======================
 
 	//================= PATH STORAGE ======================
+
 	HashMap<String, PoseSteering[]> pathStorage = new HashMap<String, PoseSteering[]>();
+	
+	// PoseSteering[] path1 = formatPoseString(MAP_DATA.path1); // 1 -> 3
+	// PoseSteering[] path2 = formatPoseString(MAP_DATA.path2); // 3 -> 1
+	// PoseSteering[] path3 = formatPoseString(MAP_DATA.path3); // 2 -> 3
+	// PoseSteering[] path4 = formatPoseString(MAP_DATA.path4); // 3 -> 2
+
+	// pathStorage.put("SA1->DROP", path1);
+	// pathStorage.put("DROP->SA1", path2);
+	// pathStorage.put("SA2->DROP", path3);
+	// pathStorage.put("DROP->SA2", path4);
+	
 	//================= PATH STORAGE ======================
 
 	
 	int[] TAs = new int[]{};
 	int[] DAs = new int[]{1103,1104,1105,1106};
-	int nrOfStorages = 2;
+	int nrOfStorages = 1;
 	int[] TTAs = new int[]{9401};
 
 	boolean spawnSAblock1 = false;
@@ -215,7 +217,7 @@ public class NewMapTesting {
 	}
 
 	for (final int agentID : TTAs){
-		try { Thread.sleep(500); }
+		try { Thread.sleep(3000); }
 		catch (InterruptedException e) { e.printStackTrace(); }
 		Thread t = new Thread() {
 			@Override
@@ -224,13 +226,21 @@ public class NewMapTesting {
 
 				TransportTruckAgent TTA = new TransportTruckAgent( agentID, tec, MAP_DATA, router, startTime, yamlFile, pathStorage);
 				TTA.start();
-
-			}
-				
+			}	
 		};
 		t.start();
 	}
 
+}
+
+static PoseSteering[] formatPoseString(String pathString) {
+	String[] splitString = pathString.split(",");
+	PoseSteering[] path = new PoseSteering[splitString.length];
+	for (int i = 0; i < splitString.length; i++) {
+		String[] splitCoord = splitString[i].split(":");
+		path[i] = new PoseSteering(Double.parseDouble(splitCoord[0]) , Double.parseDouble(splitCoord[1]), Double.parseDouble(splitCoord[2]), 0.0);
+	}
+	return path;
 }
 
 }

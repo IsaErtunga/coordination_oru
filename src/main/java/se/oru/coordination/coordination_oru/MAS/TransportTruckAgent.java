@@ -21,16 +21,21 @@ public class TransportTruckAgent extends MobileAgent{
     protected HashMap<String, PoseSteering[]> pStorage;
 
     // Begins at 4. Will iterate through SW, NW, NE, SE
-    protected int cornerState = 4;
+    protected int cornerState = 8;
     protected Pose deliveryPos;
     public ArrayList<Message> missionList = new ArrayList<Message>();
 
-    Pose SW = new Pose(329.0, 44.0, Math.PI/2); // ok
-    Pose NW = new Pose(329.0, 331.0, Math.PI/2); // ok
-    Pose NE = new Pose(494.0, 331.0, 3*Math.PI/2); // ok
-    Pose SE = new Pose(494.0, 44.0, 3*Math.PI/2); // ok
+    Pose SW1 = new Pose(356.2, 17.5, Math.PI); // ok
+    Pose SW2 = new Pose(329.0, 44.0, Math.PI/2); // ok
+    Pose NW1 = new Pose(329.0, 331.0, Math.PI/2); // ok
+    Pose NW2 = new Pose(356.2, 352.5, 0.0); // ok
+    Pose NE1 = new Pose(470.3, 352.5, 0.0); // ok
+    Pose NE2 = new Pose(494.0, 331.0, 3*Math.PI/2); // ok
+    Pose SE1 = new Pose(494.0, 44.0, 3*Math.PI/2); // ok
+    Pose SE2 = new Pose(470.3, 17.5, Math.PI); // ok
 	
-    Pose[] corners = {SW, NW, NE, SE};
+    Pose[] corners = {SW1, SW2, NW1, NW2, NE1, NE2, SE1, SE2};
+    boolean firstMission = true;
     
 
     public TransportTruckAgent(int id){this.robotID = id;}   // for testing
@@ -100,7 +105,7 @@ public class TransportTruckAgent extends MobileAgent{
      * Updates which corner the TTA is on.
      */
     protected int incrementCornerState() {
-        if (this.cornerState == 4) {
+        if (this.cornerState == 8) {
             this.cornerState = 1;
         } 
         else {
@@ -149,8 +154,35 @@ public class TransportTruckAgent extends MobileAgent{
 
     @Override
     public Mission createMission(Task task, Pose prevToPose) {
+        String id = "";
         Pose[] toPose = this.navigateCorrectly(task, task.ore > 0.0);
         PoseSteering[] path = this.getPath(this.pStorage, this.mp, prevToPose, toPose);
+        // if (task.partner == -1) {
+        //     if ((int)prevToPose.getY() == 121) {
+        //         id = "SA1->DROP";
+        //     } else if ((int)prevToPose.getY() == 249) {
+        //         id = "SA2->DROP";
+        //     }
+        // } else {
+        //     if (task.partner == 9301) {
+        //         id = "DROP->SA1";
+        //     } else if (task.partner == 9302) {
+        //         id = "DROP->SA2";
+        //     }
+        // }
+        // PoseSteering[] path;
+        // if (this.firstMission == true) {
+        //     path = this.getPath(this.pStorage, this.mp, prevToPose, toPose);
+        //     this.firstMission = false;
+        //     this.print("USES MP");
+        // }
+        // else {
+        //     path = this.getPathById(this.pStorage, id);
+        //     this.print("USES PREDEFINED PATH");
+        // }
+        // for (int i = 0; i < path.length; i++) {
+        //     System.out.print(path[i].getPose().getX() + ":" + path[i].getPose().getY() + ":" + path[i].getPose().getTheta() + ",");
+        // }
         return new Mission( this.robotID, path );
     }
 
@@ -184,9 +216,9 @@ public class TransportTruckAgent extends MobileAgent{
         int lastCorner;
         if (toSA) {
             // IF PICKUP ORE
-            lastCorner = 1;
+            lastCorner = 2;
         } else {
-            lastCorner = 3;
+            lastCorner = 6;
         }
 
         while (this.cornerState != lastCorner) {
@@ -202,12 +234,12 @@ public class TransportTruckAgent extends MobileAgent{
      * @param robotID id of robot{@link TransportTruckAgent} calling this
      */
     public Message offerService(double taskStartTime) {
-        this.print("in offerService");
+        // this.print("in offerService");
         // Get correct receivers
         ArrayList<Integer> receivers = this.getReceivers("STORAGE");
 
         if (receivers.size() <= 0) return new Message();
-        this.print("receivers > 0");
+        // this.print("receivers > 0");
 
         this.offers.clear();
         
@@ -218,7 +250,7 @@ public class TransportTruckAgent extends MobileAgent{
             scheduleSize = this.timeSchedule.getSize();
         }
         if ( scheduleSize > this.taskCap ) return new Message();
-        this.print("taskCap < scSize");
+        // this.print("taskCap < scSize");
 
 
         String startPos = this.stringifyPose(nextPose);
@@ -226,7 +258,7 @@ public class TransportTruckAgent extends MobileAgent{
 
 
         double time = this.waitForAllOffersToCome(receivers.size(), taskID);
-        this.print("time waited for offers-->"+time);
+        // this.print("time waited for offers-->"+time);
     
         Message bestOffer = this.handleOffers(taskID); //extract best offer
 
@@ -284,7 +316,7 @@ public class TransportTruckAgent extends MobileAgent{
                     this.print("TASK ABORTED");
                     this.sendMessage(new Message(this.robotID, deliverTask.partner, "inform", deliverTask.taskID+this.separator+"abort"));
                 }
-                // this.timeSchedule.printSchedule("");
+                this.timeSchedule.printSchedule(this.COLOR);
             }
 
             
