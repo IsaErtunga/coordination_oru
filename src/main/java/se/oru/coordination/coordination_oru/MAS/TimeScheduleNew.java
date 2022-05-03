@@ -412,8 +412,8 @@ public class TimeScheduleNew {
         double nearestTime = 99999.0;
         for ( Task t : this.schedule ){
             if ( t.partner == robotID ) continue; 
-            if ( t.startTime < startT && startT - t.startTime < nearestTime) nearestTime = startT - t.startTime;
-            if ( t.endTime > endT && t.endTime - endT < nearestTime) nearestTime = t.endTime - endT;
+            if ( t.startTime < startT && startT - t.endTime < nearestTime) nearestTime = startT - t.endTime;
+            if ( t.endTime > endT && t.startTime - endT < nearestTime) nearestTime = t.startTime - endT;
         }
         return nearestTime == 99999.0 ? -1.0 : nearestTime;
     }
@@ -429,9 +429,10 @@ public class TimeScheduleNew {
         boolean testOverlap = false;
         boolean testAddFunc = false;
         boolean testSmallFuncs = false;
-        boolean testUpdate = true;
+        boolean testUpdate = false;
         boolean testSetActive = false;
         boolean testLastToPose = false;
+        boolean testCongestion = true;
 
         if (testOverlap){
             System.out.println("######### testing tasksOverlapping(Task t, Task t) #########");
@@ -584,6 +585,25 @@ public class TimeScheduleNew {
             //tss.printSchedule();
 
             System.out.println(tss.getNextPose().toString());
+        }
+
+        if (testCongestion) {
+            TimeScheduleNew tss = new TimeScheduleNew(startp, startOre, capacity);
+
+            Task t1 = new Task(10.0, 20.0, 1);
+            Task t2 = new Task(40.0, 50.0, 2);
+            Task t3 = new Task(50.0, 60.0, 3);
+
+            t1.partner = 1;
+            t2.partner = 4;
+            t3.partner = 3;
+
+            tss.addEvent(t1);
+            tss.addEvent(t2);
+            tss.addEvent(t3);
+
+            System.out.println(tss.evaluateEventSlot(21.0, 37.0, 2)); 
+
         }
     }
 
