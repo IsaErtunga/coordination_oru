@@ -7,23 +7,6 @@ public class AuctioneerBidderAgent extends AuctioneerAgent{
     // ===================== BIDDER FUNCTIONS BELOW ===================
     // ================================================================
     // ================================================================
-    protected int rejectionCount = 0;
-
-    /**
-     * Basic offer calc func. this needs to be overwritten in final agent object
-     * @param agentTask the task generated from the auction
-     * @param autionMessage the auction message
-     * @return an int value that is the offer 
-     */
-    protected int calculateOffer(Task agentTask, Message autionMessage){
-        // ore eval [1000, 0]
-        int oreEval = (int)Math.abs(agentTask.ore);
-        // dist evaluation [1000, 0]
-        int distEval = (int)agentTask.fromPose.distanceTo(agentTask.toPose);
-        // time bonus [100, 0]
-        int timeEval = 0;
-        return oreEval + distEval + timeEval;
-    }
 
     /**
      * When receiving a cnp-message, this function will create a task from that message.
@@ -33,18 +16,27 @@ public class AuctioneerBidderAgent extends AuctioneerAgent{
      * @return a Task with attributes extracted from m
      */
     protected Task generateTaskFromAuction(Message m, Pose ourPose, double ore){
-        double TIME_ADD = 4.0;
         String[] mParts = this.parseMessage(m, "", true);
-
+        double time_padding = 2.0;
         Pose auctioneerPose = this.posefyString(mParts[2]);
         double pathDist = ourPose.distanceTo(auctioneerPose);
-        double pathTime = this.calculateDistTime(pathDist) + TIME_ADD;
+        double pathTime = this.calculateDistTime(pathDist, this.agentVelocity) + time_padding;
         double taskStartTime = Double.parseDouble(mParts[3]);
         double endTime = taskStartTime + pathTime;
 
-        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathTime, auctioneerPose, ourPose);
+        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathDist, auctioneerPose, ourPose);
     }
+    protected Task generateTaskFromAuction(Message m, Pose ourPose, Pose initPose, double ore){
+        String[] mParts = this.parseMessage(m, "", true);
+        double time_padding = 2.0;
+        Pose auctioneerPose = this.posefyString(mParts[2]);
+        double pathDist = ourPose.distanceTo(initPose) + initPose.distanceTo(auctioneerPose);
+        double pathTime = this.calculateDistTime(pathDist) + time_padding;
+        double taskStartTime = Double.parseDouble(mParts[3]);
+        double endTime = taskStartTime + pathTime;
 
+        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathDist, auctioneerPose, ourPose);
+    }
 
     /**
      * Used to generate a response message from a task. Called from {@link handleService}
@@ -54,13 +46,16 @@ public class AuctioneerBidderAgent extends AuctioneerAgent{
      * @param ore a double representing the ore amount the task handels
      * @return returns a Message with attributes extracted from the parameters
      */
-    protected Message generateOfferMessage(Task task, int offerVal, double oreChange){
+    protected Message generateOfferMessage(Task task, int offerVal, double oreChange, boolean addDist){
         String s = this.separator;
         String TAposStr = this.stringifyPose(task.fromPose);
         String DAposStr = this.stringifyPose(task.toPose);
         String body = task.taskID +s+ offerVal +s+ TAposStr +s+ DAposStr +s+ task.startTime +s+ task.endTime +s+ Math.abs(oreChange);
-
+        body = addDist ? body +s+ task.pathDist : body;
         return new Message(this.robotID, task.partner, "offer", body);
+    }
+    protected Message generateOfferMessage(Task task, int offerVal, double oreChange){
+        return this.generateOfferMessage(task, offerVal, oreChange, false);
     }
 
     /** handleService is called from within a TA, when a TA did a {@link offerService}
@@ -68,6 +63,7 @@ public class AuctioneerBidderAgent extends AuctioneerAgent{
      * @param robotID the robotID of this object
      * @return true if we send offer = we expect resp.
      */
+    /*
     protected boolean handleService(Message m, double availableOre, Pose agentPose) { 
 
         Task auctionTask = this.generateTaskFromAuction(m, agentPose, availableOre);
@@ -86,11 +82,12 @@ public class AuctioneerBidderAgent extends AuctioneerAgent{
 
         return true;
     }
+    */
     
     /**
      * example of how handleCNPauction could look using taskCap, and checking if available ore > 0
      */
-    @Override
+    /*
     protected void handleCNPauction(Message m){
         double availableOre;
         Pose pose;
@@ -105,4 +102,5 @@ public class AuctioneerBidderAgent extends AuctioneerAgent{
 
         this.handleService(m, availableOre, pose);
     }
+    */
 }

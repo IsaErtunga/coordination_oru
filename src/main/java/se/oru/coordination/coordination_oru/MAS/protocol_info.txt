@@ -37,7 +37,7 @@ body -> taskID & abort
 
 7:
 tag -> offer
-body -> int taskID & int offerVal & startPos & endPos & startTime & endTime & ore
+body -> int taskID & int offerVal & startPos & endPos & startTime & endTime & ore & pathDist
 
 : pos = '1.0 1.0 1.0'
 

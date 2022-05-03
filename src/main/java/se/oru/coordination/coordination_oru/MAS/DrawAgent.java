@@ -13,7 +13,6 @@ public class DrawAgent extends BidderAgent{
 
     private double finalXPos;
     protected double initalXPos;
-    protected double paddingFactor = 1.3;
 
     public DrawAgent(int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp){}
 
@@ -36,6 +35,7 @@ public class DrawAgent extends BidderAgent{
 
         this.timeSchedule = new TimeScheduleNew(this.initialPose, this.capacity, this.amount);
         this.clockStartTime = startTime;
+        this.occupancyPadding = 4.0;
 
         this.print("initiated");
         this.router = router;
@@ -82,7 +82,8 @@ public class DrawAgent extends BidderAgent{
         Task auctionTask = this.generateTaskFromAuction(m, agentPose, this.initialPose, availableOre);
 
         // ========= EXPERIMENTAL =========
-        double padding = this.calculateDistTime(agentPose.distanceTo(this.initialPose), this.agentVelocity)*this.paddingFactor;
+        double padding = (agentPose.distanceTo(this.initialPose) / this.agentVelocity) + this.occupancyPadding/2;
+        //double padding = this.calculateDistTime(agentPose.distanceTo(this.initialPose), this.agentVelocity)*this.paddingFactor;
         double[] timeUsingResource = this.translateTAtaskTimesToOccupyTimes(auctionTask, padding);
         boolean taskPossible = this.timeSchedule.isTaskPossible(auctionTask.taskID, timeUsingResource[0], timeUsingResource[1]);         
         if ( taskPossible == false ) return;    // task doesnt fit in schedule
@@ -90,12 +91,14 @@ public class DrawAgent extends BidderAgent{
         int offerVal = this.calculateOffer(auctionTask, m);
         if ( offerVal <= 0 ) return;
 
-        this.sendMessage(this.generateOfferMessage(auctionTask, offerVal, availableOre));
+        this.sendMessage(this.generateOfferMessage(auctionTask, offerVal, availableOre, true));
         auctionTask.startTime = timeUsingResource[0];
         auctionTask.endTime = timeUsingResource[1];
         this.timeSchedule.addEvent(auctionTask);
         // ================================
     }
+
+    
 
     @Override
     protected void handleInformDone(int taskID, Message m){
@@ -113,7 +116,8 @@ public class DrawAgent extends BidderAgent{
         for ( int i=0; i<newTimes.length; i++ ){
             String[] updatePair = newTimes[i].split(pairSep);
             Task task = this.timeSchedule.getEvent(Integer.parseInt( updatePair[0] )); //altered
-            double padding = task.toPose.distanceTo(this.initialPose)*this.paddingFactor; // added
+            //double padding = task.toPose.distanceTo(this.initialPose)*this.paddingFactor; // added
+            double padding = (task.toPose.distanceTo(this.initialPose) / this.agentVelocity) + this.occupancyPadding/2;
             double newEndTime = Double.parseDouble( updatePair[1] ) + padding;  // altered
     
             Task taskToAbort = null;

@@ -39,9 +39,8 @@ public class TransportTruckAgent extends MobileAgent{
                         ReedsSheppCarPlanner mp, Pose startPos, Router router){}
 
     public TransportTruckAgent( int r_id, TrajectoryEnvelopeCoordinatorSimulation tec, NewMapData mapInfo, Router router,
-                                long startTime, String yamlFileString, HashMap<String, PoseSteering[]> pathStorage){
+                                long startTime, ReedsSheppCarPlanner mp, HashMap<String, PoseSteering[]> pathStorage){
         
-        this.print("constructor");
         
         this.robotID = r_id;
         this.COLOR = "\033[1;94m";
@@ -52,7 +51,7 @@ public class TransportTruckAgent extends MobileAgent{
         this.agentVelocity = mapInfo.getVelocity(4);
         this.setRobotSpeedAndAcc(this.agentVelocity, 20.0);
         this.rShape = mapInfo.getAgentSize(r_id);
-        this.generateMotionPlanner(yamlFileString, mapInfo.getTurningRad(4), this.rShape);
+        this.mp = mp;
         this.deliveryPos = mapInfo.getPose(-1);
 
         this.pStorage = pathStorage;
@@ -64,6 +63,7 @@ public class TransportTruckAgent extends MobileAgent{
 
         this.timeSchedule = new TimeScheduleNew(this.initialPose, this.capacity, mapInfo.getStartOre(r_id));
 
+        this.print("constructor");
 
         // enter network and broadcast our id to others.
         router.enterNetwork(this);

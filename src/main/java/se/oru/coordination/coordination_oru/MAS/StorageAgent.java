@@ -164,7 +164,6 @@ public class StorageAgent extends AuctioneerBidderAgent{
         return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathDist, TTAPos, this.initialPose);
     }
 
-    @Override
     protected int calculateOffer(Task agentTask, Message autionMessage){
         int offer;
         if (agentTask.pathDist > 0.5) {

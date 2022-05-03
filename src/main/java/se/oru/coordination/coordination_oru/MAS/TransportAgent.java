@@ -20,7 +20,7 @@ public class TransportAgent extends MobileAgent{
     protected HashMap<Integer, Integer> cascadeTaskPair = new HashMap<Integer, Integer>();
 
     public TransportAgent(  int r_id, TrajectoryEnvelopeCoordinatorSimulation tec, NewMapData mapInfo,
-                            Router router, long startTime, String yamlFileString){
+                            Router router, long startTime, ReedsSheppCarPlanner mp){
         
         this.robotID = r_id;
         this.COLOR = "\033[0;32m";
@@ -30,7 +30,7 @@ public class TransportAgent extends MobileAgent{
         this.agentVelocity = mapInfo.getVelocity(2);
         this.setRobotSpeedAndAcc(this.agentVelocity, 20.0);
         this.rShape = mapInfo.getAgentSize(r_id);
-        this.generateMotionPlanner(yamlFileString, mapInfo.getTurningRad(2), this.rShape);
+        this.mp = mp;
 
         this.taskCap = 4;
         this.capacity = mapInfo.getCapacity(r_id);
@@ -93,14 +93,16 @@ public class TransportAgent extends MobileAgent{
                 task = this.timeSchedule.getNextEvent();
             }
             if (task == null) continue;
+            double beforeMissionPlan = this.getTime();
             Mission taskMission = this.createMission(task, prevToPose);
+            this.print("time taken to plan-->"+(this.getTime()-beforeMissionPlan));
 
             double now = this.getTime();            
             double timeBeforeMissionStarts = task.startTime - now;
             if ( timeBeforeMissionStarts > 0.5 ){
                 this.print("starting sleep for-->"+timeBeforeMissionStarts);
                 this.sleep( (int)((timeBeforeMissionStarts-0.5)*1000.0) ); 
-                this.print("done sleeping");
+                this.print("done sleeping for-->"+timeBeforeMissionStarts);
             }
 
             // start mission
@@ -139,82 +141,6 @@ public class TransportAgent extends MobileAgent{
         }
     }
 
-    protected void initialState() {
-        double oreLevelThreshold = 1.0;
-        while (true) {
-            this.sleep(200);
-
-            ArrayList<Task> abortTasks = new ArrayList<Task>();
-            double lastOreState;
-            int scSize;
-            synchronized(this.timeSchedule){
-                scSize = this.timeSchedule.getSize();
-                abortTasks = this.timeSchedule.fixBrokenSchedule();
-                lastOreState = this.timeSchedule.getLastOreState();
-            }
-
-            for ( Task t : abortTasks ){
-                this.sendMessage(new Message(this.robotID, t.partner, "inform", t.taskID+this.separator+"abort"));
-            }
-
-            if ( lastOreState <= oreLevelThreshold && scSize < this.taskCap){ // book task to get ore
-                Message bestOffer = this.offerService(this.getNextTime()); // hold auction with DA's
-
-                if (bestOffer.isNull) continue;
-                
-                Task task = this.generateTaskFromOffer(bestOffer);
-
-                boolean taskAdded;
-                synchronized(this.timeSchedule){ taskAdded = this.timeSchedule.addEvent(task); }
-
-                if ( taskAdded == false ){ // if false then task no longer possible, send abort msg to task partner
-                    this.print("in initialState: task NOT added with-->"+task.partner+"\t taskID-->"+task.taskID);
-                    this.sendMessage(new Message(this.robotID, task.partner, "inform", task.taskID+this.separator+"abort"));
-                } else {
-                    this.print("task added in initialState");
-                    synchronized(this.timeSchedule){ this.timeSchedule.printSchedule(this.COLOR); }
-                }
-
-                // this.print("in initialState: --- schedule ---");
-                // synchronized(this.timeSchedule){ this.timeSchedule.printSchedule(this.COLOR); }
-            }
-
-            else {
-                //this.print("WAITING FOR TASK BY STORAGE AGENT");
-            }
-        }
-    }
-
-    /** offerService is called when a robot want to plan in a new task to execute.
-     * 
-     * @param robotID id of robot{@link TransportAgent} calling this
-     */
-    public Message offerService(double taskStartTime) {
-        ArrayList<Integer> receivers = this.getReceivers("DRAW");
-        if (receivers.size() <= 0) return new Message();
-    
-        Pose nextPose;
-        synchronized(this.timeSchedule){ nextPose = this.timeSchedule.getNextPose(); }
-        
-        this.offers.clear();
-        int taskID = this.sendCNPmessage(taskStartTime, this.stringifyPose(nextPose), receivers);
-        this.waitForAllOffersToCome(receivers.size(), taskID);
-
-        Message bestOffer = this.handleOffers(taskID); //extract best offer
-        if ( bestOffer.isNull == false ){
-            Message acceptMessage = new Message(robotID, bestOffer.sender, "accept", Integer.toString(taskID) );
-            this.sendMessage(acceptMessage);
-            receivers.removeIf(i -> i==bestOffer.sender);
-        }
-        if (receivers.size() > 0){
-            Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));
-            this.sendMessage(declineMessage);
-        }
-
-        return bestOffer;
-    }
-
-
     /** //TODO looks good for now. will use timeSchedule.evaluateTimeSlot() in future
      * 
      * HandleOffers is called from a SA, to either accept the offer of a TA, or deny it.
@@ -224,7 +150,7 @@ public class TransportAgent extends MobileAgent{
         Message bestOffer = new Message();
         int offerVal = 0;
         ArrayList<Message> offersCopy = new ArrayList<Message>(this.offers);
-    
+        
         for (Message m : offersCopy) {
             // SCHEDULE: Extract startTime & endTime and see if it fits into schedule
             double taskStartTime = Double.parseDouble(parseMessage(m, "startTime")[0]);
@@ -261,50 +187,13 @@ public class TransportAgent extends MobileAgent{
 
         double ourPossibleTimeAtTask = ourNextTimeAvailable + pathTime;
 
-        double taskStartTime;
-        if ( auctionTimeRequest > ourPossibleTimeAtTask) taskStartTime = auctionTimeRequest - pathTime;
-        else taskStartTime = ourNextTimeAvailable;
+        double taskStartTime = ourNextTimeAvailable;
+        //if ( auctionTimeRequest > ourPossibleTimeAtTask) taskStartTime = auctionTimeRequest - pathTime;
+        //else taskStartTime = ourNextTimeAvailable;
         double endTime = taskStartTime + pathTime;
 
         return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathDist, ourPose, SApos);
-    }
-    @Override
-    protected Task generateTaskFromAuction(Message m, Pose ourPose, double ore){
-        double ourNextTimeAvailable;
-        synchronized(this.timeSchedule){ ourNextTimeAvailable = this.timeSchedule.getNextStartTime(); }
-        return this.generateTaskFromAuction(m, ourPose, ore, ourNextTimeAvailable);
-    }
-
-    /** handleService is called from within a TA, when a TA did a {@link offerService}
-     * @param m the message with the service
-     * @param robotID the robotID of this object
-     * @return true if we send offer = we expect resp.
-     */
-    protected void handleCNPauction2(Message m){
-        this.print("in handleCNPauction");
-        double availabeOre;
-        Pose pos;
-        synchronized(this.timeSchedule){
-            availabeOre = this.timeSchedule.getLastOreState();
-            pos = this.timeSchedule.getNextPose();
-        }
-        if (availabeOre <= 0.01) return;
-
-        Task SATask = this.generateTaskFromAuction(m, pos, availabeOre);
-
-        boolean taskPossible;
-        synchronized(this.timeSchedule){ taskPossible = this.timeSchedule.isTaskPossible(SATask); }
-        if ( taskPossible == false ) return;    // task doesnt fit in schedule
-
-        int offerVal = this.calculateOffer(SATask, m);
-        if ( offerVal <= 0 ) return;
-
-        boolean taskAdded;
-        synchronized(this.timeSchedule){ taskAdded = this.timeSchedule.addEvent(SATask); }
-        if ( taskAdded == false ) return;
-
-        this.sendMessage(this.generateOfferMessage(SATask, offerVal, availabeOre));
-    }
+    }    
 
     @Override 
     protected void handleCNPauction(Message m){
@@ -320,6 +209,7 @@ public class TransportAgent extends MobileAgent{
     protected void handleAuctionCascade(Message m){
         // får aution från storage // taskID 10
         Pose pos;
+        double ourNextTimeAvailable;
         double nextStartTime;
         synchronized(this.timeSchedule){
             nextStartTime = this.timeSchedule.getNextStartTime();
@@ -328,7 +218,7 @@ public class TransportAgent extends MobileAgent{
         nextStartTime = nextStartTime < this.getTime() ? this.getTime()+5.0 : nextStartTime;
 
         // håll i auction me DA (lägg in i reserved)
-        Message bestOfferDA = this.offerService2(pos, nextStartTime);
+        Message bestOfferDA = this.offerService(pos, nextStartTime);
         if ( bestOfferDA.isNull == true ) return;
         Task taskDA = this.generateTaskFromOffer(bestOfferDA, false);
 
@@ -337,7 +227,7 @@ public class TransportAgent extends MobileAgent{
         synchronized(this.timeSchedule){ taskPossible = this.timeSchedule.isTaskPossible(taskSA); }
         if ( taskPossible == false ) return;    // task doesnt fit in schedule
 
-        int offerVal = this.calculateOffer(taskSA, m);
+        int offerVal = this.calculateOffer(taskSA, taskDA, m);
         if ( offerVal <= 0 ) return;
 
         boolean SAtaskAdded;
@@ -352,13 +242,13 @@ public class TransportAgent extends MobileAgent{
         }
 
         this.cascadeTaskPair.put(taskSA.taskID, taskDA.taskID);
-        this.sendMessage(this.generateOfferMessage(taskSA, offerVal, taskDA.ore));
+        this.sendMessage(this.generateOfferMessage(taskSA, offerVal, taskDA.ore, true));
     }
 
 
 
 
-    public Message offerService2(Pose fromPos, double nextStartTime) {
+    public Message offerService(Pose fromPos, double nextStartTime) {
         ArrayList<Integer> receivers = this.getReceivers("DRAW");
         if (receivers.size() <= 0) return new Message();
 
@@ -436,28 +326,27 @@ public class TransportAgent extends MobileAgent{
      * @param t
      * @return offer
      */
-    protected int calculateOffer(Task t, Message m){
-        if ( t.pathDist < 2.0 ) return 0;
+    protected int calculateOffer(Task taskSA, Task taskDA, Message m){
+        if ( taskSA.pathDist < 2.0 ) return 0;
 
         // ore eval [1000, 0]
-        int oreEval = Math.abs(t.ore) > this.capacity-0.1 ? 1000 : (int)this.linearDecreasingComparingFunc(Math.abs(t.ore), this.capacity, this.capacity, 500.0);
+        int oreEval = Math.abs(taskSA.ore) > this.capacity-0.1 ? 1000 : (int)this.linearDecreasingComparingFunc(Math.abs(taskSA.ore), this.capacity, this.capacity, 500.0);
         
         // dist evaluation [500, 0]
-        //int distEval = (int)this.concaveDecreasingFunc(t.fromPose.distanceTo(t.toPose), 500.0, 120.0); // [1000, 0]
-        int distEval = 0;
-
+        int distEval = (int)this.concaveDecreasingFunc(taskDA.pathDist, 500.0, 200.0); // [500, 0]
+        distEval += (int)this.concaveDecreasingFunc(taskSA.pathDist, 500.0, 200.0); // [500, 0]
         // time bonus [1000, 0]
         double cnpEndTime = Double.parseDouble(this.parseMessage(m, "startTime")[0]);
-        int timeEval = (int)this.linearDecreasingComparingFunc(t.endTime, cnpEndTime, 60.0, 1000.0);  
+        int timeEval = (int)this.linearDecreasingComparingFunc(taskSA.endTime, cnpEndTime, 60.0, 1000.0);  
 
         //TODO how long we have to sleep is part of equation
         
         //TODO add eval for using middle space of map. using middle space is BAD
 
-        this.print("with robot-->"+m.sender +"\t dist-->"+ String.format("%.2f",t.pathDist) 
+        this.print("with robot-->"+m.sender +"\t dist-->"+ String.format("%.2f",taskSA.pathDist+taskDA.pathDist) 
                         +"\tdistance eval-->"+distEval
                         +"\t cnp endTime-->"+String.format("%.2f",cnpEndTime) 
-                        +"\t timeDiff-->"+String.format("%.2f",Math.abs(cnpEndTime - t.endTime )) 
+                        +"\t timeDiff-->"+String.format("%.2f",Math.abs(cnpEndTime - taskSA.endTime )) 
                         +"\ttime eval-->"+timeEval);
         return oreEval + distEval + timeEval;
     }   

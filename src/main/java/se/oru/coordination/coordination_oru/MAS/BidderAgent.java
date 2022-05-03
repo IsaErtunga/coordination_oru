@@ -42,7 +42,8 @@ public class BidderAgent extends BasicAgent{
         String[] mParts = this.parseMessage(m, "", true);
         double time_padding = 2.0;
         Pose auctioneerPose = this.posefyString(mParts[2]);
-        double pathDist = ourPose.distanceTo(initPose) + initPose.distanceTo(auctioneerPose);
+        //double pathDist = ourPose.distanceTo(initPose) + initPose.distanceTo(auctioneerPose);
+        double pathDist = this.basicPathDistEstimate(auctioneerPose, ourPose);
         double pathTime = this.calculateDistTime(pathDist) + time_padding;
         double taskStartTime = Double.parseDouble(mParts[3]);
         double endTime = taskStartTime + pathTime;
@@ -58,14 +59,18 @@ public class BidderAgent extends BasicAgent{
      * @param ore a double representing the ore amount the task handels
      * @return returns a Message with attributes extracted from the parameters
      */
-    protected Message generateOfferMessage(Task task, int offerVal, double oreChange){
+    protected Message generateOfferMessage(Task task, int offerVal, double oreChange, boolean addDist){
         String s = this.separator;
         String TAposStr = this.stringifyPose(task.fromPose);
         String DAposStr = this.stringifyPose(task.toPose);
         String body = task.taskID +s+ offerVal +s+ TAposStr +s+ DAposStr +s+ task.startTime +s+ task.endTime +s+ Math.abs(oreChange);
-
+        body = addDist ? body +s+ task.pathDist : body;
         return new Message(this.robotID, task.partner, "offer", body);
     }
+    protected Message generateOfferMessage(Task task, int offerVal, double oreChange){
+        return this.generateOfferMessage(task, offerVal, oreChange, false);
+    }
+
 
     /** handleService is called from within a TA, when a TA did a {@link offerService}
      * @param m the message with the service
