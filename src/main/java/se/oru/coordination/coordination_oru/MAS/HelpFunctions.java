@@ -44,6 +44,12 @@ public class HelpFunctions {
         Pose[] toPoses = new Pose[] {to};
         return this.getPath(null, mp, from, toPoses);
     }
+
+    public PoseSteering[] getPathById(HashMap<String, PoseSteering[]> paths, String id){
+        PoseSteering[] path = null;
+        synchronized(paths){ path = paths.get(id); }
+        return path;
+    }
     
     public PoseSteering[] calculatePath(ReedsSheppCarPlanner mp, Pose from, Pose[] to){
         synchronized(mp){
