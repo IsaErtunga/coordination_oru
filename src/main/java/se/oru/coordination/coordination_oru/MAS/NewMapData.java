@@ -1,10 +1,44 @@
 package se.oru.coordination.coordination_oru.MAS;
 
 import org.metacsp.multi.spatioTemporal.paths.Pose;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.Scanner;
+
 import com.vividsolutions.jts.geom.Coordinate;
 
 
 public class NewMapData {
+    
+
+    public String readCSV() throws FileNotFoundException {
+        Scanner sc = new Scanner(new File("/home/parallels/Downloads/Testing Scenarios - Blad1.csv"));
+        sc.useDelimiter(",");
+
+        int numCols = 12;
+        int counter = 0;
+        String result = "";
+ 
+        while (sc.hasNext()) {
+            if (counter == numCols) break;
+            int value = Integer.parseInt(sc.next());
+        
+            switch (counter) {
+                case 0:
+                    
+                    break;
+            
+                default:
+                    break;
+            }
+
+            counter++;
+        }
+        sc.close();
+        return result;
+
+    }
 
     public Pose getPose(int robotID){
         int block = robotID / 1000;
