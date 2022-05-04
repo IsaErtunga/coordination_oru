@@ -1,4 +1,5 @@
 package se.oru.coordination.coordination_oru.MAS;
+import java.beans.EventHandler;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -41,41 +42,60 @@ public class StorageAgent extends AuctioneerBidderAgent{
         this.initialPose = mapInfo.getPose(r_id);
         //this.generateMotionPlanner(yamlFileString, mapInfo.getTurningRad(4), mapInfo.getAgentSize(4)); // 4 is for TTA
         this.mp = mp;
-        this.agentVelocity = mapInfo.getVelocity(4);
+        this.agentVelocity = mapInfo.getVelocity(2);
         this.TTAcapacity = mapInfo.getCapacity(4);
 
         this.orderNumber = 1;
 
         this.timeSchedule = new TimeScheduleNew(oreState, this.initialPose, this.capacity, this.amount);
         this.clockStartTime = startTime;
-        this.occupancyPadding = 7.0;
+
+        //this.occupancyPadding = 7.0;
+        this.occupancyPadding = (25.0 / this.agentVelocity) * 1.7;
 
         // settings
+        this.LOAD_DUMP_TIME = 0.0;//15.0 * 5.6 / this.agentVelocity;
         this.TIME_WAITING_FOR_OFFERS = 8.0;
-        this.taskCap = 2;
+        this.taskCap = 4;
         this.ORE_LEVEL_LOWER = 0.2 * this.capacity < 60.0 ? 60.0 : 0.1 * this.capacity; // TTA cap 40.0 * 1.5
         this.ORE_LEVEL_UPPER = 0.8 * this.capacity;
 
         this.pStorage = pathStorage;
 
         this.print("initiated");
+        this.print("loadDump time-->"+this.LOAD_DUMP_TIME);
         router.enterNetwork(this);
         this.sendMessage(new Message(this.robotID, "hello-world", ""), true);
     }
 
     public void start(){
         StorageAgent This = this;
-        Thread listener = new Thread() {
+        Thread listenerThread = new Thread() {
             public void run() {
                 This.listener();
             }
         };
-        listener.start();
+        listenerThread.start();
+
+        Thread amountThread = new Thread() {
+            public void run() {
+                This.updateAmountThread();
+            }
+        };
+        amountThread.start();
 
         this.sleep(1000);
 
-        this.status();
+        int block = this.robotID / 1000;
+        if ( block != 9  ) this.status();
 
+    }
+
+    protected void updateAmountThread(){
+        while (true){
+            this.sleep(500);
+            synchronized(this.timeSchedule){ this.amount = this.timeSchedule.getAmount(); }
+        }
     }
 
     /**
@@ -85,7 +105,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
     public Message handleOffers(int taskID) {
         Message bestOffer = new Message();
         int bestOfferVal = 0;
-        boolean debug = true;
+        boolean debug = false;
 
         ArrayList<Message> offersCopy = new ArrayList<Message>(this.offers);
         if(debug) this.print("-- in handleOffers");
@@ -127,9 +147,11 @@ public class StorageAgent extends AuctioneerBidderAgent{
 
         // Create Task
         Task TTATask = generateTaskFromAuction(m, this.initialPose, availabeOre);
+        TTATask.isTTAtask = true;
 
         // ========= EXPERIMENTAL =========
-        double[] timeUsingResource = this.translateTAtaskTimesToOccupyTimes(TTATask, this.occupancyPadding);
+        //double padding = (agentPose.distanceTo(this.initialPose) / this.agentVelocity) + this.occupancyPadding/2;
+        double[] timeUsingResource = this.translateTAtaskTimesToOccupyTimes(TTATask, this.occupancyPadding); // TApadding *2 = TTA padding, but /2 because holding resource shorter
         if ( !this.timeSchedule.isTaskPossible(TTATask.taskID, timeUsingResource[0], timeUsingResource[1]) ) return;    // task doesnt fit in schedule
         
         // Calculate offer
@@ -158,7 +180,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
         //PoseSteering[] path = this.calculatePath(this.mp, TTAPos, this.startPose);
         PoseSteering[] path = this.getPath(this.pStorage, this.mp, TTAPos, this.initialPose);
         double pathDist = this.calculatePathDist(path);
-        double pathTime = this.calculateDistTime(pathDist, this.agentVelocity);
+        double pathTime = this.calculateDistTime(pathDist, this.agentVelocity/2);
 
         double taskStartTime = Double.parseDouble(mParts[3]);;
         double endTime = taskStartTime + pathTime;
@@ -214,12 +236,25 @@ public class StorageAgent extends AuctioneerBidderAgent{
 
     @Override
     protected void handleAccept(int taskID, Message m){
-        boolean eventAdded;
-        synchronized(this.timeSchedule){ eventAdded = this.timeSchedule.setEventActive(taskID, true); }
-        this.print("accept-msg, taskID-->"+taskID+"\twith robot-->"+m.sender+"\ttask added-->"+eventAdded);
-        if ( eventAdded == false ){
-            this.print("accept received but not successfully added. sending abort msg");
-            this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
+        if ( m.sender/ 1000 == 9 ){ // if accept from TTA
+            Task task = null;
+            synchronized(this.timeSchedule){
+                boolean eventAdded = this.timeSchedule.setEventActive(taskID, true);
+                if ( eventAdded ) task = this.timeSchedule.getEvent(taskID);
+             }
+             if ( task != null ){
+                String body = task.taskID +this.separator+ task.startTime +this.separator+ task.endTime +this.separator+ task.ore;
+                this.sendMessage(new Message(this.robotID, this.getStorageReceivers(), "tta-slot", body));
+             }
+
+        } else {
+            boolean eventAdded;
+            synchronized(this.timeSchedule){ eventAdded = this.timeSchedule.setEventActive(taskID); }
+            this.print("accept-msg, taskID-->"+taskID+"\twith robot-->"+m.sender+"\ttask added-->"+eventAdded);
+            if ( eventAdded == false ){
+                this.print("sending abort msg to-->"+m.sender);
+                this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
+            }
         }
     }
 
@@ -248,6 +283,23 @@ public class StorageAgent extends AuctioneerBidderAgent{
             }
         }
     }
+
+    @Override
+    protected void handleTTAslot(int taskID, Message m){
+        this.print("-- in handleTTAslot");
+        ArrayList<Task> abortTasks = new ArrayList<Task>();
+        String[] mParts = this.parseMessage(m, "", true);
+        double tStart = Double.parseDouble(mParts[1]);
+        double tEnd = Double.parseDouble(mParts[2]);
+        double oreChange = Double.parseDouble(mParts[3]);
+
+        synchronized(this.timeSchedule) { abortTasks = this.timeSchedule.forceAddEvent(taskID, tStart, tEnd, oreChange); }
+        for ( Task t : abortTasks ){
+            this.print("CONFLICT! sending ABORT msg. taskID-->"+t.taskID+"\twith-->"+t.partner );
+            this.sendMessage(new Message(this.robotID, t.partner, "inform", t.taskID+this.separator+"abort"));
+        }
+    }
+
 
     public void status2 () {
         while(true) {
@@ -313,7 +365,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
             double auctionTime = -1.0;
             if ( this.amount < 0.4*this.capacity ) { // if we really need ore now
                 synchronized(this.timeSchedule){
-                    auctionTime = this.timeSchedule.getNextEarliestTime(this.getTime()+10.0, this.occupancyPadding*3);
+                    auctionTime = this.timeSchedule.getNextEarliestTime(this.getTime()+10.0+this.LOAD_DUMP_TIME, this.occupancyPadding*3+this.LOAD_DUMP_TIME);
                 }
                 this.print("get ore now. auction request time-->"+auctionTime);
 

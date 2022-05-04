@@ -10,9 +10,7 @@ import se.oru.coordination.coordination_oru.Mission;
 
 public class Task {
     int taskID;
-    float expiryTime;
-    String status;
-    boolean isSaTask;
+    boolean isTTAtask;
 
     double startTime;
     double endTime;
@@ -20,7 +18,6 @@ public class Task {
     double pathDist;
 
     // TA
-    Mission mission;
     int partner;
     Pose fromPose;
     Pose toPose;
@@ -28,22 +25,9 @@ public class Task {
     // SA
     double ore;
 
-    Pose SW = new Pose(329.0, 44.0, Math.PI/2); // ok
-    Pose NW = new Pose(329.0, 331.0, Math.PI/2); // ok
-    Pose NE = new Pose(494.0, 331.0, 3*Math.PI/2); // ok
-    Pose SE = new Pose(494.0, 44.0, 3*Math.PI/2); // ok
-
-    // Pose SW = new Pose(95.0, 25.0, Math.PI);	
-	// Pose NW = new Pose(95.0, 190.0, Math.PI);	
-	// Pose NE = new Pose(235.0, 190.0, Math.PI);		
-	// Pose SE = new Pose(235.0, 25.0, Math.PI);	
-    Pose[] corners = {SW, NW, NE, SE};
-
     Task(int taskID, float expiryTime, String status, double ore) {
         // Constructor for SA
         this.taskID = taskID;
-        this.expiryTime = expiryTime;
-        this.status = status;
         this.ore = ore;
     }
 
@@ -68,6 +52,7 @@ public class Task {
         this.endTime = endTime;
         this.fromPose = fromPose;
         this.toPose = toPose;
+        this.isTTAtask = false;
     }
 
     Task(int taskID, int partner, boolean isActive, double ore, double startTime, double endTime, double dist, Pose fromPose, Pose toPose) {
@@ -80,11 +65,22 @@ public class Task {
         this.fromPose = fromPose;
         this.toPose = toPose;
         this.pathDist = dist;
+        this.isTTAtask = false;
+    }
+
+    Task( int taskID, double start, double end, double ore){ // used when creating TTAtask from SA not on baselvl
+        this.startTime = start;
+        this.endTime = end;
+        this.taskID = taskID;
+        this.ore = ore;
+        this.isActive = true;
+        this.isTTAtask = true;
     }
 
 
     Task(double start, double end){
         this(start, end, 0);
+        this.isTTAtask = false;
     }
 
     Task(double start, double end, int taskID){
@@ -92,6 +88,7 @@ public class Task {
         this.endTime = end;
         this.taskID = taskID;
         this.isActive = true;
+        this.isTTAtask = false;
     }
 
     public void printTask() {

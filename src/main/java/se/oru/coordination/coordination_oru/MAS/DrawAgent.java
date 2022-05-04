@@ -31,13 +31,15 @@ public class DrawAgent extends BidderAgent{
         this.TAcapacity = mapInfo.getCapacity(2);
         this.initialPose = mapInfo.getPose(robotID);
         this.initalXPos = this.initialPose.getX();
-        this.finalXPos = this.initalXPos - 80.0;
+        this.finalXPos = this.initalXPos - 70.0;
 
         this.timeSchedule = new TimeScheduleNew(this.initialPose, this.capacity, this.amount);
         this.clockStartTime = startTime;
         this.occupancyPadding = 4.0;
-        
+        this.LOAD_DUMP_TIME = 0.0;//15.0 * 5.6 / this.agentVelocity;
+
         this.print("initiated");
+        this.print("loadDump time-->"+this.LOAD_DUMP_TIME);
         this.router = router;
         router.enterNetwork(this.robotID, this.inbox, this.outbox);
         this.sendMessage(new Message(this.robotID, "hello-world", ""), true);
@@ -132,7 +134,7 @@ public class DrawAgent extends BidderAgent{
      */
     protected Pose calculateFuturePos(double time){
         double oreAtTime = this.timeSchedule.getOreStateAtTime(time);
-        double x = this.finalXPos + 80.0 * (oreAtTime / this.capacity);
+        double x = this.finalXPos + 70.0 * (oreAtTime / this.capacity);
         return new Pose( x, this.initialPose.getY(), this.initialPose.getYaw() );
     }
 

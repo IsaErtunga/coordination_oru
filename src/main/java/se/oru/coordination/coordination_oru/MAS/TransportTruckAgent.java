@@ -19,9 +19,10 @@ public class TransportTruckAgent extends MobileAgent{
     //Control parameters
 
     protected HashMap<String, PoseSteering[]> pStorage;
+    protected Pose[] corners;
 
     // Begins at 4. Will iterate through SW, NW, NE, SE
-    protected int cornerState = 4;
+    protected int cornerState = 8;
     protected Pose deliveryPos;
     public ArrayList<Message> missionList = new ArrayList<Message>();
     
@@ -34,7 +35,6 @@ public class TransportTruckAgent extends MobileAgent{
     public TransportTruckAgent( int r_id, TrajectoryEnvelopeCoordinatorSimulation tec, NewMapData mapInfo, Router router,
                                 long startTime, ReedsSheppCarPlanner mp, HashMap<String, PoseSteering[]> pathStorage){
         
-        this.print("constructor");
         
         this.robotID = r_id;
         this.COLOR = "\033[1;94m";
@@ -51,12 +51,15 @@ public class TransportTruckAgent extends MobileAgent{
         this.pStorage = pathStorage;
         this.capacity = mapInfo.getCapacity(r_id);
 
-        // settings 
-        this.TASK_EXECUTION_PERIOD_MS = 200;
-        this.taskCap = 4;
+        this.LOAD_DUMP_TIME = 0.0;//15.0 * 5.6 / (this.agentVelocity*2);
+        this.taskCap = 3;
 
         this.timeSchedule = new TimeScheduleNew(this.initialPose, this.capacity, mapInfo.getStartOre(r_id));
 
+        this.print("constructor");
+        this.print("loadDump time-->"+this.LOAD_DUMP_TIME);
+
+        this.corners = mapInfo.getCorners();
 
         // enter network and broadcast our id to others.
         router.enterNetwork(this);
@@ -93,7 +96,7 @@ public class TransportTruckAgent extends MobileAgent{
      * Updates which corner the TTA is on.
      */
     protected int incrementCornerState() {
-        if (this.cornerState == 4) {
+        if (this.cornerState == 8) {
             this.cornerState = 1;
         } 
         else {
@@ -202,21 +205,16 @@ public class TransportTruckAgent extends MobileAgent{
      * @return
      */
     public Pose[] navigateCorrectly(Task task, boolean toSA) {
-        ArrayList<Pose> corners = new ArrayList<Pose>();
-        int lastCorner;
-        if (toSA) {
-            // IF PICKUP ORE
-            lastCorner = 1;
-        } else {
-            lastCorner = 3;
-        }
+        ArrayList<Pose> localCorners = new ArrayList<Pose>();
+
+        int lastCorner = toSA ? 2 : 6; // if pickup: 2
 
         while (this.cornerState != lastCorner) {
-            corners.add(task.corners[this.incrementCornerState()-1]);
+            localCorners.add(this.corners[this.incrementCornerState()-1]);
         }
-        corners.add(task.toPose);
+        localCorners.add(task.toPose);
         
-        return corners.toArray(new Pose[0]);
+        return localCorners.toArray(new Pose[0]);
     }
 
     /** offerService is called when a robot want to plan in a new task to execute.
@@ -224,24 +222,17 @@ public class TransportTruckAgent extends MobileAgent{
      * @param robotID id of robot{@link TransportTruckAgent} calling this
      */
     public Message offerService(double taskStartTime) {
-        this.print("in offerService");
         // Get correct receivers
         ArrayList<Integer> receivers = this.getReceivers("STORAGE");
 
         if (receivers.size() <= 0) return new Message();
-        this.print("receivers > 0");
 
         this.offers.clear();
         
         Pose nextPose;
-        int scheduleSize;
         synchronized(this.timeSchedule){
             nextPose = this.timeSchedule.getNextPose();
-            scheduleSize = this.timeSchedule.getSize();
         }
-        if ( scheduleSize > this.taskCap ) return new Message();
-        this.print("taskCap < scSize");
-
 
         String startPos = this.stringifyPose(nextPose);
         int taskID = this.sendCNPmessage(taskStartTime, startPos, receivers);
@@ -273,6 +264,7 @@ public class TransportTruckAgent extends MobileAgent{
 
             double lastOreState;
             synchronized(this.timeSchedule){
+                if ( this.timeSchedule.getSize() > this.taskCap ) continue;
                 lastOreState = this.timeSchedule.getLastOreState();
             }
             

@@ -61,6 +61,7 @@ public class MobileAgent extends AuctioneerBidderAgent{
             synchronized(this.tec){ this.tec.addMissions(this.createMission(task, prevToPose)); }
 
             this.waitUntilCurrentTaskComplete(100); // locking
+            this.sleep((int)this.LOAD_DUMP_TIME*1000);
 
             this.print("mission DONE taskID-->"+task.taskID+" with -->" +task.partner + "\tat time-->"+this.getTime()+"\ttaskEndTime-->"+task.endTime);
             if ( task.partner != -1 ){

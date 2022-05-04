@@ -35,6 +35,7 @@ public class BasicAgent extends HelpFunctions{
     protected double agentVelocity = 5.6;
     protected double TAcapacity;
     protected double TTAcapacity;
+    protected double LOAD_DUMP_TIME;
 
 
     // for auction
@@ -88,6 +89,9 @@ public class BasicAgent extends HelpFunctions{
 
         } else if ( m.type.equals(new String("cnp-service")) ){
             attributes = new String[] {"taskID", "storageID", "startPos", "startTime"};
+
+        } else if ( m.type.equals(new String("tta-slot")) ){
+            attributes = new String[] {"taskID", "startTime", "endTime", "ore"};
         }
 
         int i = 0;
@@ -136,16 +140,19 @@ public class BasicAgent extends HelpFunctions{
         return nextTime == -1.0 ? this.getTime()+STARTUP_ADD : nextTime;
     }
 
-    protected double[] translateTAtaskTimesToOccupyTimes(double sTime, double eTime, double padding){
+    protected double[] translateTAtaskTimesToOccupyTimes(double eTime, double padding){
         double retSTime;
         double retETime;
         
-        retSTime = eTime - padding;
+        retSTime = eTime - (this.LOAD_DUMP_TIME + padding);
         retETime = eTime + padding;
         return new double[] {retSTime, retETime};
     }
     protected double[] translateTAtaskTimesToOccupyTimes(Task task, double padding){
-        return this.translateTAtaskTimesToOccupyTimes(task.startTime, task.endTime, padding);
+        return this.translateTAtaskTimesToOccupyTimes(task.endTime, padding);
+    }
+    protected double[] translateTAtaskTimesToOccupyTimes(double sTime, double eTime, double padding){
+        return this.translateTAtaskTimesToOccupyTimes(eTime, padding);
     }
 
     /**
@@ -177,6 +184,16 @@ public class BasicAgent extends HelpFunctions{
             networkCopy.removeIf(i -> (i%1000)/100 != 4);
         }
 
+        return networkCopy;
+    }
+
+    public ArrayList<Integer> getStorageReceivers() {
+        ArrayList<Integer> networkCopy = new ArrayList<Integer>(this.robotsInNetwork);
+        int block = this.robotID / 1000;
+        int uniqueID = (this.robotID % 1000) % 100;
+
+        networkCopy.removeIf(i -> (i%1000)/100 != 3); // remove if not SA
+        networkCopy.removeIf(i -> (i%1000) % 100 != uniqueID); // remove if not sharing same orepass
         return networkCopy;
     }
 
@@ -222,7 +239,10 @@ public class BasicAgent extends HelpFunctions{
                     this.handleInform(taskID, m);
 
                 } else if (m.type.equals(new String("offer")) ){
-                this.offers.add(m);
+                    this.offers.add(m);
+
+                } else if (m.type.equals(new String("tta-slot")) ){
+                    this.handleTTAslot(taskID, m);
                 }
             }
             // Changed sleep from 1000
@@ -300,5 +320,6 @@ public class BasicAgent extends HelpFunctions{
      */
     protected void handleInformDone(int taskID, Message m){}; // needs to be overwritten
     protected void handleCNPauction(Message m){};
+    protected void handleTTAslot(int taskID, Message m){};
 
 }

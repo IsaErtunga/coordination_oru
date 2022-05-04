@@ -26,6 +26,9 @@ public class HelpFunctions {
         if ( paths != null ) synchronized(paths){ path = paths.get(pathID); }
 
         if (path != null) return path;
+        for ( Pose p : to ){
+            System.out.println("Pose------>"+p.toString());
+        }
         synchronized(mp){
             mp.setStart(from);
             mp.setGoals(to);

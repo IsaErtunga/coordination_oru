@@ -73,7 +73,7 @@ public class NewMapTesting {
 	tec.startInference();
 
 	// viz map file
-	final String yamlFile = "maps/MineMap2Block.yaml";
+	final String yamlFile = "maps/MineMap4Block.yaml";
 
 
 	//Set up a simple GUI
@@ -115,25 +115,30 @@ public class NewMapTesting {
 	HashMap<String, PoseSteering[]> pathStorage = new HashMap<String, PoseSteering[]>();
 	//================= PATH STORAGE ======================
 
-	/* good example with 2SA 3DA: 
+	/* good example with 2SA 3TA: 
 	int[] TAs = new int[]{1201, 1202,1203};
 	int[] DAs = new int[]{1103,1105,1107,1108,1109};
 	*/
 
+	/* good example with 1SA 2TA
+	int[] TAs = new int[]{1201,1203};
+	int[] DAs = new int[]{1102,1103,1105,1106};
+	*/
+
 	/*
-
-
+	int[] TAs = new int[]{1201,1202,1203};
+	int[] DAs = new int[]{1103,1105,1106,1107,1109};
 	*/
 
 	
-	int[] TAs = new int[]{1201,1203};
-	int[] DAs = new int[]{1102,1103,1105,1106};
+	int[] TAs = new int[]{};
+	int[] DAs = new int[]{};
 	int nrOfStorages = 1;
-	int[] TTAs = new int[]{};
+	int[] TTAs = new int[]{9401};
 
-	boolean spawnSAblock1 = true;
+	boolean spawnSAblock1 = false;
 	boolean spawnSAblock2 = false;
-	boolean spawnSAbaseLvl = false;
+	boolean spawnSAbaseLvl = true;
 
 	for (final int agentID : DAs){
 		try { Thread.sleep(500); }

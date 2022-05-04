@@ -69,6 +69,45 @@ public class TimeScheduleNew {
         return this.setEventActive(taskID, false);
     }
 
+    /**
+     * used by SA's when an SA at baselvl adds a mission with a TTA,
+     * then the other SA's use this func to add that event to their calander.
+     * @param taskID
+     * @param startTime
+     * @param endTime
+     */
+    public ArrayList<Task> forceAddEvent(int taskID, double startTime, double endTime, double ore){
+        ArrayList<Task> tasks2inform = new ArrayList<Task>();
+        Task TTAtask = new Task(taskID, startTime, endTime, ore);
+        boolean normalAddWork = this.addEvent(TTAtask);
+
+        if ( normalAddWork == true ) return tasks2inform;
+        
+        int index = 0;
+        if (this.schedule.size() > 0){             
+    
+            for (int i=0; i<this.schedule.size(); i++){              
+                Task curr = this.schedule.get(i);
+
+                if (this.tasksOverlapping(TTAtask, curr)){
+                    if ( curr.isTTAtask == true ) return tasks2inform;
+                    this.abortEvent(curr.taskID);
+                    tasks2inform.add(curr);
+                    if ( this.isTaskPossible(TTAtask) == true ) break;
+                }
+
+                if ( curr.startTime < TTAtask.startTime && i != this.schedule.size()-1) continue;
+
+                index = curr.startTime < TTAtask.startTime ? i+1 : i;  // add task after curr if true
+                break;
+            }
+        }
+
+        this.schedule.add(index, TTAtask);
+        synchronized(this.oreState){ this.oreState.addState( this.oreState.createState(TTAtask.taskID, TTAtask.endTime, TTAtask.ore) ); }
+        return tasks2inform;
+    }
+
     public boolean addEvent(Task task){
         if (!task.isActive){
             this.reserved.put(task.taskID, task);
@@ -345,6 +384,11 @@ public class TimeScheduleNew {
         synchronized(this.oreState){return this.oreState.changeState(taskID, newEndTIme); }        
     }
 
+    public double getAmount(){
+        synchronized(this.oreState){ return this.oreState.getAmount(); }
+    }
+    //-----------oreState retrives from timeSchedule-----------
+
     /**
      * will return the task of the first fail in the oreState. If found in oreState but not in ts, return null.
      * @return
@@ -362,9 +406,13 @@ public class TimeScheduleNew {
         
         System.out.println(c+"_____________________________SCHEDULE__________________"+e);
         for (Task t : this.schedule){
-            System.out.println(c+"---------------------------------------------------"+e);
-            System.out.println(c+"time: " +String.format("%.2f",t.startTime)  + " --> " + String.format("%.2f",t.endTime) + "\t taskID: "+t.taskID + "\twith: "+ t.partner+e);
-            //System.out.println(c+"from: " +t.fromPose.toString() + " --> " + t.toPose.toString()+e);
+            if ( t.isTTAtask ){
+                System.out.println(c+"[TTA] time: " +String.format("%.2f",t.startTime)  + " --> " + String.format("%.2f",t.endTime) + "\t taskID: "+t.taskID+e);
+            } else {
+                System.out.println(c+"---------------------------------------------------"+e);
+                System.out.println(c+"time: " +String.format("%.2f",t.startTime)  + " --> " + String.format("%.2f",t.endTime) + "\t taskID: "+t.taskID + "\twith: "+ t.partner+e);
+            }
+            
         }
 
         System.out.println(c+"____________________________RESERVED___________________"+e);

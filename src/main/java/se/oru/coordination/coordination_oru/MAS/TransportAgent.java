@@ -38,8 +38,10 @@ public class TransportAgent extends MobileAgent{
 
         this.clockStartTime = startTime;
         this.timeSchedule = new TimeScheduleNew(this.initialPose, this.capacity, mapInfo.getStartOre(r_id));
+        this.LOAD_DUMP_TIME = 0.0;//15.0 * 5.6 / this.agentVelocity;
 
         this.print("initiated");
+        this.print("loadDump time-->"+this.LOAD_DUMP_TIME);
         // enter network and broadcast our id to others.
         router.enterNetwork(this);
         this.sendMessage(new Message(this.robotID, "hello-world", ""), true);
@@ -94,8 +96,11 @@ public class TransportAgent extends MobileAgent{
                 task = this.timeSchedule.getNextEvent();
             }
             if (task == null) continue;
+            
+            double beforePath = this.getTime();
             Mission taskMission = this.createMission(task, prevToPose);
-
+            this.print("time to calc path-->"+(this.getTime()-beforePath));
+            
             double now = this.getTime();            
             double timeBeforeMissionStarts = task.startTime - now;
             if ( timeBeforeMissionStarts > 0.5 ){
@@ -130,6 +135,7 @@ public class TransportAgent extends MobileAgent{
 
             // wait for mission to be done.
             this.waitUntilCurrentTaskComplete(300); // locking
+            this.sleep((int)this.LOAD_DUMP_TIME*1000);
             times.add("taskEnd: "+String.format("%.2f",task.endTime)+" == acutalEnd: "+String.format("%.2f",this.getTime()));
             //this.print("mission DONE taskID-->"+task.taskID+" with -->" +task.partner + "\tat time-->"+this.getTime()+"\ttaskEndTime-->"+task.endTime);
             Message doneMessage = new Message(this.robotID, task.partner, "inform", task.taskID + this.separator + "done" + "," + task.ore);
@@ -263,19 +269,28 @@ public class TransportAgent extends MobileAgent{
         Pose SApos = this.posefyString(mParts[2]);
 
         double pathDist = this.basicPathDistEstimate(ourPose, SApos);
-        double pathTime = this.calculateDistTime(pathDist, this.agentVelocity) + time_padding;
+        double pathTime = this.calculateDistTime(pathDist, this.agentVelocity) + this.LOAD_DUMP_TIME + time_padding;
         double auctionTimeRequest = Double.parseDouble( mParts[3] );
 
         double ourNextTimeAvailable;
-        synchronized(this.timeSchedule){ ourNextTimeAvailable = this.timeSchedule.getNextStartTime(); }
+        int scheduleSize;
+        synchronized(this.timeSchedule){
+            scheduleSize = this.timeSchedule.getSize();
+            ourNextTimeAvailable = this.timeSchedule.getNextStartTime();
+        }
         double ourPossibleTimeAtTask = ourNextTimeAvailable + pathTime;
 
-        double taskStartTime;
-        if ( auctionTimeRequest > ourPossibleTimeAtTask) taskStartTime = auctionTimeRequest - pathTime;
-        else taskStartTime = ourNextTimeAvailable;
-        double endTime = taskStartTime + pathTime;
+        double tStart = scheduleSize > 2 ? 
+                        ourNextTimeAvailable :
+                        auctionTimeRequest > ourPossibleTimeAtTask ?
+                            auctionTimeRequest - pathTime :
+                            ourNextTimeAvailable;
 
-        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathDist, ourPose, SApos);
+        //double taskStartTime = auctionTimeRequest > ourPossibleTimeAtTask ? auctionTimeRequest - pathTime : ourNextTimeAvailable;
+        //if ( scheduleSize < 1 ) taskStartTime = auctionTimeRequest > ourPossibleTimeAtTask ? auctionTimeRequest - pathTime : ourNextTimeAvailable;
+        double tEnd = tStart + pathTime;
+
+        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, tStart, tEnd, pathDist, ourPose, SApos);
     }
 
     @Override 
@@ -338,8 +353,8 @@ public class TransportAgent extends MobileAgent{
         // ore eval [1000, 0]
         int oreEval = Math.abs(t.ore) > this.capacity-0.1 ? 1000 : (int)this.linearDecreasingComparingFunc(Math.abs(t.ore), this.capacity, this.capacity, 500.0);
         
-        // dist evaluation [1000, 0]
-        int distEval = (int)this.concaveDecreasingFunc(t.fromPose.distanceTo(t.toPose), 1000.0, 120.0); // [1000, 0]
+        // dist evaluation [1500, 0]
+        int distEval = (int)this.concaveDecreasingFunc(t.fromPose.distanceTo(t.toPose), 1500.0, 120.0); // [1500, 0]
 
         // time bonus [500, 0]
         double cnpEndTime = Double.parseDouble(this.parseMessage(m, "startTime")[0]);
@@ -357,4 +372,17 @@ public class TransportAgent extends MobileAgent{
                         +"\ttime eval-->"+timeEval);
         return oreEval + distEval + timeEval;
     }   
+
+    /* good calc func, to avoid long sleeps, little collition/deadlocks
+        int oreEval = Math.abs(t.ore) > this.capacity-0.1 ? 1000 : (int)this.linearDecreasingComparingFunc(Math.abs(t.ore), this.capacity, this.capacity, 500.0);
+        
+        // dist evaluation [1000, 0]
+        int distEval = (int)this.concaveDecreasingFunc(t.fromPose.distanceTo(t.toPose), 1000.0, 120.0); // [1000, 0]
+
+        // time bonus [500, 0]
+        double cnpEndTime = Double.parseDouble(this.parseMessage(m, "startTime")[0]);
+        double upperTimeDiff = cnpEndTime <= 0.0 ? 60.0 : 30.0;
+        int timeEval = (int)this.linearDecreasingComparingFunc(t.endTime, cnpEndTime, upperTimeDiff, 500.0);  
+
+    */
 }

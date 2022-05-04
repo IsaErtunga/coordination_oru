@@ -41,6 +41,7 @@ body -> int taskID & int offerVal & startPos & endPos & startTime & endTime & or
 
 : pos = '1.0 1.0 1.0'
 
-
-Body: taskID.dasda.offerval
+8:
+tag -> tta-slot
+body -> taskID & starTime & endTime & ore
 
