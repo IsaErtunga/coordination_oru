@@ -11,10 +11,10 @@ import com.vividsolutions.jts.geom.Coordinate;
 
 
 public class NewMapData {
-    protected HashMap<String, Integer> values = new HashMap<String, Integer>()
+    protected HashMap<String, Integer> values = new HashMap<String, Integer>();
 
-    public String readCSV() throws FileNotFoundException {
-        Scanner sc = new Scanner(new File("/home/parallels/Downloads/Testing Scenarios - Blad1.csv"));
+    public void readValues() throws FileNotFoundException {
+        Scanner sc = new Scanner(new File("/home/parallels/Projects/coordination_oru/experimentValues/values.csv"));
         sc.useDelimiter(",");
 
         int numCols = 12;
@@ -66,8 +66,15 @@ public class NewMapData {
             counter++;
         }
         sc.close();
-        return result;
+    }
 
+    public void printValues() {
+        System.out.println("_________________Parameter Values________________");
+        for (String name: values.keySet()) {
+            String key = name.toString();
+            String value = values.get(name).toString();
+            System.out.println(key + " " + value);
+        }
     }
 
     public Pose getPose(int robotID){
