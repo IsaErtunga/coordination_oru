@@ -4,13 +4,14 @@ import org.metacsp.multi.spatioTemporal.paths.Pose;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.HashMap;
 import java.util.Scanner;
 
 import com.vividsolutions.jts.geom.Coordinate;
 
 
 public class NewMapData {
-    
+    protected HashMap<String, Integer> values = new HashMap<String, Integer>()
 
     public String readCSV() throws FileNotFoundException {
         Scanner sc = new Scanner(new File("/home/parallels/Downloads/Testing Scenarios - Blad1.csv"));
@@ -24,14 +25,43 @@ public class NewMapData {
             if (counter == numCols) break;
             int value = Integer.parseInt(sc.next());
         
-            switch (counter) {
-                case 0:
-                    
+            switch(counter) {
+                case 1:
+                    values.put("blocks", value);
                     break;
-            
+                case 2:
+                    values.put("DAs", value);
+                    break;
+                case 3:
+                    values.put("TAs", value);
+                    break;
+                case 4:
+                    values.put("SAs", value);
+                    break;
+                case 5:
+                    values.put("TTas", value);
+                    break;
+                case 6:
+                    values.put("TASpeed", value);
+                    break;
+                case 7:
+                    values.put("TTASpeed", value);
+                    break;
+                case 8:
+                    values.put("DACap", value);
+                    break;
+                case 9:
+                    values.put("TACap", value);
+                    break;
+                case 10:
+                    values.put("SACap", value);
+                    break;
+                case 11:
+                    values.put("TTACap", value);
+                    break;
                 default:
                     break;
-            }
+              }
 
             counter++;
         }
