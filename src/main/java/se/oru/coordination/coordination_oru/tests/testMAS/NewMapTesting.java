@@ -99,7 +99,6 @@ public class NewMapTesting {
 	//================= SIMULATION SETTINGS ======================
 
 	//================= MOTION PLANNERS ======================
-	
 	ReedsSheppCarPlanner TAmotionPlanner = new ReedsSheppCarPlanner();
 	TAmotionPlanner.setFootprint(MAP_DATA.getAgentSize(2));
 	TAmotionPlanner.setTurningRadius(2.0); 				//default is 1.0
@@ -116,10 +115,20 @@ public class NewMapTesting {
 	HashMap<String, PoseSteering[]> pathStorage = new HashMap<String, PoseSteering[]>();
 	//================= PATH STORAGE ======================
 
-	
+	/* good example with 2SA 3DA: 
 	int[] TAs = new int[]{1201, 1202,1203};
 	int[] DAs = new int[]{1103,1105,1107,1108,1109};
-	int nrOfStorages = 2;
+	*/
+
+	/*
+
+
+	*/
+
+	
+	int[] TAs = new int[]{1201,1203};
+	int[] DAs = new int[]{1102,1103,1105,1106};
+	int nrOfStorages = 1;
 	int[] TTAs = new int[]{};
 
 	boolean spawnSAblock1 = true;

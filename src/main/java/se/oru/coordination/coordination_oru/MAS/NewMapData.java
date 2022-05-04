@@ -12,6 +12,22 @@ public class NewMapData {
         int uniqueID = (robotID % 1000) % 100;
 
         if (robotID == -1) return new Pose(504.0, 185.0, 3*Math.PI/2);
+        /*
+        if ( block == 9 ){
+
+        } else {
+            block -= 1;
+            double x = 10.0 + block *14.7; 
+            if ( type == 1 ) return new Pose(90.0 + x, 34.0*(uniqueID-1), Math.PI);
+
+            else if ( type == 2 ){
+
+
+            } else if ( type == 3){
+
+            }
+        }
+        */
 
         if ( block == 1 ){
             if ( type == 1 ) return new Pose(100.0, 15.0 + 34 * (uniqueID-1), Math.PI);
