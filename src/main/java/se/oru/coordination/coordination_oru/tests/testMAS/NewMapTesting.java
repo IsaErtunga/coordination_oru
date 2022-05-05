@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Arrays;
 
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 import org.metacsp.multi.spatioTemporal.paths.PoseSteering;
@@ -130,15 +131,98 @@ public class NewMapTesting {
 	int[] DAs = new int[]{1103,1105,1106,1107,1109};
 	*/
 
+	// agents spawning in rep, blocks. index0 = DA's, index2 = TA's, index3 = SA's
+	int[] block1Agents = new int[]{0,0,0}; 
+	int[] block2Agents = new int[]{0,0,0};
+	int[] block3Agents = new int[]{0,0,0};
+	int[] block4Agents = new int[]{0,0,0};
+	// base lvl. index0 = TTA
+	int[] baseLvlAgents = new int[]{0};
+
+	ArrayList<Integer[]> blockSpawns = new ArrayList<Integer[]>();
+	blockSpawns.add(block1Agents);
+	blockSpawns.add(block2Agents);
+	blockSpawns.add(block3Agents);
+	blockSpawns.add(block4Agents);
+	//blockSpawns.add(baseLvlAgents);
+
+
+	// spawn order of agents
+	//int[] spawnOrderTA = new int[]{1,2,3};
+	int[] spawnOrderSA = new int[]{1,2};
+	//int[] spawnOrderDA = new int[]{3,9,5,7,6,2,10,4,8,1,11};
+
+	int blocks = Arrays.stream(block1Agents).sum();
+
+	for ( int i=0; i<3; i++ ){ // spawnOrder = DA,TA,SA,TTA
+		for ( int block = 0; block <4; block++ ){
+			int nrAgents = blockSpawns.get(block)[i];
+
+			if ( i == 0 ){ // spawn DA
+				int[] spawnOrderDA = new int[]{3,9,5,7,6,2,10,4,8,1,11};
+				for ( int agent = 0; i<nrAgents; i++ ){
+					int agentID = (block+1)*1000 + 100 + spawnOrderDA[agent];
+					Thread t = new Thread() {
+						@Override
+						public void run() {
+							this.setPriority(Thread.MAX_PRIORITY);	
+			
+							DrawAgent DA = new DrawAgent(agentID, router, MAP_DATA, startTime, TAmotionPlanner );
+							DA.listener();
+						}
+					};
+					t.start();
+				}
+
+			} else if ( i == 1 ){ //spawn TA
+				int[] spawnOrderTA = new int[]{1,2,3};
+				for ( int agent = 0; i<nrAgents; i++ ){
+					int agentID = (block+1)*1000 + 200 + spawnOrderTA[agent];
+					Thread t = new Thread() {
+						@Override
+						public void run() {
+							this.setPriority(Thread.MAX_PRIORITY);	
+			
+							TransportAgent r = new TransportAgent( agentID, tec, MAP_DATA, router, startTime, TAmotionPlanner );
+							r.start();
+						}
+							
+					};
+					t.start();
+				}
+
+
+			} else if ( i == 2 ){ //spawn SA
+				int[] spawnOrderTA = new int[]{1,2,3};
+				for ( int agent = 0; i<nrAgents; i++ ){
+					int agentID = (block+1)*1000 + 200 + spawnOrderTA[agent];
+					Thread t = new Thread() {
+						@Override
+						public void run() {
+							this.setPriority(Thread.MAX_PRIORITY);	
+			
+							TransportAgent r = new TransportAgent( agentID, tec, MAP_DATA, router, startTime, TAmotionPlanner );
+							r.start();
+						}
+							
+					};
+					t.start();
+				}
+			}
+		}
+	}
+
 	
-	int[] TAs = new int[]{};
-	int[] DAs = new int[]{};
-	int nrOfStorages = 1;
-	int[] TTAs = new int[]{9401};
+	
+	int[] TAs = new int[]{2201,2202};
+	int[] DAs = new int[]{2101,2109};
+	int[] SAs = new int[]{2301,2302}; //TODO
+	int nrOfStorages = 2;
+	int[] TTAs = new int[]{};
 
 	boolean spawnSAblock1 = false;
-	boolean spawnSAblock2 = false;
-	boolean spawnSAbaseLvl = true;
+	boolean spawnSAblock2 = true;
+	boolean spawnSAbaseLvl = false;
 
 	for (final int agentID : DAs){
 		try { Thread.sleep(500); }

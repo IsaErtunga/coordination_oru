@@ -372,7 +372,14 @@ public class StorageAgent extends AuctioneerBidderAgent{
                 //auctionTime = nextStartTime +this.occupancyPadding*2;
                 //this.print("get ore now");
                 
-            } else this.print("-- in status: ELSE");
+            }
+            
+            //synchronized(this.timeSchedule){ double[] slot = this.timeSchedule.getSlotToFill(this.occupancyPadding*3+this.LOAD_DUMP_TIME, maxOreAmount) }
+
+
+
+
+            
             /* else if ( timeSlot.length > 1 ){ // if we really need ore at some point
                 auctionTime = (timeSlot[1] - timeSlot[0])/2 + timeSlot[0];
                 this.print("fill timeslot");
@@ -396,8 +403,10 @@ public class StorageAgent extends AuctioneerBidderAgent{
             */
 
             if ( auctionTime != -1.0 ){
+                // ========= time auction creation
                 Message bestOffer = this.offerService(auctionTime);
                 if (bestOffer.isNull == true) continue;
+                // ==============================
 
                 Task task = this.generateTaskFromOffer(bestOffer);
                 double[] occupiedTimes = this.translateTAtaskTimesToOccupyTimes(task, this.occupancyPadding);

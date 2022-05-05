@@ -97,15 +97,19 @@ public class TransportAgent extends MobileAgent{
             }
             if (task == null) continue;
             
+            // ========= time mission creation
             double beforePath = this.getTime();
             Mission taskMission = this.createMission(task, prevToPose);
             this.print("time to calc path-->"+(this.getTime()-beforePath));
-            
+            // ===============================
             double now = this.getTime();            
             double timeBeforeMissionStarts = task.startTime - now;
             if ( timeBeforeMissionStarts > 0.5 ){
                 this.print("starting sleep for-->"+timeBeforeMissionStarts);
+
+                // ========= time sleep before mission
                 this.sleep( (int)((timeBeforeMissionStarts-0.5)*1000.0) ); 
+                // ===================================
                 this.print("done sleeping");
             }
 
