@@ -12,11 +12,15 @@ import java.util.ArrayList;
 // Main class
 public class FilePrinter {
     protected String separator = ",";
+    protected boolean isActive;
     private String path = "/home/parallels/Projects/coordination_oru/testResults/testRun";
     protected ArrayList<Integer> robots = new ArrayList<Integer>();
 
-    public FilePrinter() {
-        new File(this.path).mkdirs();
+    public FilePrinter(boolean isActive) {
+        this.isActive = isActive;
+        if (isActive) {
+            new File(this.path).mkdirs();
+        }
     }
 
     protected void getDataAndTime() {
@@ -31,10 +35,12 @@ public class FilePrinter {
      * @param ore
      * @throws IOException
      */
-    protected void write(double time, double actualOre, double oreState, int robotID) {
-        Path path = Path.of(this.path + "/OreState" + robotID + ".csv");
-        String content = time + this.separator + actualOre + this.separator + oreState + "\n";
-        this.writeToFile(path, content);
+    protected void write(double time, double ore, int robotID) {
+        if (isActive) {
+            Path path = Path.of(this.path + "/OreState" + robotID + ".csv");
+            String content = time + this.separator + ore + "\n";
+            this.writeToFile(path, content);
+        }
     }
 
     /**
@@ -42,9 +48,11 @@ public class FilePrinter {
      * @param time
      */
     protected void addMessageCounter(Double time, String messageType) {
-        Path path = Path.of(this.path + "/Messages" + ".csv");
-        String content = time + this.separator + messageType + "\n";
-        this.writeToFile(path, content);
+        if (isActive) {
+            Path path = Path.of(this.path + "/Messages" + ".csv");
+            String content = time + this.separator + messageType + "\n";
+            this.writeToFile(path, content);
+        }
     } 
 
     /**
@@ -52,10 +60,12 @@ public class FilePrinter {
      * @param time
      * @param waitTime
      */
-    protected void addWaitingTimeMeasurment(Double time, double waitTime, int robotID) {
-        Path path = Path.of(this.path + "/WaitingTimes" + robotID + ".csv");
-        String content = time + this.separator + waitTime + "\n";
-        this.writeToFile(path, content);
+    protected void addWaitingTimeMeasurment(String type, double waitTime, int robotID) {
+        if (isActive) {
+            Path path = Path.of(this.path + "/WaitingTimes" + robotID + ".csv");
+            String content = type + this.separator + waitTime + "\n";
+            this.writeToFile(path, content);
+        }
     } 
 
     /**

@@ -7,7 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path; 
 
 public class TestFramework {
-    public static int EXPERIMENTS = 2;
+    public static int EXPERIMENTS = 1;
     public static int EMPERIMENT_TIME = 1 * 60;
     private static String experimentValuesPath = "/home/parallels/Projects/coordination_oru/experimentValues";
 
@@ -52,8 +52,7 @@ public class TestFramework {
         System.out.println("-----------------------------------------------");
         System.out.println("Starting experiment ...");
 
-        long startTime = System.currentTimeMillis();
-        long endTime = startTime + (EMPERIMENT_TIME * 1000);
+        
 
         // Create new file for values in experiment
         // File(experimentValuesPath).mkdirs();
@@ -64,6 +63,9 @@ public class TestFramework {
         Process proc;
         proc = Runtime.getRuntime().exec(runCommand);
         BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+
+        long startTime = System.currentTimeMillis();
+        long endTime = startTime + (EMPERIMENT_TIME * 1000);
 
         while (System.currentTimeMillis() < endTime) {
             String line = "";

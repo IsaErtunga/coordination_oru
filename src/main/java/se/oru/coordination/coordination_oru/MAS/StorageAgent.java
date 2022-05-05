@@ -199,6 +199,10 @@ public class StorageAgent extends AuctioneerBidderAgent{
         }
         this.print("currentOre -->"+this.amount);
 
+        // Write ore to file
+        int docId = this.robotID % 1000;
+        this.fp.write(this.getTime(), this.amount, docId);
+
         /*
         double oreChange = Double.parseDouble(this.parseMessage(m, "informInfo")[0]);
         oreChange = oreChange * -1;
