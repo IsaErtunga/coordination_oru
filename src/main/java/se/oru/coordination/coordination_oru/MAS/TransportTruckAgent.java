@@ -283,12 +283,12 @@ public class TransportTruckAgent extends MobileAgent{
                     this.sendMessage(new Message(this.robotID, task.partner, "inform", Integer.toString(task.taskID)+this.separator+"abort"));
                 }
                 this.print("initialState -- lastOreState < threashold");
-                this.timeSchedule.printSchedule(this.COLOR);
+                //this.timeSchedule.printSchedule(this.COLOR);
             }
 
             else {
                 this.print("initialState -- in else");
-                this.timeSchedule.printSchedule(this.COLOR);
+                //this.timeSchedule.printSchedule(this.COLOR);
                 // Deliver ore 
                 Task deliverTask = createDeliverTask();
                 boolean taskAdded;

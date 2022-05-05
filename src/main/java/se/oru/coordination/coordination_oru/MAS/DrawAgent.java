@@ -49,7 +49,7 @@ public class DrawAgent extends BidderAgent{
     @Override
     protected void handleAccept(int taskID, Message m){
         this.print("---schedule---BEFORE");
-        this.timeSchedule.printSchedule(this.COLOR);
+        //this.timeSchedule.printSchedule(this.COLOR);
         boolean eventAdded;
         synchronized(this.timeSchedule){ eventAdded = this.timeSchedule.setEventActive(taskID, true); }
         //this.print("accept-msg, taskID-->"+taskID+"\twith robot-->"+m.sender+"\ttask added-->"+eventAdded);

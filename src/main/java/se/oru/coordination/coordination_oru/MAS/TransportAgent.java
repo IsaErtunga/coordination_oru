@@ -115,7 +115,7 @@ public class TransportAgent extends MobileAgent{
 
             // start mission
             synchronized(this.tec){ this.tec.addMissions(taskMission); }
-            this.timeSchedule.printSchedule(this.COLOR);
+            //this.timeSchedule.printSchedule(this.COLOR);
             times.add("taskStart: "+String.format("%.2f",task.startTime)+" == actualStart: "+String.format("%.2f",this.getTime()));
             //this.print("starting mission taskID-->"+task.taskID+" with -->" +task.partner + "\tat time-->"+this.getTime()+"\ttaskStartTime-->"+task.startTime);
             //this.print("from pose-->"+prevToPose.toString() +"\tto pose-->"+ task.toPose.toString());
@@ -145,9 +145,9 @@ public class TransportAgent extends MobileAgent{
             Message doneMessage = new Message(this.robotID, task.partner, "inform", task.taskID + this.separator + "done" + "," + task.ore);
             this.sendMessage(doneMessage);
 
-            for ( String s : times ){
-                this.print(s);
-            }
+            // for ( String s : times ){
+            //     this.print(s);
+            // }
         }
     }
 
@@ -191,7 +191,7 @@ public class TransportAgent extends MobileAgent{
                     this.sendMessage(new Message(this.robotID, task.partner, "inform", task.taskID+this.separator+"abort"));
                 } else {
                     this.print("task added in initialState");
-                    synchronized(this.timeSchedule){ this.timeSchedule.printSchedule(this.COLOR); }
+                    //synchronized(this.timeSchedule){ this.timeSchedule.printSchedule(this.COLOR); }
                 }
 
                 // this.print("in initialState: --- schedule ---");

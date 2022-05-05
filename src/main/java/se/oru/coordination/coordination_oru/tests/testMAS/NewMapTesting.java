@@ -131,36 +131,45 @@ public class NewMapTesting {
 	int[] DAs = new int[]{1103,1105,1106,1107,1109};
 	*/
 
-	// agents spawning in rep, blocks. index0 = DA's, index2 = TA's, index3 = SA's
-	int[] block1Agents = new int[]{0,0,0}; 
-	int[] block2Agents = new int[]{0,0,0};
-	int[] block3Agents = new int[]{0,0,0};
-	int[] block4Agents = new int[]{0,0,0};
-	// base lvl. index0 = TTA
-	int[] baseLvlAgents = new int[]{0};
+	// ============================================================
+	// ============== HERE YOU ALTER THE SCENARIO =================
 
+	// agents spawning in rep, blocks. index0 = DA's, index2 = TA's, index3 = SA's
+	Integer[] block1Agents = new Integer[]{4,2,2}; 
+	Integer[] block2Agents = new Integer[]{4,2,2};
+	Integer[] block3Agents = new Integer[]{4,2,2};
+	Integer[] block4Agents = new Integer[]{4,2,2};
+	// base lvl. index0 = TTA
+	int nrTTAs = 0;
+
+	// ============================================================
+
+
+	// =========== DONT CHANGE ANYTHING AFTER THIS LINE============
 	ArrayList<Integer[]> blockSpawns = new ArrayList<Integer[]>();
 	blockSpawns.add(block1Agents);
 	blockSpawns.add(block2Agents);
 	blockSpawns.add(block3Agents);
 	blockSpawns.add(block4Agents);
-	//blockSpawns.add(baseLvlAgents);
 
+	boolean spawnBaseLvlSA1 = false;
+	boolean spawnBaseLvlSA2 = false;
+	for ( int i=0; i<4; i++ ){
+		if ( blockSpawns.get(i)[2] == 1 && nrTTAs > 0) spawnBaseLvlSA1 = true;
+		if ( blockSpawns.get(i)[2] == 2 && nrTTAs > 0) spawnBaseLvlSA2 = true;
+	}
 
-	// spawn order of agents
-	//int[] spawnOrderTA = new int[]{1,2,3};
-	int[] spawnOrderSA = new int[]{1,2};
-	//int[] spawnOrderDA = new int[]{3,9,5,7,6,2,10,4,8,1,11};
+	for ( int agentType =0; agentType<3; agentType++ ){ // spawnOrder = DA,TA,SA,TTA, for every agent type
+		OreState oreState = new OreState(MAP_DATA.getCapacity(3), MAP_DATA.getStartOre(3));
 
-	int blocks = Arrays.stream(block1Agents).sum();
+		for ( int block = 0; block <4; block++ ){	// for every block
+			int nrAgents = blockSpawns.get(block)[agentType];
 
-	for ( int i=0; i<3; i++ ){ // spawnOrder = DA,TA,SA,TTA
-		for ( int block = 0; block <4; block++ ){
-			int nrAgents = blockSpawns.get(block)[i];
-
-			if ( i == 0 ){ // spawn DA
+			if ( agentType == 0 ){ // spawn DA
 				int[] spawnOrderDA = new int[]{3,9,5,7,6,2,10,4,8,1,11};
-				for ( int agent = 0; i<nrAgents; i++ ){
+				for ( int agent = 0; agent<nrAgents; agent++ ){ // for every agent
+					try { Thread.sleep(300); }
+					catch (InterruptedException e) { e.printStackTrace(); }
 					int agentID = (block+1)*1000 + 100 + spawnOrderDA[agent];
 					Thread t = new Thread() {
 						@Override
@@ -174,9 +183,11 @@ public class NewMapTesting {
 					t.start();
 				}
 
-			} else if ( i == 1 ){ //spawn TA
+			} else if ( agentType == 1 ){ //spawn TA
 				int[] spawnOrderTA = new int[]{1,2,3};
-				for ( int agent = 0; i<nrAgents; i++ ){
+				for ( int agent = 0; agent<nrAgents; agent++ ){
+					try { Thread.sleep(300); }
+					catch (InterruptedException e) { e.printStackTrace(); }
 					int agentID = (block+1)*1000 + 200 + spawnOrderTA[agent];
 					Thread t = new Thread() {
 						@Override
@@ -192,120 +203,48 @@ public class NewMapTesting {
 				}
 
 
-			} else if ( i == 2 ){ //spawn SA
-				int[] spawnOrderTA = new int[]{1,2,3};
-				for ( int agent = 0; i<nrAgents; i++ ){
-					int agentID = (block+1)*1000 + 200 + spawnOrderTA[agent];
+			} else if ( agentType == 2 ){ //spawn SA
+				int[] spawnOrderSA = new int[]{1,2};
+				for ( int agent = 0; agent<nrAgents; agent++ ){
+					try { Thread.sleep(300); }
+					catch (InterruptedException e) { e.printStackTrace(); }
+					int agentID = (block+1)*1000 + 300 + spawnOrderSA[agent];
 					Thread t = new Thread() {
 						@Override
 						public void run() {
 							this.setPriority(Thread.MAX_PRIORITY);	
-			
-							TransportAgent r = new TransportAgent( agentID, tec, MAP_DATA, router, startTime, TAmotionPlanner );
-							r.start();
+
+							StorageAgent SA = new StorageAgent(agentID, router, startTime, MAP_DATA, oreState, pathStorage, TTAmotionPlanner);
+							SA.start();
 						}
-							
 					};
 					t.start();
 				}
 			}
 		}
-	}
-
-	
-	
-	int[] TAs = new int[]{2201,2202};
-	int[] DAs = new int[]{2101,2109};
-	int[] SAs = new int[]{2301,2302}; //TODO
-	int nrOfStorages = 2;
-	int[] TTAs = new int[]{};
-
-	boolean spawnSAblock1 = false;
-	boolean spawnSAblock2 = true;
-	boolean spawnSAbaseLvl = false;
-
-	for (final int agentID : DAs){
-		try { Thread.sleep(500); }
-		catch (InterruptedException e) { e.printStackTrace(); }
-		Thread t = new Thread() {
-			@Override
-			public void run() {
-				this.setPriority(Thread.MAX_PRIORITY);	
-
-				DrawAgent DA = new DrawAgent(agentID, router, MAP_DATA, startTime, TAmotionPlanner );
-				DA.listener();
-			}
-		};
-		t.start();
-		
-	}
-
-	for (final int agentID : TAs){
-		try { Thread.sleep(500); }
-		catch (InterruptedException e) { e.printStackTrace(); }
-		Thread t = new Thread() {
-			@Override
-			public void run() {
-				this.setPriority(Thread.MAX_PRIORITY);	
-
-				TransportAgent r = new TransportAgent( agentID, tec, MAP_DATA, router, startTime, TAmotionPlanner );
-				r.start();
-
-			}
-				
-		};
-		t.start();
-	}
-
-	int[] block1  = new int[]{1301, 1302};
-	int[] block2  = new int[]{2301, 2302};
-	int[] baseLvl = new int[]{9301, 9302};
-
-	for (int index= 0; index< nrOfStorages; index++){
-		final int i = index;
-		OreState oreState = new OreState(MAP_DATA.getCapacity(block1[i]), MAP_DATA.getStartOre(block1[i]));
-
-		if ( spawnSAblock1 ){			// spawning SA on block 1
-			try { Thread.sleep(500); }
+		if ( agentType == 2 && spawnBaseLvlSA1 ){
+			try { Thread.sleep(300); }
 			catch (InterruptedException e) { e.printStackTrace(); }
+			spawnBaseLvlSA1 = false;
 			Thread t = new Thread() {
 				@Override
 				public void run() {
 					this.setPriority(Thread.MAX_PRIORITY);	
-	
-					StorageAgent SA = new StorageAgent(block1[i], router, startTime, MAP_DATA, oreState, pathStorage, TTAmotionPlanner);
+					StorageAgent SA = new StorageAgent(9301, router, startTime, MAP_DATA, oreState, pathStorage, TTAmotionPlanner);
 					SA.start();
 				}
 			};
 			t.start();
 		}
-
-		if ( spawnSAblock2 ){			// spawning SA on block 2
-			try { Thread.sleep(500); }
+		if ( agentType == 2 && spawnBaseLvlSA2 ){
+			try { Thread.sleep(300); }
 			catch (InterruptedException e) { e.printStackTrace(); }
+			spawnBaseLvlSA2 = false;
 			Thread t = new Thread() {
 				@Override
 				public void run() {
 					this.setPriority(Thread.MAX_PRIORITY);	
-	
-					StorageAgent SA = new StorageAgent(block2[i], router, startTime, MAP_DATA, oreState, pathStorage, TTAmotionPlanner);
-					SA.start();
-	
-				}
-					
-			};
-			t.start();
-		}
-
-		if ( spawnSAbaseLvl ){			// spawning SA on base lvl
-			try { Thread.sleep(500); }
-			catch (InterruptedException e) { e.printStackTrace(); }
-			Thread t = new Thread() {
-				@Override
-				public void run() {
-					this.setPriority(Thread.MAX_PRIORITY);	
-	
-					StorageAgent SA = new StorageAgent(baseLvl[i], router, startTime, MAP_DATA, oreState, pathStorage, TTAmotionPlanner);
+					StorageAgent SA = new StorageAgent(9302, router, startTime, MAP_DATA, oreState, pathStorage, TTAmotionPlanner);
 					SA.start();
 				}
 			};
@@ -313,9 +252,8 @@ public class NewMapTesting {
 		}
 	}
 
-	for (final int agentID : TTAs){
-		try { Thread.sleep(500); }
-		catch (InterruptedException e) { e.printStackTrace(); }
+	for ( int agent=0; agent < nrTTAs; agent++){
+		final int agentID = 9400 + (agent+1);
 		Thread t = new Thread() {
 			@Override
 			public void run() {
@@ -323,9 +261,7 @@ public class NewMapTesting {
 
 				TransportTruckAgent TTA = new TransportTruckAgent( agentID, tec, MAP_DATA, router, startTime, TTAmotionPlanner, pathStorage);
 				TTA.start();
-
 			}
-				
 		};
 		t.start();
 	}

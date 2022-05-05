@@ -40,57 +40,7 @@ public class NewMapData {
                 if ( uniqueID == 2 ) return new Pose(x + 129.0, 249.0, 0.0);
             }
         }
-        /*
-        else {
-            block = block - 1;
-            double x = 10.0 + (block *147.0); 
-
-            if ( type == 1 ) return new Pose(x + 80.0, 34.0*(uniqueID-1), Math.PI);
-
-            else if ( type == 2 ){
-                if ( uniqueID == 1 ) return new Pose(x + 106.0, 16.0,    Math.PI/2);  
-                if ( uniqueID == 2 ) return new Pose(x + 106.0, 354.0, 3*Math.PI/2);  
-                if ( uniqueID == 3 ) return new Pose(x + 106.0, 193.0, 3*Math.PI/2);  
-
-            } else if ( type == 3){
-                if ( uniqueID == 1 ) return new Pose(x + 129.0, 121.0, 0.0); 
-                if ( uniqueID == 2 ) return new Pose(x + 129.0, 250.0, 0.0);
-            }
-        }
-        */
-        
-        /*
-        if ( block == 1 ){
-            if ( type == 1 ) return new Pose(90.0, 15.0 + 34 * (uniqueID-1), Math.PI);
-
-            else if ( type == 2 ){
-                if ( uniqueID == 1 ) return new Pose(116.0, 16.0, Math.PI/2); // good -- TAstart1b1 
-                else if ( uniqueID == 2 ) return new Pose(116.0, 354.0, 3*Math.PI/2);  // good -- TAstart2b1
-                else if ( uniqueID == 3 ) return new Pose(116.0, 193.0, 3*Math.PI/2);  // good -- TAstart3b1
-
-            } else if ( type == 3 ){
-                if ( uniqueID == 1 ) return new Pose(139.0, 121.0, 0.0); // good -- SA1b1
-                else if ( uniqueID == 2 ) return new Pose(139.0, 250.0, 0.0); // good -- SA2b1
-            }
-
-        } else if ( block == 9 ){
-            if ( type == 4 ){
-                if ( uniqueID == 1 ) return new Pose(391.5, 17.5, Math.PI);
-                if ( uniqueID == 2 ) return new Pose(411.5, 17.5, Math.PI);
-                if ( uniqueID == 3 ) return new Pose(431.5, 17.5, Math.PI);
-
-            } else if ( type == 3 ){
-                if ( uniqueID == 1 ) return new Pose(313.0, 121.0, Math.PI); // ok
-                if ( uniqueID == 2 ) return new Pose(313.0, 249.0, Math.PI); // ok
-            }
-        } 
-        Pose endDA1b1 = new Pose(20.0, 15.0, Math.PI); 
-        Pose startDAb1 = new Pose(100.0, 15.0, Math.PI); 
-    
-        if ( block == 2 ) return null;
-        */
         return null;
-
     }
 
     public Pose[] getCorners(){
@@ -105,13 +55,13 @@ public class NewMapData {
         return new Pose[]{SW1,SW2,NW1,NW2,NE1,NE2,SE1,SE2};
     }
 
-    public double getStartOre(int robotID){
-        int type = (robotID % 1000) / 100;
+    public double getStartOre(int agentType){
+        if ( agentType > 1000 ) agentType = (agentType % 1000) / 100;
 
-        if ( type == 1 ) return this.getCapacity(type);
-        if ( type == 2 ) return 0.0;
-        if ( type == 3 ) return 200.0;
-        if ( type == 4 ) return 0.0;
+        if ( agentType == 1 ) return this.getCapacity(agentType);
+        if ( agentType == 2 ) return 0.0;
+        if ( agentType == 3 ) return 200.0;
+        if ( agentType == 4 ) return 0.0;
         return 0.0;
     }
 
@@ -133,7 +83,7 @@ public class NewMapData {
     public double getVelocity(int robotType){
         if ( robotType > 1000 ) robotType = (robotType % 1000) / 100;
 
-        if ( robotType == 2 ) return 5.6*2;
+        if ( robotType == 2 ) return 5.6;
         if ( robotType == 4 ) return this.getVelocity(2)/2;
 
         return -1.0;

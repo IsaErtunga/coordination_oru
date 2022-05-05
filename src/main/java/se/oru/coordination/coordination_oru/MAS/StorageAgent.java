@@ -264,7 +264,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
         String pairSep = ":";
 
         this.print("in handleInformStatus");
-        this.timeSchedule.printSchedule(this.COLOR);
+        //this.timeSchedule.printSchedule(this.COLOR);
 
         String informInfo = (this.parseMessage(m, "informInfo")[0]);
         String[] newTimes = informInfo.split(updateSep);
@@ -415,7 +415,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
                 synchronized(this.timeSchedule){
                     this.timeSchedule.addEvent(task);
                     this.print("task added:");
-                    this.timeSchedule.printSchedule(this.COLOR);
+                    //this.timeSchedule.printSchedule(this.COLOR);
                 }
             }
 
