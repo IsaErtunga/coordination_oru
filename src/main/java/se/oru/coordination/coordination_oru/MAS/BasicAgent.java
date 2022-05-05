@@ -57,6 +57,7 @@ public class BasicAgent extends HelpFunctions{
 
         }
         synchronized(this.outbox){ this.outbox.add(m); }
+        this.fp.addMessageCounter(this.getTime(), m.type);
         return taskID;
     }
 

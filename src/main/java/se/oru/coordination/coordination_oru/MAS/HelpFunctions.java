@@ -12,7 +12,8 @@ import java.lang.Math;
 
 public class HelpFunctions {
 
-    FilePrinter fp = new FilePrinter();
+    // True = printer is turned on
+    FilePrinter fp = new FilePrinter(true);
 
     public PoseSteering[] getPath(HashMap<String, PoseSteering[]> paths, ReedsSheppCarPlanner mp, Pose from, Pose[] to){
         String pathID = String.format("%.2f",from.getX())+"," +String.format("%.2f",from.getY());
@@ -122,6 +123,23 @@ public class HelpFunctions {
     public void sleep(int ms) {
         try { Thread.sleep(ms); }
         catch (InterruptedException e) { e.printStackTrace(); }
+    }
+
+    /**
+     * Starts timer
+     * @return Current time in milliseconds
+     */
+    public long startTimer() {
+        return System.currentTimeMillis();
+    }
+
+    /**
+     * Stops timer
+     * @param startTime
+     * @return time elapsed in seconds. 
+     */
+    public long stopTimer(long startTime) {
+        return (System.currentTimeMillis() - startTime) / 1000;
     }
 
     /**

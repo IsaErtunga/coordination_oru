@@ -1,5 +1,6 @@
 package se.oru.coordination.coordination_oru.tests.testMAS;
 
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Comparator;
@@ -96,6 +97,12 @@ public class NewMapTesting {
 
 	//================= SIMULATION SETTINGS ======================
 	NewMapData MAP_DATA = new NewMapData();
+	try {
+		MAP_DATA.readValues();
+	} catch (FileNotFoundException e1) {
+		e1.printStackTrace();
+	}
+	MAP_DATA.printValues();
 	//================= SIMULATION SETTINGS ======================
 
 	//================= MOTION PLANNERS ======================
