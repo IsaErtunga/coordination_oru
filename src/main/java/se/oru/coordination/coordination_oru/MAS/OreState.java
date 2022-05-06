@@ -54,6 +54,28 @@ public class OreState {
     }
 
     /**
+     * will return the time at which the oreState is lower than oreLimit
+     * @param oreLimit the ore limit at which the state must be lower than to return a time
+     * @param lookAfterTime the time at which a state must be after to return a time
+     * @return the first time when an ore state is lower than oreLimit, if not found return -1.0
+     */
+    public double getTimeAtOrebelow( double oreLimit, double lookAfterTime){
+        for ( State s : this.oreStateArray ){            
+            if ( s.t < lookAfterTime || s.currOre > oreLimit ) continue;
+            return s.t;
+        }
+        return -1.0;
+    }
+
+    public double getLowestAfterTime(double time){
+        double lowestOre = Double.MAX_VALUE;
+        for ( State s : this.oreStateArray ){
+            if ( s.t > time && s.currOre < lowestOre ) lowestOre = s.currOre;
+        }
+        return lowestOre == Double.MAX_VALUE ? this.amount : lowestOre;
+    }
+
+    /**
      * it gets the oreState at a given time. how much ore will the agent have at the 
      * given time.
      * @param time the time of the agent.
@@ -76,6 +98,21 @@ public class OreState {
      */
     public double getLastOreState(){
         return this.oreStateArray.get(this.oreStateArray.size()-1).currOre;
+    }
+
+    public double getNextOreStateChange(double startT){
+        for ( State s : this.oreStateArray ){
+            if ( s.t > startT ) return s.t;
+        }
+        return -1.0;
+    }
+
+    public double getPrevOreStateChange( double startT ){
+        for ( int i=this.oreStateArray.size()-1; i>=0; i-- ){
+            State s = this.oreStateArray.get(i);
+            if ( s.t < startT ) return s.t;
+        }
+        return -1.0;
     }
 
     /**
@@ -214,8 +251,10 @@ public class OreState {
         int startIndex = size > 10 ? size-10 : 0;
         for ( int i=startIndex; i<size; i++){
             State s = this.oreStateArray.get(i);
+            if ( s.isDone ) continue;
             System.out.println(c+"time--> "+ String.format("%.2f",s.t) +"\tore at state--> "+s.currOre+"\tchange--> "+s.deltaOre +"\ttaskID-->"+s.taskID+e);
         }
+        System.out.println(c+"amount-->"+this.amount+e);
     }
 
     public static void main(String[] args){

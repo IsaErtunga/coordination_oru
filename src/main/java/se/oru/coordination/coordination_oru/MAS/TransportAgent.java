@@ -358,12 +358,11 @@ public class TransportAgent extends MobileAgent{
         int oreEval = Math.abs(t.ore) > this.capacity-0.1 ? 1000 : (int)this.linearDecreasingComparingFunc(Math.abs(t.ore), this.capacity, this.capacity, 500.0);
         
         // dist evaluation [1500, 0]
-        int distEval = (int)this.concaveDecreasingFunc(t.fromPose.distanceTo(t.toPose), 1500.0, 120.0); // [1500, 0]
+        int distEval = (int)this.concaveDecreasingFunc(t.fromPose.distanceTo(t.toPose), 700.0, 120.0); // [1500, 0]
 
         // time bonus [500, 0]
         double cnpEndTime = Double.parseDouble(this.parseMessage(m, "startTime")[0]);
-        double upperTimeDiff = cnpEndTime <= 0.0 ? 60.0 : 30.0;
-        int timeEval = (int)this.linearDecreasingComparingFunc(t.endTime, cnpEndTime, upperTimeDiff, 500.0);  
+        int timeEval = (int)this.linearDecreasingComparingFunc(t.endTime, cnpEndTime, 30.0, 700.0);  
 
         //TODO how long we have to sleep is part of equation
         

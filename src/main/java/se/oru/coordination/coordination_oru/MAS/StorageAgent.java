@@ -17,6 +17,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
     protected double ORE_LEVEL_LOWER;
     protected double ORE_LEVEL_UPPER;
     protected int orderNumber;
+    protected double TTAagentSpeed;
 
 
     public StorageAgent(int r_id, Router router, double capacity, Pose startPos, long startTime){} // deprecated
@@ -44,6 +45,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
         this.mp = mp;
         this.agentVelocity = mapInfo.getVelocity(2);
         this.TTAcapacity = mapInfo.getCapacity(4);
+        this.TTAagentSpeed = mapInfo.getVelocity(4);
 
         this.orderNumber = 1;
 
@@ -147,11 +149,11 @@ public class StorageAgent extends AuctioneerBidderAgent{
 
         // Create Task
         Task TTATask = generateTaskFromAuction(m, this.initialPose, availabeOre);
-        TTATask.isTTAtask = true;
+        //TTATask.isTTAtask = true;
 
         // ========= EXPERIMENTAL =========
-        //double padding = (agentPose.distanceTo(this.initialPose) / this.agentVelocity) + this.occupancyPadding/2;
-        double[] timeUsingResource = this.translateTAtaskTimesToOccupyTimes(TTATask, this.occupancyPadding); // TApadding *2 = TTA padding, but /2 because holding resource shorter
+        double padding = 25.0 / this.TTAagentSpeed;
+        double[] timeUsingResource = this.translateTAtaskTimesToOccupyTimes(TTATask, padding); // TApadding *2 = TTA padding, but /2 because holding resource shorter
         if ( !this.timeSchedule.isTaskPossible(TTATask.taskID, timeUsingResource[0], timeUsingResource[1]) ) return;    // task doesnt fit in schedule
         
         // Calculate offer
@@ -180,7 +182,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
         //PoseSteering[] path = this.calculatePath(this.mp, TTAPos, this.startPose);
         PoseSteering[] path = this.getPath(this.pStorage, this.mp, TTAPos, this.initialPose);
         double pathDist = this.calculatePathDist(path);
-        double pathTime = this.calculateDistTime(pathDist, this.agentVelocity/2);
+        double pathTime = this.calculateDistTime(pathDist, this.TTAagentSpeed);
 
         double taskStartTime = Double.parseDouble(mParts[3]);;
         double endTime = taskStartTime + pathTime;
@@ -241,10 +243,14 @@ public class StorageAgent extends AuctioneerBidderAgent{
             synchronized(this.timeSchedule){
                 boolean eventAdded = this.timeSchedule.setEventActive(taskID, true);
                 if ( eventAdded ) task = this.timeSchedule.getEvent(taskID);
+                this.print("event active from TTA");
              }
              if ( task != null ){
                 String body = task.taskID +this.separator+ task.startTime +this.separator+ task.endTime +this.separator+ task.ore;
+                this.print("tta-slot msg sent");
                 this.sendMessage(new Message(this.robotID, this.getStorageReceivers(), "tta-slot", body));
+             } else {
+                this.print("tta-msg not sent");
              }
 
         } else {
@@ -300,79 +306,41 @@ public class StorageAgent extends AuctioneerBidderAgent{
         }
     }
 
-
-    public void status2 () {
-        while(true) {
-            this.sleep(500);
-
-            double oreLevel = this.timeSchedule.getLastOreState();
-
-            if ( this.amount < 0.5*this.capacity ){ // EXPERIMENTAL get ore now //TODO only works without TTA
-                Message bestOffer = this.offerService(this.getTime());
-                if (!bestOffer.isNull) {
-                    Task task = this.generateTaskFromOffer(bestOffer);
-
-                    double[] occupiedTimes = this.translateTAtaskTimesToOccupyTimes(task, this.occupancyPadding);
-                    task.startTime = occupiedTimes[0];
-                    task.endTime = occupiedTimes[1];
-                    
-                    this.timeSchedule.addEvent(task);
-                    // this.print("in status, task added. ---Schedule---");
-                    // this.timeSchedule.printSchedule(this.COLOR);
-                }
-            }
-
-            else if (oreLevel < 0.9 * capacity) { // plan future tasks
-                // this.print("in status");
-                // this.timeSchedule.printSchedule(this.COLOR);
-                // if ( this.timeSchedule.getSize() > this.taskCap ) continue;
-
-                Message bestOffer = this.offerService(this.getNextTime());
-
-                if (!bestOffer.isNull) {
-                    Task task = this.generateTaskFromOffer(bestOffer);
-
-                    // ========= EXPERIMENTAL =========
-                    double[] occupiedTimes = this.translateTAtaskTimesToOccupyTimes(task, this.occupancyPadding);
-                    task.startTime = occupiedTimes[0];
-                    task.endTime = occupiedTimes[1];
-                    
-                    this.timeSchedule.addEvent(task);
-                    // this.print("in status, task added. ---Schedule---");
-                    // this.timeSchedule.printSchedule(this.COLOR);
-                }
-                
-            }
-            else {
-                this.print("not doing anything atm...");
-            }
-        }      
-    }
-
     public void status () {
         double ORE_NOW_PERCENT = 0.4;
         double ORE_STATE_PERCENT = 0.4;
         double ORE_FUTURE_PERCENT = 0.85;
-        double TIMESLOT_ADD = 2.0;
         while (true){
             this.sleep(3000);
 
             int scSize;
+            double lookOre;
             synchronized(this.timeSchedule){
                 if ( this.timeSchedule.getSize() > this.taskCap) continue;
+                this.print("-- in status. about to get auction time");
+                this.timeSchedule.printSchedule(this.COLOR);
+                lookOre = this.timeSchedule.getLowestOreAfterTime(this.getTime()+10.0+this.LOAD_DUMP_TIME);
             }
+
+            double slotSize = this.occupancyPadding*3+this.LOAD_DUMP_TIME;
 
             double auctionTime = -1.0;
-            if ( this.amount < 0.4*this.capacity ) { // if we really need ore now
+            while ( lookOre < 0.9*this.capacity && auctionTime == -1.0 ){
+                double timeLookAfter = this.getTime()+10.0+this.LOAD_DUMP_TIME;
+                double timeLookBefore = timeLookAfter + 90.0; // two minutes plan ahead
                 synchronized(this.timeSchedule){
-                    auctionTime = this.timeSchedule.getNextEarliestTime(this.getTime()+10.0+this.LOAD_DUMP_TIME, this.occupancyPadding*3+this.LOAD_DUMP_TIME);
+                    auctionTime = this.timeSchedule.getNextEarliestTime(slotSize, lookOre, timeLookAfter, timeLookBefore );
                 }
-                this.print("get ore now. auction request time-->"+auctionTime);
 
-                //auctionTime = nextStartTime +this.occupancyPadding*2;
-                //this.print("get ore now");
-                
+                lookOre += 0.1 * this.capacity;
             }
+           
+            // if ( this.amount < 0.4*this.capacity ) { // if we really need ore now
+            //     synchronized(this.timeSchedule){
+            //         auctionTime = this.timeSchedule.getNextEarliestTime(this.getTime()+10.0+this.LOAD_DUMP_TIME, this.occupancyPadding*3+this.LOAD_DUMP_TIME);
+            //     }
+            //     this.print("get ore now. auction request time-->"+auctionTime);
+            // }
             
             //synchronized(this.timeSchedule){ double[] slot = this.timeSchedule.getSlotToFill(this.occupancyPadding*3+this.LOAD_DUMP_TIME, maxOreAmount) }
 
@@ -403,6 +371,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
             */
 
             if ( auctionTime != -1.0 ){
+                this.print("requesting ore with auction time-->"+auctionTime);
                 // ========= time auction creation
                 Message bestOffer = this.offerService(auctionTime);
                 if (bestOffer.isNull == true) continue;
@@ -415,8 +384,11 @@ public class StorageAgent extends AuctioneerBidderAgent{
                 synchronized(this.timeSchedule){
                     this.timeSchedule.addEvent(task);
                     this.print("task added:");
-                    //this.timeSchedule.printSchedule(this.COLOR);
+                    this.timeSchedule.printSchedule(this.COLOR);
                 }
+            } else {
+                this.print("-- in status : all seems good...");
+                this.sleep(3000);
             }
 
         }

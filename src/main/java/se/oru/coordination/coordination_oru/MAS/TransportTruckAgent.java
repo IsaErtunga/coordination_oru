@@ -52,7 +52,7 @@ public class TransportTruckAgent extends MobileAgent{
         this.capacity = mapInfo.getCapacity(r_id);
 
         this.LOAD_DUMP_TIME = 0.0;//15.0 * 5.6 / (this.agentVelocity*2);
-        this.taskCap = 3;
+        this.taskCap = 2;
 
         this.timeSchedule = new TimeScheduleNew(this.initialPose, this.capacity, mapInfo.getStartOre(r_id));
 
@@ -238,8 +238,7 @@ public class TransportTruckAgent extends MobileAgent{
         int taskID = this.sendCNPmessage(taskStartTime, startPos, receivers);
 
 
-        double time = this.waitForAllOffersToCome(receivers.size(), taskID);
-        this.print("time waited for offers-->"+time);
+        this.waitForAllOffersToCome(receivers.size(), taskID);
     
         Message bestOffer = this.handleOffers(taskID); //extract best offer
 
@@ -282,8 +281,8 @@ public class TransportTruckAgent extends MobileAgent{
                     this.print("TASK ABORTED");
                     this.sendMessage(new Message(this.robotID, task.partner, "inform", Integer.toString(task.taskID)+this.separator+"abort"));
                 }
-                this.print("initialState -- lastOreState < threashold");
-                //this.timeSchedule.printSchedule(this.COLOR);
+                this.print("initialState -- task added");
+                this.timeSchedule.printSchedule(this.COLOR);
             }
 
             else {

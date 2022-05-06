@@ -95,6 +95,9 @@ public class NewMapTesting {
 	};
 	t3.start();
 
+
+	//================= SIMULATION SETTINGS ======================
+
 	//================= SIMULATION SETTINGS ======================
 	NewMapData MAP_DATA = new NewMapData();
 	//================= SIMULATION SETTINGS ======================
@@ -135,12 +138,12 @@ public class NewMapTesting {
 	// ============== HERE YOU ALTER THE SCENARIO =================
 
 	// agents spawning in rep, blocks. index0 = DA's, index2 = TA's, index3 = SA's
-	Integer[] block1Agents = new Integer[]{4,2,2}; 
-	Integer[] block2Agents = new Integer[]{4,2,2};
-	Integer[] block3Agents = new Integer[]{4,2,2};
-	Integer[] block4Agents = new Integer[]{4,2,2};
+	Integer[] block1Agents = new Integer[]{5,2,1}; 
+	Integer[] block2Agents = new Integer[]{1,1,1};
+	Integer[] block3Agents = new Integer[]{0,0,0};
+	Integer[] block4Agents = new Integer[]{0,0,0};
 	// base lvl. index0 = TTA
-	int nrTTAs = 0;
+	int nrTTAs = 1;
 
 	// ============================================================
 

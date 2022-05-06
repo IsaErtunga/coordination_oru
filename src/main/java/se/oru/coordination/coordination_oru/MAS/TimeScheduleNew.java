@@ -3,6 +3,8 @@ package se.oru.coordination.coordination_oru.MAS;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import javax.swing.plaf.nimbus.NimbusLookAndFeel;
+
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 
 public class TimeScheduleNew {
@@ -42,7 +44,20 @@ public class TimeScheduleNew {
     }
 
     public int getSize(){
-        return this.schedule.size();
+        ArrayList<Task> scheduleCopy = new ArrayList<Task>(this.schedule);
+        scheduleCopy.removeIf(i -> i.isTTAtask == true);
+        return scheduleCopy.size();
+    }
+
+    public Task getNearestTaskBeforeTime( double time ){
+        for ( int i=this.schedule.size()-1; i>=0; i-- ){
+            if ( i >= 0 ){
+                Task t = this.schedule.get(i);
+                if ( t.endTime < time ) return t;
+            }
+        }
+        if ( this.currentTask.endTime < time && this.currentTask.endTime != -1.0 ) return this.currentTask;
+        return null;
     }
 
     public boolean setEventActive(int taskID, boolean ignoreOreStateConflict){
@@ -78,10 +93,9 @@ public class TimeScheduleNew {
      */
     public ArrayList<Task> forceAddEvent(int taskID, double startTime, double endTime, double ore){
         ArrayList<Task> tasks2inform = new ArrayList<Task>();
-        Task TTAtask = new Task(taskID, startTime, endTime, ore);
-        boolean normalAddWork = this.addEvent(TTAtask);
-
-        if ( normalAddWork == true ) return tasks2inform;
+        Task TTAtask = new Task(taskID, startTime, endTime, 0.0);
+        //boolean normalAddWork = this.addEvent(TTAtask);
+        //if ( normalAddWork == true ) return tasks2inform;
         
         int index = 0;
         if (this.schedule.size() > 0){             
@@ -104,7 +118,6 @@ public class TimeScheduleNew {
         }
 
         this.schedule.add(index, TTAtask);
-        synchronized(this.oreState){ this.oreState.addState( this.oreState.createState(TTAtask.taskID, TTAtask.endTime, TTAtask.ore) ); }
         return tasks2inform;
     }
 
@@ -279,25 +292,117 @@ public class TimeScheduleNew {
     }
 
     /**
+     * will find a slot in the schedule starting after a given time with given size and were the ore is lower than a given limit.
+     * used by SA when planning schedule.
+     * @param nearTimeBound a slot must be after this time to be returned
+     * @param slotSize the required size of the slot returned
+     * @param oreLimit the maximum ore amount allowed at the slot.
+     * @return the middle time of a slot. the SA should hold auction with this time. return -1.0 if no slot found
+     */
+    public double getNextEarliestTime( double slotSize, double oreLimit, double minLookupTime, double maxLookupTime){  
+        System.out.println("[getNextEarliestTime] params:"
+            +" : slotSize-->"+String.format("%.2f",slotSize)
+            +" : limit-->"+String.format("%.2f",oreLimit)
+            +" : minT-->"+String.format("%.2f",minLookupTime)
+            +" : maxT-->"+String.format("%.2f",maxLookupTime));
+
+        double amount;
+        synchronized(this.oreState){ amount = this.oreState.getAmount(); }
+        if ( this.schedule.size() < 1 && amount < oreLimit){ // base case, no tasks and low ore, enter here at start
+            System.out.println("[getNextEarliestTime]\tentered base case");
+            return minLookupTime + slotSize/2; 
+        } 
+
+        double slotBegin = minLookupTime;
+        double oreAtTime;
+        //double prevOreStateTime;
+        while (slotBegin + slotSize < maxLookupTime){
+            synchronized(this.oreState){
+                oreAtTime = this.oreState.getTimeAtOrebelow(oreLimit, slotBegin); // start looking after slotBegin in oreState
+                //prevOreStateTime = this.oreState.getPrevOreStateChange( slotBegin); // oreState change before slotBegin
+            }
+            if ( oreAtTime == -1.0 ) break; // no bad oreState
+
+            // set slotBegin
+            //prevOreStateTime = prevOreStateTime < minLookupTime ? minLookupTime : prevOreStateTime;
+            Task leftMostTask = this.getNearestTaskBeforeTime(oreAtTime);
+            double leftTaskEnd = leftMostTask == null ? -1.0 : leftMostTask.endTime + slotSize > maxLookupTime ? -1.0 : leftMostTask.endTime;
+            slotBegin = leftTaskEnd > slotBegin ? leftMostTask.endTime : slotBegin;
+
+            System.out.println("[getNextEarliestTime]\tslotBegin-->"+slotBegin+", oreAtTime-->"+oreAtTime+", leftMostTaskEnd-->"+( leftMostTask == null ? "null" : leftMostTask.endTime ));
+
+            // look for slot
+            while ( slotBegin < oreAtTime + slotSize/3 && slotBegin + slotSize < maxLookupTime){
+                System.out.println("[getNextEarliestTime]\t\tlook for slot with slotBegin-->"+slotBegin);
+                Task t = this.getTaskAtSlot(slotBegin, slotBegin+slotSize);
+
+                // if no task there, return nice slot, else slot is overlapping with task
+                if ( t == null ) return slotBegin+slotSize/2; 
+
+                // if slot-endtime is overlapping a little bit with task-starttime, check if slot before task is available
+                if ( slotBegin+slotSize - t.startTime < slotSize/4 && this.isTaskPossible(0, t.startTime-slotSize, t.startTime) ) return t.startTime - slotSize/2;
+                
+                // else set slotBegin to task-endtime to check if slot after task is available
+                slotBegin = t.endTime;
+            }
+            System.out.println("[getNextEarliestTime]\tdid not find slot. New slotBegin-->"+slotBegin);
+        }
+        return -1.0;
+
+
+        // while( currTime < maxLookupTime ){
+        //     Task t = this.getTaskAtSlot(currTime-slotSize, currTime);
+        //     if ( t != null ){
+        //         currTime = t.endTime+slotSize;
+        //         continue;
+        //     } 
+
+        //     double oreAtTime;
+        //     double nextTimeOreStateChange;
+        //     synchronized(this.oreState){
+        //         oreAtTime = this.oreState.getStateAtTime( currTime );
+        //         nextTimeOreStateChange = this.oreState.getNextOreStateChange(currTime);
+        //     }
+        //     if ( nextTimeOreStateChange == -1.0 ) break; // no ore states below oreLimit in future
+
+        //     if ( oreAtTime > oreLimit){ 
+        //         currTime = currTime == nextTimeOreStateChange - slotSize ? 1:2;
+        //         currTime = nextTimeOreStateChange-slotSize;
+        //         continue;
+        //     } 
+        //     return currTime - slotSize/2;
+        // }
+        // return -1.0;
+    }
+
+
+    /**
      * will retrive the next possible slot were an SA might be able to fit in a delivery of ore from a TA.
      * @param nearTimeBound double holdign a time. the function will only retrive a slot after this time.
      * @param slotSize the slot size required to return that slot
      * @return a double representing the time in the middle of a timeslot.
      */
     public double getNextEarliestTime(double nearTimeBound, double slotSize){
-        if ( this.schedule.size() < 1 ) { // if sc is empty
+         // get ore in that slot
+         double oreLimit = 0.0;
+
+        double oreAtClosestSlot;
+        synchronized(this.oreState){ oreAtClosestSlot = this.oreState.getStateAtTime( nearTimeBound + slotSize/2 ); }
+
+        if ( this.schedule.size() < 1 && oreAtClosestSlot < oreLimit) { // if sc is empty
             return nearTimeBound + slotSize/2;
 
         } else if ( this.schedule.size() == 1 ){ // if sc has 1 task in it
             Task t = this.schedule.get(0);
-            if ( nearTimeBound < t.startTime && nearTimeBound + slotSize < t.startTime) { // if slot exist before task
+            if ( nearTimeBound < t.startTime && nearTimeBound + slotSize < t.startTime && oreAtClosestSlot < oreLimit) { // if slot exist before task
                 return nearTimeBound + slotSize/2;
 
-            } else if ( nearTimeBound > t.endTime ){ // if slot exist after task
+            } else if ( nearTimeBound > t.endTime && oreAtClosestSlot < oreLimit){ // if slot exist after task
                 return nearTimeBound + slotSize/2;
 
             } else {
-                return t.endTime + slotSize/2; // if nearTimeBound is within task, return slot after 
+                synchronized(this.oreState){ oreAtClosestSlot = this.oreState.getStateAtTime( t.endTime + slotSize/2 ); }
+                return ( oreAtClosestSlot < oreLimit ? t.endTime + slotSize/2 : -1.0); // if nearTimeBound is within task, return slot after 
             }
 
         } else { // if sc is has more than 1 task
@@ -387,6 +492,10 @@ public class TimeScheduleNew {
     public double getAmount(){
         synchronized(this.oreState){ return this.oreState.getAmount(); }
     }
+
+    public double getLowestOreAfterTime(double time){
+        synchronized(this.oreState){ return this.oreState.getLowestAfterTime(time); }
+    }
     //-----------oreState retrives from timeSchedule-----------
 
     /**
@@ -449,6 +558,13 @@ public class TimeScheduleNew {
     }
     public boolean isTaskPossible(Task t){
         return this.isTaskPossible(t.taskID, t.startTime, t.endTime);
+    }
+
+    private Task getTaskAtSlot(double startT, double endT){
+        for ( Task t : this.schedule ){
+            if ( this.tasksOverlapping(t, startT, endT) ) return t;
+        }
+        return null;
     }
 
 

@@ -60,7 +60,7 @@ public class NewMapData {
 
         if ( agentType == 1 ) return this.getCapacity(agentType);
         if ( agentType == 2 ) return 0.0;
-        if ( agentType == 3 ) return 200.0;
+        if ( agentType == 3 ) return this.getCapacity(agentType)/2;
         if ( agentType == 4 ) return 0.0;
         return 0.0;
     }
@@ -69,7 +69,7 @@ public class NewMapData {
         if ( agentType > 1000 ) agentType = (agentType % 1000) / 100;
 
         if ( agentType == 1 ) return 100.0;
-        if ( agentType == 3 ) return 1000.0;
+        if ( agentType == 3 ) return 200.0;
         if ( agentType == 2 ) return 14.0;
         if ( agentType == 4 ) return 50.0;
 
@@ -84,7 +84,7 @@ public class NewMapData {
         if ( robotType > 1000 ) robotType = (robotType % 1000) / 100;
 
         if ( robotType == 2 ) return 5.6;
-        if ( robotType == 4 ) return this.getVelocity(2)/2;
+        if ( robotType == 4 ) return 2*this.getVelocity(2)/2;
 
         return -1.0;
     }
