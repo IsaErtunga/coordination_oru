@@ -278,12 +278,9 @@ public class TransportAgent extends MobileAgent{
         double pathTime = this.calculateDistTime(pathDist, this.agentVelocity) + this.LOAD_DUMP_TIME + time_padding;
         double auctionTimeRequest = Double.parseDouble( mParts[3] );
 
-        double ourNextTimeAvailable;
         int scheduleSize;
-        synchronized(this.timeSchedule){
-            scheduleSize = this.timeSchedule.getSize();
-            ourNextTimeAvailable = this.timeSchedule.getNextStartTime();
-        }
+        synchronized(this.timeSchedule){ scheduleSize = this.timeSchedule.getSize(); }
+        double ourNextTimeAvailable = this.getNextTime();
         double ourPossibleTimeAtTask = ourNextTimeAvailable + pathTime;
 
         double tStart = scheduleSize > 2 ? 

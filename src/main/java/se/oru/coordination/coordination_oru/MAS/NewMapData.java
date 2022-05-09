@@ -69,7 +69,7 @@ public class NewMapData {
         if ( agentType > 1000 ) agentType = (agentType % 1000) / 100;
 
         if ( agentType == 1 ) return 100.0;
-        if ( agentType == 3 ) return 200.0;
+        if ( agentType == 3 ) return 500.0;
         if ( agentType == 2 ) return 14.0;
         if ( agentType == 4 ) return 50.0;
 

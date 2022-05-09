@@ -8,9 +8,12 @@ public class AuctioneerAgent extends BasicAgent{
 
     protected Task generateTaskFromOffer(Message offerMsg){
         String[] msgParts = parseMessage(offerMsg, "", true);
+        double startTime = Double.parseDouble(msgParts[4]);
+        double endTime =Double.parseDouble(msgParts[5]);
+        double pathDist = (endTime - startTime) * this.agentVelocity;
         // replace intexes
-        return new Task(Integer.parseInt(msgParts[0]), offerMsg.sender, true, Double.parseDouble(msgParts[6]), Double.parseDouble(msgParts[4]),
-                        Double.parseDouble(msgParts[5]), this.posefyString(msgParts[2]), this.posefyString(msgParts[3]));
+        return new Task(Integer.parseInt(msgParts[0]), offerMsg.sender, true, Double.parseDouble(msgParts[6]), startTime,
+                        endTime, pathDist, this.posefyString(msgParts[2]), this.posefyString(msgParts[3]));
     }
 
 

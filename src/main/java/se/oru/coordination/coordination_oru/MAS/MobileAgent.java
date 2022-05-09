@@ -5,6 +5,7 @@ import com.vividsolutions.jts.geom.Coordinate;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 import se.oru.coordination.coordination_oru.Mission;
 import se.oru.coordination.coordination_oru.RobotReport;
+import org.metacsp.multi.spatioTemporal.paths.PoseSteering;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -229,11 +230,20 @@ public class MobileAgent extends AuctioneerBidderAgent{
         sNextTask = nextTinSchedule;
         double now = this.getTime();
 
-        double planTime = 5.0;
+        double planTime = 2.0;
 
         this.mp.setPlanningTimeInSecs(planTime);
         sNextMission = this.createMission(sNextTask, sCurrTask == null ? this.initialPose : sCurrTask.toPose);
-        this.print("--prepareNextMissionState: created mission in-->"+(this.getTime() - now)+" seconds");
+        PoseSteering[] path = sNextMission.getPath();
+        double pathDist = this.calculatePathDist(path);
+    
+        if ( path[path.length-1].getPose().distanceTo(sNextTask.toPose) > 3.0 || pathDist > sNextTask.pathDist * 1.3  ){
+            this.print("--prepareNextMissionState: path calculated but not good. path is "+(sNextTask.pathDist/pathDist)+" times the size of distEst");
+            sNextMission = null;
+            sNextTask = null;
+        } else {
+            this.print("--prepareNextMissionState: created mission in-->"+(this.getTime() - now)+" seconds");
+        }
     }
 
     protected void trackMissionState(){

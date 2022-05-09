@@ -38,7 +38,7 @@ public class NewMapTesting {
 
 	public static void main(String[] args) throws InterruptedException {
 
-	final TrajectoryEnvelopeCoordinatorSimulation tec = new TrajectoryEnvelopeCoordinatorSimulation(20.0,20.0);
+	final TrajectoryEnvelopeCoordinatorSimulation tec = new TrajectoryEnvelopeCoordinatorSimulation(30.0,20.0);
 	//tec.setBreakDeadlocks(true, true, true);
 	tec.setQuiet(true);
 
@@ -104,24 +104,33 @@ public class NewMapTesting {
 	NewMapData MAP_DATA = new NewMapData();
 	//================= SIMULATION SETTINGS ======================
 	//================= MOTION PLANNERS ======================
-	ReedsSheppCarPlanner TA1_mp = new ReedsSheppCarPlanner(ReedsSheppCarPlanner.PLANNING_ALGORITHM.LBTRRT);
+	
+	/*
+	LBTRRT is reliable 
+	LBTRRT 2.0s , 4.0 BPP is ok
+	RRTstar 2.0s, 4.0 BPP is better
+
+	*/
+
+
+	ReedsSheppCarPlanner TA1_mp = new ReedsSheppCarPlanner();
 	TA1_mp.setPlanningTimeInSecs(5.0);
 	TA1_mp.setFootprint(MAP_DATA.getAgentSize(2));
 	TA1_mp.setTurningRadius(2.0); 				//default is 1.0
-	TA1_mp.setDistanceBetweenPathPoints(1.0); 	//default is 0.5 
+	TA1_mp.setDistanceBetweenPathPoints(2.0); 	//default is 0.5 
 	TA1_mp.setMap(yamlFile);
-	ReedsSheppCarPlanner TA2_mp = new ReedsSheppCarPlanner(ReedsSheppCarPlanner.PLANNING_ALGORITHM.LBTRRT);
-	TA2_mp.setPlanningTimeInSecs(5.0);
-	TA2_mp.setFootprint(MAP_DATA.getAgentSize(2));
-	TA2_mp.setTurningRadius(2.0); 				//default is 1.0
-	TA2_mp.setDistanceBetweenPathPoints(1.0); 	//default is 0.5 
-	TA2_mp.setMap(yamlFile);
-	ReedsSheppCarPlanner TA3_mp = new ReedsSheppCarPlanner(ReedsSheppCarPlanner.PLANNING_ALGORITHM.LBTRRT);
-	TA3_mp.setPlanningTimeInSecs(5.0);
-	TA3_mp.setFootprint(MAP_DATA.getAgentSize(2));
-	TA3_mp.setTurningRadius(2.0); 				//default is 1.0
-	TA3_mp.setDistanceBetweenPathPoints(1.0); 	//default is 0.5 
-	TA3_mp.setMap(yamlFile);
+	// ReedsSheppCarPlanner TA2_mp = new ReedsSheppCarPlanner(ReedsSheppCarPlanner.PLANNING_ALGORITHM.LBTRRT);
+	// TA2_mp.setPlanningTimeInSecs(5.0);
+	// TA2_mp.setFootprint(MAP_DATA.getAgentSize(2));
+	// TA2_mp.setTurningRadius(2.0); 				//default is 1.0
+	// TA2_mp.setDistanceBetweenPathPoints(1.0); 	//default is 0.5 
+	// TA2_mp.setMap(yamlFile);
+	// ReedsSheppCarPlanner TA3_mp = new ReedsSheppCarPlanner(ReedsSheppCarPlanner.PLANNING_ALGORITHM.LBTRRT);
+	// TA3_mp.setPlanningTimeInSecs(5.0);
+	// TA3_mp.setFootprint(MAP_DATA.getAgentSize(2));
+	// TA3_mp.setTurningRadius(2.0); 				//default is 1.0
+	// TA3_mp.setDistanceBetweenPathPoints(1.0); 	//default is 0.5 
+	// TA3_mp.setMap(yamlFile);
 	ReedsSheppCarPlanner TTAmotionPlanner = new ReedsSheppCarPlanner();
 	TTAmotionPlanner.setFootprint(MAP_DATA.getAgentSize(4));
 	TTAmotionPlanner.setTurningRadius(2.0); 				//default is 1.0
@@ -152,8 +161,8 @@ public class NewMapTesting {
 	// ============== HERE YOU ALTER THE SCENARIO =================
 
 	// agents spawning in rep, blocks. index0 = DA's, index2 = TA's, index3 = SA's
-	Integer[] block1Agents = new Integer[]{5,3,1}; 
-	Integer[] block2Agents = new Integer[]{0,0,0};
+	Integer[] block1Agents = new Integer[]{5,3,2}; 
+	Integer[] block2Agents = new Integer[]{5,3,2};
 	Integer[] block3Agents = new Integer[]{0,0,0};
 	Integer[] block4Agents = new Integer[]{0,0,0};
 	// base lvl. index0 = TTA
@@ -167,7 +176,7 @@ public class NewMapTesting {
 	blockSpawns.add(block3Agents);
 	blockSpawns.add(block4Agents);
 
-	ReedsSheppCarPlanner[] mps = new ReedsSheppCarPlanner[]{TA1_mp, TA2_mp, TA3_mp};
+	ReedsSheppCarPlanner[] mps = new ReedsSheppCarPlanner[]{TA1_mp, TA1_mp, TA1_mp};
 
 	boolean spawnBaseLvlSA1 = false;
 	boolean spawnBaseLvlSA2 = false;

@@ -135,8 +135,9 @@ public class BasicAgent extends HelpFunctions{
     }
 
     protected double getNextTime(){
-        double STARTUP_ADD = 5.0;
-        double nextTime = this.timeSchedule.getNextStartTime();
+        double STARTUP_ADD = 10.0;
+        double nextTime;
+        synchronized(this.timeSchedule){ nextTime = this.timeSchedule.getNextStartTime(); }
         return nextTime == -1.0 ? this.getTime()+STARTUP_ADD : nextTime;
     }
 
