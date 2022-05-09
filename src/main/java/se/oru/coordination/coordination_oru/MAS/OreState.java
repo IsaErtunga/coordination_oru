@@ -53,6 +53,17 @@ public class OreState {
         return this.amount;
     }
 
+    public boolean isAlterationOK(double oreChange, double atTime){
+        int index;
+        for ( index=0; index<this.oreStateArray.size(); index++ ){
+            if ( this.oreStateArray.get(index).t > atTime ) break;
+        }
+        for ( int i=index; i<this.oreStateArray.size(); i++ ){
+            if ( this.oreStateArray.get(i).currOre + oreChange > this.oreCapacity ) return false;
+        }
+        return true;
+    }
+
     /**
      * will return the time at which the oreState is lower than oreLimit
      * @param oreLimit the ore limit at which the state must be lower than to return a time

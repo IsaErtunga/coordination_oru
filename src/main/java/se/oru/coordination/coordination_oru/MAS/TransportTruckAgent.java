@@ -18,7 +18,6 @@ import se.oru.coordination.coordination_oru.ConstantAccelerationForwardModel;
 public class TransportTruckAgent extends MobileAgent{
     //Control parameters
 
-    protected HashMap<String, PoseSteering[]> pStorage;
     protected Pose[] corners;
 
     // Begins at 4. Will iterate through SW, NW, NE, SE
@@ -191,10 +190,10 @@ public class TransportTruckAgent extends MobileAgent{
         //Pose deliveryPos = new Pose(245.0, 105.0, Math.PI);	
         PoseSteering[] path = this.getPath(this.pStorage, this.mp, robotPos, this.deliveryPos);
         double pathDist = this.calculatePathDist(path);
-        double pathTime = this.calculateDistTime(pathDist);
+        double pathTime = this.calculateDistTime(pathDist, this.agentVelocity);
         double taskStartTime = this.getNextTime();
         double endTime = taskStartTime + pathTime;
-        Task deliverTask = new Task(this.tID(), -1, true, -this.capacity, taskStartTime, endTime, endTime, robotPos, this.deliveryPos);
+        Task deliverTask = new Task(this.tID(), -1, true, -this.capacity, taskStartTime, endTime, pathDist, robotPos, this.deliveryPos);
         return deliverTask;
     }
 

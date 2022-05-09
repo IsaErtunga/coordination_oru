@@ -2,8 +2,10 @@ package se.oru.coordination.coordination_oru.MAS;
 import se.oru.coordination.coordination_oru.motionplanning.ompl.ReedsSheppCarPlanner;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 import com.vividsolutions.jts.geom.Coordinate;
+import org.metacsp.multi.spatioTemporal.paths.PoseSteering;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Random;
 
 public class BasicAgent extends HelpFunctions{
@@ -17,6 +19,8 @@ public class BasicAgent extends HelpFunctions{
     protected double capacity; // how much ore this agent can carry.
     protected double amount; // how much ore this agent can carry.
     protected String COLOR = "";
+    protected HashMap<String, PoseSteering[]> pStorage = null;
+
 
     // for communication
     protected Router router;

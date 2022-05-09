@@ -76,8 +76,6 @@ public class TransportAgent extends MobileAgent{
         //this.taskExecutionThread();
 
         this.stateHandler();
-    
-
     }
 
     @Override

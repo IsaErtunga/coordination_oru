@@ -12,7 +12,7 @@ public class NewMapData {
     protected HashMap<String, Integer> values = new HashMap<String, Integer>();
 
     public void readValues() throws FileNotFoundException {
-        Scanner sc = new Scanner(new File("/home/parallels/Projects/coordination_oru/experimentValues/values.csv"));
+        Scanner sc = new Scanner(new File("/home/parallels/Documents/coordination_oru/experimentValues/values.csv"));
         sc.useDelimiter(",");
 
         int numCols = 12;
@@ -139,8 +139,8 @@ public class NewMapData {
 
         if ( agentType == 1 ) return 100.0;
         if ( agentType == 3 ) return 500.0;
-        if ( agentType == 2 ) return 14.0;
-        if ( agentType == 4 ) return 50.0;
+        if ( agentType == 2 ) return 8.0;
+        if ( agentType == 4 ) return 40.0;
 
         return 0.0;
     }
@@ -153,7 +153,7 @@ public class NewMapData {
         if ( robotType > 1000 ) robotType = (robotType % 1000) / 100;
 
         if ( robotType == 2 ) return 5.6;
-        if ( robotType == 4 ) return 2*this.getVelocity(2)/2;
+        if ( robotType == 4 ) return 4*this.getVelocity(2);
 
         return -1.0;
     }
@@ -167,10 +167,14 @@ public class NewMapData {
         if ( robotType == 2 ){ // TA size
             xLength = 4.0;
             ylength = 2.8;
-        } else if ( robotType == 4 ){ // TTA size
-            xLength = 5.0;
-            ylength = 3.7;
+        } else if ( robotType == 4 ){ // TA size
+            xLength = 4.0;
+            ylength = 2.8;
         }
+        // else if ( robotType == 4 ){ // TTA size
+        //     xLength = 5.0;
+        //     ylength = 3.7;
+        // }
 
         return new Coordinate[] {new Coordinate(-xLength,ylength), new Coordinate(xLength,ylength),
                                  new Coordinate(xLength,-ylength), new Coordinate(-xLength,-ylength)};

@@ -7,18 +7,9 @@ import org.metacsp.multi.spatioTemporal.paths.PoseSteering;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 import se.oru.coordination.coordination_oru.motionplanning.ompl.ReedsSheppCarPlanner;
 
-
-
 public class StorageAgent extends AuctioneerBidderAgent{
-    //Control parameters
-    protected HashMap<String, PoseSteering[]> pStorage;
 
-    protected Pose startPoseRight;
-    protected double ORE_LEVEL_LOWER;
-    protected double ORE_LEVEL_UPPER;
-    protected int orderNumber;
     protected double TTAagentSpeed;
-
 
     public StorageAgent(int r_id, Router router, double capacity, Pose startPos, long startTime){} // deprecated
     public StorageAgent(int r_id, Router router, double capacity, Pose startPos, Pose startPoseRight, long startTime, ReedsSheppCarPlanner mp){} // deprecated
@@ -34,20 +25,17 @@ public class StorageAgent extends AuctioneerBidderAgent{
                         ReedsSheppCarPlanner mp, OreState oreState, HashMap<String, PoseSteering[]> pathStorage){}
 
     public StorageAgent(int r_id, Router router, long startTime, NewMapData mapInfo, OreState oreState,
-                        HashMap<String, PoseSteering[]> pathStorage, ReedsSheppCarPlanner mp){  
+                        HashMap<String, PoseSteering[]> pathStorage ){  
 
         this.robotID = r_id;
         this.COLOR = "\033[1;33m";
         this.capacity = mapInfo.getCapacity(r_id);
         this.amount = mapInfo.getStartOre(r_id);
         this.initialPose = mapInfo.getPose(r_id);
-        //this.generateMotionPlanner(yamlFileString, mapInfo.getTurningRad(4), mapInfo.getAgentSize(4)); // 4 is for TTA
-        this.mp = mp;
+
         this.agentVelocity = mapInfo.getVelocity(2);
         this.TTAcapacity = mapInfo.getCapacity(4);
         this.TTAagentSpeed = mapInfo.getVelocity(4);
-
-        this.orderNumber = 1;
 
         this.timeSchedule = new TimeScheduleNew(oreState, this.initialPose, this.capacity, this.amount);
         this.clockStartTime = startTime;
@@ -58,9 +46,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
         // settings
         this.LOAD_DUMP_TIME = 0.0;//15.0 * 5.6 / this.agentVelocity;
         this.TIME_WAITING_FOR_OFFERS = 8.0;
-        this.taskCap = 4;
-        this.ORE_LEVEL_LOWER = 0.2 * this.capacity < 60.0 ? 60.0 : 0.1 * this.capacity; // TTA cap 40.0 * 1.5
-        this.ORE_LEVEL_UPPER = 0.8 * this.capacity;
+        this.taskCap = 3;
 
         this.pStorage = pathStorage;
 
@@ -143,16 +129,12 @@ public class StorageAgent extends AuctioneerBidderAgent{
 
     @Override
     protected void handleCNPauction(Message m){
-        double availabeOre = this.timeSchedule.getLastOreState();
-        if (availabeOre <= 0.0) return;   
-        else availabeOre = availabeOre >= this.TTAcapacity ? this.TTAcapacity : availabeOre; 
-
         // Create Task
-        Task TTATask = generateTaskFromAuction(m, this.initialPose, availabeOre);
-        //TTATask.isTTAtask = true;
+        Task TTATask = generateTaskFromAuction(m, this.initialPose);
+        if ( Math.abs(TTATask.ore) < this.TTAcapacity ) return;
 
         // ========= EXPERIMENTAL =========
-        double padding = 25.0 / this.TTAagentSpeed;
+        double padding = 6.0;//25.0 / this.TTAagentSpeed;
         double[] timeUsingResource = this.translateTAtaskTimesToOccupyTimes(TTATask, padding); // TApadding *2 = TTA padding, but /2 because holding resource shorter
         if ( !this.timeSchedule.isTaskPossible(TTATask.taskID, timeUsingResource[0], timeUsingResource[1]) ) return;    // task doesnt fit in schedule
         
@@ -161,7 +143,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
         if ( offerVal <= 0 ) return;
         
         // Send Offer
-        this.sendMessage(this.generateOfferMessage(TTATask, offerVal, availabeOre));
+        this.sendMessage(this.generateOfferMessage(TTATask, offerVal, Math.abs(TTATask.ore)));
         TTATask.startTime = timeUsingResource[0];
         TTATask.endTime = timeUsingResource[1];
         this.timeSchedule.addEvent(TTATask);
@@ -175,44 +157,37 @@ public class StorageAgent extends AuctioneerBidderAgent{
      * @param ore the amount of ore the task is about
      * @return a Task with attributes extracted from m
      */
-    @Override
-    protected Task generateTaskFromAuction(Message m, Pose ourPose, double ore){
+    protected Task generateTaskFromAuction(Message m, Pose ourPose){
         String[] mParts = this.parseMessage(m, "", true);
         Pose TTAPos = this.posefyString(mParts[2]);
         //PoseSteering[] path = this.calculatePath(this.mp, TTAPos, this.startPose);
-        PoseSteering[] path = this.getPath(this.pStorage, this.mp, TTAPos, this.initialPose);
-        double pathDist = this.calculatePathDist(path);
+        //PoseSteering[] path = this.getPath(this.pStorage, this.mp, TTAPos, this.initialPose);
+        //double pathDist = this.calculatePathDist(path);
+
+        Pose midWayPose = new Pose(TTAPos.getX(), 27.5, 0.0);
+        double pathDist = this.basicPathDistEstimate(TTAPos, midWayPose) + this.basicPathDistEstimate(midWayPose, this.initialPose);
         double pathTime = this.calculateDistTime(pathDist, this.TTAagentSpeed);
 
         double taskStartTime = Double.parseDouble(mParts[3]);;
         double endTime = taskStartTime + pathTime;
+        double availableOre;
+        synchronized(this.timeSchedule){ availableOre = this.timeSchedule.getOreStateAtTime(endTime); }
+        availableOre = availableOre > this.TTAcapacity ? this.TTAcapacity : availableOre;
 
-        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, taskStartTime, endTime, pathDist, TTAPos, this.initialPose);
+        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -availableOre, taskStartTime, endTime, pathDist, TTAPos, this.initialPose);
     }
 
     @Override
     protected int calculateOffer(Task agentTask, Message autionMessage){
-        int offer;
-        if (agentTask.pathDist > 0.5) {
+        if (agentTask.pathDist < 0.5) return 0;
 
-            double oreLevel = this.timeSchedule.getOreStateAtTime(agentTask.endTime);
-            double oreLevelPercentage = oreLevel/this.capacity;
+        double oreLevel = this.timeSchedule.getOreStateAtTime(agentTask.endTime) - this.TTAcapacity;
+        if ( oreLevel < 0.1*this.capacity ) return 0;
 
-            if (oreLevelPercentage > 0.8) {
-                double tooMuchOreBonus = 1000 * oreLevelPercentage;
-                offer = (int)tooMuchOreBonus + this.calcCDF(agentTask.pathDist, 500);
-            }
-            else if (oreLevelPercentage < 0.05) {
-                offer = 0;
-            }
-            else {
-                offer = (int) (oreLevelPercentage * this.calcCDF(agentTask.pathDist, 500));
-            }
-        }
-        else {
-            offer = 0;
-        }
-        return offer;
+        int oreEval = (int)this.linearDecreasingComparingFunc(oreLevel, this.capacity, this.capacity, 1000);
+       
+        this.print("-- calculateOffer: offer->"+oreEval+" with agent->"+agentTask.partner);
+        return oreEval;
     }   
 
     @Override
@@ -222,20 +197,10 @@ public class StorageAgent extends AuctioneerBidderAgent{
             this.timeSchedule.removeEvent(taskID);
         }
         this.print("currentOre -->"+this.amount);
-
-        /*
-        double oreChange = Double.parseDouble(this.parseMessage(m, "informInfo")[0]);
-        oreChange = oreChange * -1;
-
-        synchronized(this.timeSchedule){ this.timeSchedule.removeEvent(taskID); }
-        this.print("---SCHEDULE---");
-        this.timeSchedule.printSchedule(this.COLOR);
-        
-        if (oreChange > 0) this.addOre(oreChange);
-        else this.dumpOre(oreChange);
-        */
     }
 
+    // will not use because to late to implement
+    /*
     @Override
     protected void handleAccept(int taskID, Message m){
         if ( m.sender/ 1000 == 9 ){ // if accept from TTA
@@ -261,6 +226,23 @@ public class StorageAgent extends AuctioneerBidderAgent{
                 this.print("sending abort msg to-->"+m.sender);
                 this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
             }
+        }
+    }
+    */
+    @Override
+    protected void handleAccept(int taskID, Message m){
+        boolean eventAdded;
+        synchronized(this.timeSchedule){
+            this.print("adding task");
+            this.timeSchedule.printSchedule(this.COLOR);
+            eventAdded = this.timeSchedule.setEventActive(taskID);
+        }
+
+        if ( eventAdded ){
+            this.print("--handleAccept: event added with ->"+m.sender);
+        } else {
+            this.print("--handleAccept: event not succesfullt added! Sending abort msg to-->"+m.sender);
+            this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
         }
     }
 
@@ -307,11 +289,8 @@ public class StorageAgent extends AuctioneerBidderAgent{
     }
 
     public void status () {
-        double ORE_NOW_PERCENT = 0.4;
-        double ORE_STATE_PERCENT = 0.4;
-        double ORE_FUTURE_PERCENT = 0.85;
         while (true){
-            this.sleep(3000);
+            this.sleep(1000);
 
             int scSize;
             double lookOre;
@@ -326,52 +305,18 @@ public class StorageAgent extends AuctioneerBidderAgent{
 
             double auctionTime = -1.0;
             while ( lookOre < 0.9*this.capacity && auctionTime == -1.0 ){
+                if ( lookOre > 0.4 * this.capacity ) this.sleep(2000);
                 double timeLookAfter = this.getTime()+10.0+this.LOAD_DUMP_TIME;
                 double timeLookBefore = timeLookAfter + 90.0; // two minutes plan ahead
                 synchronized(this.timeSchedule){
-                    auctionTime = this.timeSchedule.getNextEarliestTime(slotSize, lookOre, timeLookAfter, timeLookBefore );
+                    auctionTime = this.timeSchedule.getNextEarliestTime(slotSize, lookOre, timeLookAfter, timeLookBefore, this.TAcapacity );
                 }
 
                 lookOre += 0.1 * this.capacity;
             }
-           
-            // if ( this.amount < 0.4*this.capacity ) { // if we really need ore now
-            //     synchronized(this.timeSchedule){
-            //         auctionTime = this.timeSchedule.getNextEarliestTime(this.getTime()+10.0+this.LOAD_DUMP_TIME, this.occupancyPadding*3+this.LOAD_DUMP_TIME);
-            //     }
-            //     this.print("get ore now. auction request time-->"+auctionTime);
-            // }
-            
-            //synchronized(this.timeSchedule){ double[] slot = this.timeSchedule.getSlotToFill(this.occupancyPadding*3+this.LOAD_DUMP_TIME, maxOreAmount) }
-
-
-
-
-            
-            /* else if ( timeSlot.length > 1 ){ // if we really need ore at some point
-                auctionTime = (timeSlot[1] - timeSlot[0])/2 + timeSlot[0];
-                this.print("fill timeslot");
-
-            } else if ( lastOreState < ORE_FUTURE_PERCENT*this.capacity ){ // can we plan to get ore in future ?
-                synchronized(this.timeSchedule){ auctionTime = this.timeSchedule.getNextStartTime() + this.occupancyPadding; }
-                this.print("plan future");
-
-            } else { // dont hold auction
-                Task abortTask;
-                synchronized(this.timeSchedule){
-                    abortTask = this.timeSchedule.getFirstOreStateFail();
-                    if ( abortTask != null ) this.timeSchedule.abortEvent(abortTask.taskID);
-                }
-                if ( abortTask != null ){
-                    this.sendMessage(new Message(this.robotID, abortTask.partner, "inform", abortTask.taskID+this.separator+"abort") );
-                }
-
-                this.print("dont hold auction");
-            }
-            */
 
             if ( auctionTime != -1.0 ){
-                this.print("requesting ore with auction time-->"+auctionTime);
+                //this.print("requesting ore with auction time-->"+auctionTime);
                 // ========= time auction creation
                 Message bestOffer = this.offerService(auctionTime);
                 if (bestOffer.isNull == true) continue;

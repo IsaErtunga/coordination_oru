@@ -27,6 +27,7 @@ public class TimeScheduleNew {
     }
     public TimeScheduleNew(OreState os, Pose startPos, double oreCapacity, double startOre){
         this.oreState = os;
+        this.capacity = oreCapacity;
         Task initialTask = new Task(-1.0, -1.0);
         initialTask.toPose = startPos;
         this.currentTask = initialTask;
@@ -73,7 +74,6 @@ public class TimeScheduleNew {
 
             if ( taskAdded && (lastOreState <= -0.1 || lastOreState > this.capacity+0.1) ){
                 this.abortEvent(taskID);
-                synchronized(this.oreState){ this.oreState.removeState(taskID); }
                 return false;
             }
         }
@@ -299,7 +299,7 @@ public class TimeScheduleNew {
      * @param oreLimit the maximum ore amount allowed at the slot.
      * @return the middle time of a slot. the SA should hold auction with this time. return -1.0 if no slot found
      */
-    public double getNextEarliestTime( double slotSize, double oreLimit, double minLookupTime, double maxLookupTime){  
+    public double getNextEarliestTime( double slotSize, double oreLimit, double minLookupTime, double maxLookupTime, double possibleOreChange){  
         double amount;
         synchronized(this.oreState){ amount = this.oreState.getAmount(); }
         if ( this.schedule.size() < 1 && amount < oreLimit) return minLookupTime + slotSize/2; // base case, no tasks and low ore, enter here at start
@@ -320,13 +320,17 @@ public class TimeScheduleNew {
                 Task t = this.getTaskAtSlot(slotBegin, slotBegin+slotSize);
 
                 // if no task there, return nice slot, else slot is overlapping with task
-                if ( t == null ) return slotBegin+slotSize/2; 
+                if ( t == null ){
+                    synchronized(this.oreState){ if (this.oreState.isAlterationOK(possibleOreChange, slotBegin+slotSize/2)) return slotBegin+slotSize/2; }
+                } 
 
                 // if slot-endtime is overlapping a little bit with task-starttime, check if slot before task is available
-                if ( slotBegin+slotSize - t.startTime < slotSize/4 && this.isTaskPossible(0, t.startTime-slotSize, t.startTime) ) return t.startTime - slotSize/2;
+                else if ( slotBegin+slotSize - t.startTime < slotSize/4 && this.isTaskPossible(0, t.startTime-slotSize, t.startTime) ){
+                    synchronized(this.oreState){ if (this.oreState.isAlterationOK(possibleOreChange, t.startTime - slotSize/2)) return t.startTime - slotSize/2; }
+                } 
                 
                 // else set slotBegin to task-endtime to check if slot after task is available
-                slotBegin = t.endTime;
+                slotBegin = t != null ? t.endTime : slotBegin + slotSize;
             }
         }
         return -1.0;

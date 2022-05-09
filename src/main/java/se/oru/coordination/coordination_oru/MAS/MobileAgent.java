@@ -99,6 +99,7 @@ public class MobileAgent extends AuctioneerBidderAgent{
         HashMap<Integer, ArrayList<Task>> taskMap = new HashMap<Integer, ArrayList<Task>>();
         
         for ( Task t : tasksToUpdate ){
+            if ( t.partner == -1 ) continue;
             ArrayList<Task> agentTasks = taskMap.get(t.partner);
             if ( agentTasks == null ) agentTasks = new ArrayList<Task>();
                 
@@ -195,19 +196,21 @@ public class MobileAgent extends AuctioneerBidderAgent{
         sNextTask = nextTinSchedule;
         double now = this.getTime();
 
-        double planTime = 2.0;
+        // double planTime = 2.0;
 
-        this.mp.setPlanningTimeInSecs(planTime);
+        // this.mp.setPlanningTimeInSecs(planTime);
         sNextMission = this.createMission(sNextTask, sCurrTask == null ? this.initialPose : sCurrTask.toPose);
         PoseSteering[] path = sNextMission.getPath();
         double pathDist = this.calculatePathDist(path);
     
-        if ( path[path.length-1].getPose().distanceTo(sNextTask.toPose) > 3.0 || pathDist > sNextTask.pathDist * 1.3  ){
-            this.print("--prepareNextMissionState: path calculated but not good. path is "+(sNextTask.pathDist/pathDist)+" times the size of distEst");
+        //if ( path[path.length-1].getPose().distanceTo(sNextTask.toPose) > 3.0 || pathDist*1.3 > sNextTask.pathDist ){
+        if ( pathDist/sNextTask.pathDist > 1.3 ){
+            this.print("--prepareNextMissionState: path calculated but not good. path is "+(pathDist/sNextTask.pathDist)+" times the size of distEst");
             sNextMission = null;
             sNextTask = null;
         } else {
             this.print("--prepareNextMissionState: created mission in-->"+(this.getTime() - now)+" seconds");
+            //this.savePathToStorage(this.pStorage, path);
         }
     }
 
@@ -234,8 +237,11 @@ public class MobileAgent extends AuctioneerBidderAgent{
 
             if ( missionIsDone ){ // if we are done with mission
                 this.sleep((int)this.LOAD_DUMP_TIME*1000);
-                Message doneMessage = new Message(this.robotID, sCurrTask.partner, "inform", sCurrTask.taskID + this.separator + "done" + "," + sCurrTask.ore);
-                this.sendMessage(doneMessage);
+                if ( sCurrTask.partner != -1 ){
+                    Message doneMessage = new Message(this.robotID, sCurrTask.partner, "inform", sCurrTask.taskID + this.separator + "done" + "," + sCurrTask.ore);
+                    this.sendMessage(doneMessage);
+                }
+                
                 this.STATE = "START_NEXT_MISSION_STATE";
                 break; 
             }

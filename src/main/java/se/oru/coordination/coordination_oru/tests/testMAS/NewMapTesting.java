@@ -88,7 +88,6 @@ public class NewMapTesting {
 	tec.setVisualization(viz);
 	tec.setUseInternalCriticalPoints(false);
 
-
 	final long startTime = System.currentTimeMillis();
 												
 	ArrayList<String> loggedMessages = new ArrayList<String>();		//		ROUTER THREAD
@@ -137,29 +136,22 @@ public class NewMapTesting {
 	*/
 
 
-	ReedsSheppCarPlanner TA1_mp = new ReedsSheppCarPlanner();
-	TA1_mp.setPlanningTimeInSecs(5.0);
-	TA1_mp.setFootprint(MAP_DATA.getAgentSize(2));
-	TA1_mp.setTurningRadius(2.0); 				//default is 1.0
-	TA1_mp.setDistanceBetweenPathPoints(2.0); 	//default is 0.5 
-	TA1_mp.setMap(yamlFile);
-	// ReedsSheppCarPlanner TA2_mp = new ReedsSheppCarPlanner(ReedsSheppCarPlanner.PLANNING_ALGORITHM.LBTRRT);
-	// TA2_mp.setPlanningTimeInSecs(5.0);
-	// TA2_mp.setFootprint(MAP_DATA.getAgentSize(2));
-	// TA2_mp.setTurningRadius(2.0); 				//default is 1.0
-	// TA2_mp.setDistanceBetweenPathPoints(1.0); 	//default is 0.5 
-	// TA2_mp.setMap(yamlFile);
-	// ReedsSheppCarPlanner TA3_mp = new ReedsSheppCarPlanner(ReedsSheppCarPlanner.PLANNING_ALGORITHM.LBTRRT);
-	// TA3_mp.setPlanningTimeInSecs(5.0);
-	// TA3_mp.setFootprint(MAP_DATA.getAgentSize(2));
-	// TA3_mp.setTurningRadius(2.0); 				//default is 1.0
-	// TA3_mp.setDistanceBetweenPathPoints(1.0); 	//default is 0.5 
-	// TA3_mp.setMap(yamlFile);
-	ReedsSheppCarPlanner TTAmotionPlanner = new ReedsSheppCarPlanner();
-	TTAmotionPlanner.setFootprint(MAP_DATA.getAgentSize(4));
-	TTAmotionPlanner.setTurningRadius(2.0); 				//default is 1.0
-	TTAmotionPlanner.setDistanceBetweenPathPoints(1.0); 	//default is 0.5 
-	TTAmotionPlanner.setMap(yamlFile);
+	ReedsSheppCarPlanner mp1 = new ReedsSheppCarPlanner();
+	mp1.setPlanningTimeInSecs(5.0);
+	mp1.setFootprint(MAP_DATA.getAgentSize(2));
+	mp1.setTurningRadius(2.0); 				//default is 1.0
+	mp1.setDistanceBetweenPathPoints(2.0); 	//default is 0.5 
+	mp1.setMap(yamlFile);
+	ReedsSheppCarPlanner mp2 = new ReedsSheppCarPlanner();
+	mp2.setFootprint(MAP_DATA.getAgentSize(4));
+	mp2.setTurningRadius(2.0); 				//default is 1.0
+	mp2.setDistanceBetweenPathPoints(2.0); 	//default is 0.5 
+	mp2.setMap(yamlFile);
+	ReedsSheppCarPlanner mp3 = new ReedsSheppCarPlanner();
+	mp3.setFootprint(MAP_DATA.getAgentSize(4));
+	mp3.setTurningRadius(2.0); 				//default is 1.0
+	mp3.setDistanceBetweenPathPoints(2.0); 	//default is 0.5 
+	mp3.setMap(yamlFile);
 	//================= MOTION PLANNERS ======================
 
 	//================= PATH STORAGE ======================
@@ -185,12 +177,12 @@ public class NewMapTesting {
 	// ============== HERE YOU ALTER THE SCENARIO =================
 
 	// agents spawning in rep, blocks. index0 = DA's, index2 = TA's, index3 = SA's
-	Integer[] block1Agents = new Integer[]{5,3,2}; 
-	Integer[] block2Agents = new Integer[]{5,3,2};
-	Integer[] block3Agents = new Integer[]{0,0,0};
-	Integer[] block4Agents = new Integer[]{0,0,0};
+	Integer[] block1Agents = new Integer[]{5,2,2}; 
+	Integer[] block2Agents = new Integer[]{3,2,2};
+	Integer[] block3Agents = new Integer[]{6,3,2};
+	Integer[] block4Agents = new Integer[]{3,1,2};
 	// base lvl. index0 = TTA
-	int nrTTAs = 0;
+	int nrTTAs = 1;
 	// ============================================================
 
 	// =========== DONT CHANGE ANYTHING AFTER THIS LINE============
@@ -200,17 +192,14 @@ public class NewMapTesting {
 	blockSpawns.add(block3Agents);
 	blockSpawns.add(block4Agents);
 
-	ReedsSheppCarPlanner[] mps = new ReedsSheppCarPlanner[]{TA1_mp, TA1_mp, TA1_mp};
+	boolean spawnBaseLvlSA1 = nrTTAs > 0 ? true : false;
+	boolean spawnBaseLvlSA2 = nrTTAs > 0 ? true : false;
+	
 
-	boolean spawnBaseLvlSA1 = false;
-	boolean spawnBaseLvlSA2 = false;
-	for ( int i=0; i<4; i++ ){
-		if ( blockSpawns.get(i)[2] == 1 && nrTTAs > 0) spawnBaseLvlSA1 = true;
-		if ( blockSpawns.get(i)[2] == 2 && nrTTAs > 0) spawnBaseLvlSA2 = true;
-	}
+	OreState oreState1 = new OreState(MAP_DATA.getCapacity(3), MAP_DATA.getStartOre(3));
+	OreState oreState2 = new OreState(MAP_DATA.getCapacity(3), MAP_DATA.getStartOre(3));
 
 	for ( int agentType =0; agentType<3; agentType++ ){ // spawnOrder = DA,TA,SA,TTA, for every agent type
-		OreState oreState = new OreState(MAP_DATA.getCapacity(3), MAP_DATA.getStartOre(3));
 
 		for ( int block = 0; block <4; block++ ){	// for every block
 			int nrAgents = blockSpawns.get(block)[agentType];
@@ -238,8 +227,13 @@ public class NewMapTesting {
 				for ( int agent = 0; agent<nrAgents; agent++ ){
 					try { Thread.sleep(300); }
 					catch (InterruptedException e) { e.printStackTrace(); }
+
 					int agentID = (block+1)*1000 + 200 + spawnOrderTA[agent];
-					ReedsSheppCarPlanner mp = mps[agent];
+					ReedsSheppCarPlanner mp;
+					if ( spawnOrderTA[agent] == 1 ) mp = mp1;
+					else if ( spawnOrderTA[agent] == 2 ) mp = mp2;
+					else mp = mp3;
+
 					Thread t = new Thread() {
 						@Override
 						public void run() {
@@ -256,12 +250,14 @@ public class NewMapTesting {
 					try { Thread.sleep(300); }
 					catch (InterruptedException e) { e.printStackTrace(); }
 					int agentID = (block+1)*1000 + 300 + spawnOrderSA[agent];
+					OreState os = spawnOrderSA[agent] == 1 ? oreState1 : oreState2;
+					
 					Thread t = new Thread() {
 						@Override
 						public void run() {
 							this.setPriority(Thread.MAX_PRIORITY);	
 
-							StorageAgent SA = new StorageAgent(agentID, router, startTime, MAP_DATA, oreState, pathStorage, TTAmotionPlanner);
+							StorageAgent SA = new StorageAgent(agentID, router, startTime, MAP_DATA, os, pathStorage);
 							SA.start();
 						}
 					};
@@ -277,7 +273,7 @@ public class NewMapTesting {
 				@Override
 				public void run() {
 					this.setPriority(Thread.MAX_PRIORITY);	
-					StorageAgent SA = new StorageAgent(9301, router, startTime, MAP_DATA, oreState, pathStorage, TTAmotionPlanner);
+					StorageAgent SA = new StorageAgent(9301, router, startTime, MAP_DATA, oreState1, pathStorage);
 					SA.start();
 				}
 			};
@@ -291,7 +287,7 @@ public class NewMapTesting {
 				@Override
 				public void run() {
 					this.setPriority(Thread.MAX_PRIORITY);	
-					StorageAgent SA = new StorageAgent(9302, router, startTime, MAP_DATA, oreState, pathStorage, TTAmotionPlanner);
+					StorageAgent SA = new StorageAgent(9302, router, startTime, MAP_DATA, oreState2, pathStorage);
 					SA.start();
 				}
 			};
@@ -300,13 +296,15 @@ public class NewMapTesting {
 	}
 
 	for ( int agent=0; agent < nrTTAs; agent++){
+		try { Thread.sleep(3000); }
+		catch (InterruptedException e) { e.printStackTrace(); }
 		final int agentID = 9400 + (agent+1);
 		Thread t = new Thread() {
 			@Override
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);	
 
-				TransportTruckAgent TTA = new TransportTruckAgent( agentID, tec, MAP_DATA, router, startTime, TTAmotionPlanner, pathStorage);
+				TransportTruckAgent TTA = new TransportTruckAgent( agentID, tec, MAP_DATA, router, startTime, mp3, pathStorage);
 				TTA.start();
 			}
 		};
