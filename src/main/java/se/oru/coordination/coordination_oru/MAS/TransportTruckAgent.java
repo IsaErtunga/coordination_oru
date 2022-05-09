@@ -89,7 +89,7 @@ public class TransportTruckAgent extends MobileAgent{
         };
         stateThread.start();
 
-        this.taskExecutionThread();
+        this.stateHandler();
     }
 
     /**

@@ -54,34 +54,6 @@ public class MobileAgent extends AuctioneerBidderAgent{
         }
     }
 
-    protected void taskExecutionThread(){ // basic task execution function
-        while (true) {
-            this.sleep(TASK_EXECUTION_PERIOD_MS);
-
-            Task task = null;
-            Pose prevToPose = null;
-            synchronized(this.timeSchedule){
-                prevToPose = this.timeSchedule.getPoseAtTime(-1.0);
-                task = this.timeSchedule.getNextEvent();
-            }
-
-            if (task == null) continue;
-
-            this.print("starting mission taskID-->"+task.taskID+" with -->" +task.partner + "\tat time-->"+this.getTime()+"\ttaskStartTime-->"+task.startTime);
-            synchronized(this.tec){ this.tec.addMissions(this.createMission(task, prevToPose)); }
-
-            this.waitUntilCurrentTaskComplete(100); // locking
-            this.sleep((int)this.LOAD_DUMP_TIME*1000);
-
-            this.print("mission DONE taskID-->"+task.taskID+" with -->" +task.partner + "\tat time-->"+this.getTime()+"\ttaskEndTime-->"+task.endTime);
-            if ( task.partner != -1 ){
-                Message doneMessage = new Message(this.robotID, task.partner, "inform", task.taskID + this.separator + "done" +this.separator+ (-task.ore));
-                this.sendMessage(doneMessage);
-            }
-            
-        }
-    }
-
     /**
      * 
      * @param startPose
@@ -108,14 +80,7 @@ public class MobileAgent extends AuctioneerBidderAgent{
         while ( true ){
             synchronized(this.tec){
                 if ( this.tec.isFree(this.robotID) == true ) break;
-                //rr = this.tec.getRobotReport(this.robotID);   
             }
-            // if ( rr.getCriticalPoint() == rr.getPathIndex() ){
-            //     // robot is waiting
-            // } else {
-            //     // robot is moving
-            // }
-
             this.sleep(cycleSleepTimeMs);
         }
         return this.getTime() - now;
