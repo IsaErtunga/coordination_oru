@@ -8,7 +8,7 @@ import java.nio.file.Path;
 
 public class TestFramework {
     public static int EXPERIMENTS = 2;
-    public static int EMPERIMENT_TIME = 1 * 60;
+    public static int EMPERIMENT_TIME = 2 * 60;
     public static int CURRENT_EXPERIMENT;
     private static String experimentValuesPath = "/home/parallels/Projects/coordination_oru/experimentValues";
 
