@@ -7,8 +7,9 @@ import java.nio.file.Files;
 import java.nio.file.Path; 
 
 public class TestFramework {
-    public static int EXPERIMENTS = 1;
+    public static int EXPERIMENTS = 2;
     public static int EMPERIMENT_TIME = 1 * 60;
+    public static int CURRENT_EXPERIMENT;
     private static String experimentValuesPath = "/home/parallels/Projects/coordination_oru/experimentValues";
 
     /**
@@ -36,11 +37,8 @@ public class TestFramework {
         while (sc.hasNext()) {
             if (counter == numCols) break;
             String value = sc.next();
-        
-            if (counter != 0) {
-                result = result + value + ",";
-            }
 
+            result = result + value + ",";
             counter++;
         }
         sc.close();
@@ -48,18 +46,17 @@ public class TestFramework {
 
     }
 
-    public static void runTest() throws IOException {
+    public static void runTest(String content) throws IOException {
         System.out.println("-----------------------------------------------");
         System.out.println("Starting experiment ...");
-
-        
 
         // Create new file for values in experiment
         // File(experimentValuesPath).mkdirs();
         
-        String content = readCSV();
+        //String content = readCSV();
         writeToFile("/values.csv", content);
         String runCommand = "./gradlew run -Pdemo=testMAS.NewMapTesting";
+
         Process proc;
         proc = Runtime.getRuntime().exec(runCommand);
         BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
@@ -79,13 +76,27 @@ public class TestFramework {
             
     }
 
-    public static void main(String[] args)  {
+    public static void main(String[] args) throws FileNotFoundException  {
+        Scanner sc = new Scanner(new File("/home/parallels/Downloads/Testing Scenarios - Blad1.csv"));
+        sc.useDelimiter(",");
         for (int i = 0; i < EXPERIMENTS; i++) {
+            int numCols = 12;
+            int counter = 0;
+            String result = "";
+
+            for (int col = 0; col < numCols; col++) {
+                if (sc.hasNext()) {
+                    String value = sc.next();
+                    result = result + value + ",";
+                }
+            }
+            result = result.replace("\n", "");
             try {
-                runTest();
+                runTest(result);
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
+        sc.close();
     }
 }

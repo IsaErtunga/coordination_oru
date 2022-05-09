@@ -18,9 +18,10 @@ import se.oru.coordination.coordination_oru.ConstantAccelerationForwardModel;
 public class TransportAgent extends MobileAgent{
 
     protected double TIME_WAITING_ORESTATE_CHANGE = 4.0;
+    protected FilePrinter fp;
 
     public TransportAgent(  int r_id, TrajectoryEnvelopeCoordinatorSimulation tec, NewMapData mapInfo,
-                            Router router, long startTime, ReedsSheppCarPlanner mp){
+                            Router router, long startTime, ReedsSheppCarPlanner mp, FilePrinter fp){
         
         this.robotID = r_id;
         this.COLOR = "\033[0;32m";
@@ -38,6 +39,8 @@ public class TransportAgent extends MobileAgent{
 
         this.clockStartTime = startTime;
         this.timeSchedule = new TimeScheduleNew(this.initialPose, this.capacity, mapInfo.getStartOre(r_id));
+
+        this.fp = fp;
 
         this.print("initiated");
         // enter network and broadcast our id to others.
@@ -94,13 +97,23 @@ public class TransportAgent extends MobileAgent{
                 task = this.timeSchedule.getNextEvent();
             }
             if (task == null) continue;
+            // ========= time mission creation
+            double beforePath = this.getTime();
             Mission taskMission = this.createMission(task, prevToPose);
+            double pathCalculationTime = this.getTime() - beforePath;
+            this.print("time to calc path-->" + pathCalculationTime);
+            this.fp.addWaitingTimeMeasurment("calculatePath", pathCalculationTime, this.robotID); 
+            // ===============================
 
             double now = this.getTime();            
             double timeBeforeMissionStarts = task.startTime - now;
+           
+
             if ( timeBeforeMissionStarts > 0.5 ){
                 this.print("starting sleep for-->"+timeBeforeMissionStarts);
-                this.sleep( (int)((timeBeforeMissionStarts-0.5)*1000.0) ); 
+                int sleepTime = (int)((timeBeforeMissionStarts-0.5)*1000.0);
+                this.sleep(sleepTime);
+                this.fp.addWaitingTimeMeasurment("idleUponExecution", sleepTime/1000, this.robotID); 
                 this.print("done sleeping");
             }
 

@@ -1,0 +1,12 @@
+/home/parallels/Projects/coordination_oru/testResults/experiments/WaitingTimes1201.csv,calculatePath,0.11500000000000021
+/home/parallels/Projects/coordination_oru/testResults/experiments/WaitingTimes1203.csv,calculatePath,0.1330000000000009
+/home/parallels/Projects/coordination_oru/testResults/experiments/WaitingTimes1201.csv,idleUponExecution,3.0
+/home/parallels/Projects/coordination_oru/testResults/experiments/WaitingTimes1301.csv,auctionToTask,0.0
+/home/parallels/Projects/coordination_oru/testResults/experiments/WaitingTimes1203.csv,idleUponExecution,3.0
+/home/parallels/Projects/coordination_oru/testResults/experiments/WaitingTimes1301.csv,auctionToTask,0.0
+/home/parallels/Projects/coordination_oru/testResults/experiments/WaitingTimes1203.csv,calculatePath,0.12900000000000134
+/home/parallels/Projects/coordination_oru/testResults/experiments/WaitingTimes1301.csv,auctionToTask,0.0
+/home/parallels/Projects/coordination_oru/testResults/experiments/WaitingTimes1201.csv,calculatePath,0.18100000000000094
+/home/parallels/Projects/coordination_oru/testResults/experiments/WaitingTimes1203.csv,calculatePath,0.23799999999999955
+/home/parallels/Projects/coordination_oru/testResults/experiments/WaitingTimes1301.csv,auctionToTask,0.0
+/home/parallels/Projects/coordination_oru/testResults/experiments/WaitingTimes1203.csv,calculatePath,0.09700000000000131

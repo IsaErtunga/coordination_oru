@@ -13,7 +13,7 @@ import java.lang.Math;
 public class HelpFunctions {
 
     // True = printer is turned on
-    FilePrinter fp = new FilePrinter(true);
+    //FilePrinter fp = new FilePrinter(true);
 
     public PoseSteering[] getPath(HashMap<String, PoseSteering[]> paths, ReedsSheppCarPlanner mp, Pose from, Pose[] to){
         String pathID = String.format("%.2f",from.getX())+"," +String.format("%.2f",from.getY());
@@ -138,7 +138,7 @@ public class HelpFunctions {
      * @param startTime
      * @return time elapsed in seconds. 
      */
-    public long stopTimer(long startTime) {
+    public double stopTimer(long startTime) {
         return (System.currentTimeMillis() - startTime) / 1000;
     }
 

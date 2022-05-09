@@ -28,6 +28,7 @@ import se.oru.coordination.coordination_oru.MAS.TransportTruckAgent;
 import se.oru.coordination.coordination_oru.MAS.Router;
 import se.oru.coordination.coordination_oru.MAS.StorageAgent;
 import se.oru.coordination.coordination_oru.MAS.DrawAgent;
+import se.oru.coordination.coordination_oru.MAS.FilePrinter;
 import se.oru.coordination.coordination_oru.MAS.Message;
 import se.oru.coordination.coordination_oru.MAS.OreState;
 import se.oru.coordination.coordination_oru.MAS.NewMapData;
@@ -96,6 +97,22 @@ public class NewMapTesting {
 	t3.start();
 
 	//================= SIMULATION SETTINGS ======================
+	FilePrinter fp = new FilePrinter(true);
+	Thread printer = new Thread() {
+		@Override
+		public void run() {
+			this.setPriority(Thread.MAX_PRIORITY);	
+			while (true) {
+				fp.writeValueToFile();
+				//fp.printSavedValues();
+
+				try { Thread.sleep(5000); }
+				catch (InterruptedException e) { e.printStackTrace(); }
+			}
+		}
+	};
+	printer.start();
+	
 	NewMapData MAP_DATA = new NewMapData();
 	try {
 		MAP_DATA.readValues();
@@ -150,7 +167,7 @@ public class NewMapTesting {
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);	
 
-				DrawAgent DA = new DrawAgent(agentID, router, MAP_DATA, startTime, TAmotionPlanner );
+				DrawAgent DA = new DrawAgent(agentID, router, MAP_DATA, startTime, TAmotionPlanner);
 				DA.listener();
 			}
 		};
@@ -166,7 +183,7 @@ public class NewMapTesting {
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);	
 
-				TransportAgent r = new TransportAgent( agentID, tec, MAP_DATA, router, startTime, TAmotionPlanner );
+				TransportAgent r = new TransportAgent( agentID, tec, MAP_DATA, router, startTime, TAmotionPlanner, fp);
 				r.start();
 
 			}
@@ -191,7 +208,7 @@ public class NewMapTesting {
 				public void run() {
 					this.setPriority(Thread.MAX_PRIORITY);	
 	
-					StorageAgent SA = new StorageAgent(block1[i], router, startTime, MAP_DATA, oreState, pathStorage, TTAmotionPlanner);
+					StorageAgent SA = new StorageAgent(block1[i], router, startTime, MAP_DATA, oreState, pathStorage, TTAmotionPlanner, fp);
 					SA.start();
 				}
 			};
@@ -206,7 +223,7 @@ public class NewMapTesting {
 				public void run() {
 					this.setPriority(Thread.MAX_PRIORITY);	
 	
-					StorageAgent SA = new StorageAgent(block2[i], router, startTime, MAP_DATA, oreState, pathStorage, TTAmotionPlanner);
+					StorageAgent SA = new StorageAgent(block2[i], router, startTime, MAP_DATA, oreState, pathStorage, TTAmotionPlanner, fp);
 					SA.start();
 	
 				}
@@ -223,7 +240,7 @@ public class NewMapTesting {
 				public void run() {
 					this.setPriority(Thread.MAX_PRIORITY);	
 	
-					StorageAgent SA = new StorageAgent(baseLvl[i], router, startTime, MAP_DATA, oreState, pathStorage, TTAmotionPlanner);
+					StorageAgent SA = new StorageAgent(baseLvl[i], router, startTime, MAP_DATA, oreState, pathStorage, TTAmotionPlanner, fp);
 					SA.start();
 				}
 			};

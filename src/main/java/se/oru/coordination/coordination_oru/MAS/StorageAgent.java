@@ -17,6 +17,8 @@ public class StorageAgent extends AuctioneerBidderAgent{
     protected double ORE_LEVEL_UPPER;
     protected int orderNumber;
 
+    protected FilePrinter fp;
+
 
     public StorageAgent(int r_id, Router router, double capacity, Pose startPos, long startTime){} // deprecated
     public StorageAgent(int r_id, Router router, double capacity, Pose startPos, Pose startPoseRight, long startTime, ReedsSheppCarPlanner mp){} // deprecated
@@ -32,7 +34,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
                         ReedsSheppCarPlanner mp, OreState oreState, HashMap<String, PoseSteering[]> pathStorage){}
 
     public StorageAgent(int r_id, Router router, long startTime, NewMapData mapInfo, OreState oreState,
-                        HashMap<String, PoseSteering[]> pathStorage, ReedsSheppCarPlanner mp){  
+                        HashMap<String, PoseSteering[]> pathStorage, ReedsSheppCarPlanner mp, FilePrinter fp){  
 
         this.robotID = r_id;
         this.COLOR = "\033[1;33m";
@@ -57,6 +59,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
         this.ORE_LEVEL_UPPER = 0.8 * this.capacity;
 
         this.pStorage = pathStorage;
+        this.fp = fp;
 
         this.print("initiated");
         router.enterNetwork(this);
@@ -201,7 +204,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
 
         // Write ore to file
         int docId = this.robotID % 1000;
-        this.fp.write(this.getTime(), this.amount, docId);
+        //this.fp.write(this.getTime(), this.amount, docId);
 
         /*
         double oreChange = Double.parseDouble(this.parseMessage(m, "informInfo")[0]);
@@ -348,10 +351,12 @@ public class StorageAgent extends AuctioneerBidderAgent{
             */
 
             if ( auctionTime != -1.0 ){
+                long startTime = this.startTimer();
                 Message bestOffer = this.offerService(auctionTime);
                 if (bestOffer.isNull == true) continue;
 
                 Task task = this.generateTaskFromOffer(bestOffer);
+                this.fp.addWaitingTimeMeasurment("auctionToTask", this.stopTimer(startTime), this.robotID);
                 double[] occupiedTimes = this.translateTAtaskTimesToOccupyTimes(task, this.occupancyPadding);
                 task.startTime = occupiedTimes[0];
                 task.endTime = occupiedTimes[1];
