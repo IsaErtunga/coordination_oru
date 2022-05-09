@@ -12,8 +12,6 @@ import java.lang.Math;
 
 public class HelpFunctions {
 
-    FilePrinter fp = new FilePrinter();
-
     public PoseSteering[] getPath(HashMap<String, PoseSteering[]> paths, ReedsSheppCarPlanner mp, Pose from, Pose[] to){
         String pathID = String.format("%.2f",from.getX())+"," +String.format("%.2f",from.getY());
 

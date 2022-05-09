@@ -87,9 +87,12 @@ public class NewMapTesting {
 	viz.setInitialTransform(2.0, 1.0, 1.0); // good for MineMap2Block (i think)
 	tec.setVisualization(viz);
 	tec.setUseInternalCriticalPoints(false);
-	
-												//		ROUTER THREAD
-	Router router = new Router();
+
+
+	final long startTime = System.currentTimeMillis();
+												
+	ArrayList<String> loggedMessages = new ArrayList<String>();		//		ROUTER THREAD
+	Router router = new Router(startTime, loggedMessages);
 	Thread t3 = new Thread() {
 		public void run() {
 			router.run();
@@ -97,12 +100,33 @@ public class NewMapTesting {
 	};
 	t3.start();
 
+	// FilePrinter fp = new FilePrinter(true, loggedMessages);			//		FILE PRINTER
+	// Thread printer = new Thread() {
+	// 	@Override
+	// 	public void run() {
+	// 		this.setPriority(Thread.MAX_PRIORITY);	
+	// 		while (true) {
+	// 			fp.logMessages();
+	// 			fp.writeValueToFile();
 
-	//================= SIMULATION SETTINGS ======================
+	// 			try { Thread.sleep(5000); }
+	// 			catch (InterruptedException e) { e.printStackTrace(); }
+	// 		}
+	// 	}
+	// };
+	// printer.start();
+
 
 	//================= SIMULATION SETTINGS ======================
 	NewMapData MAP_DATA = new NewMapData();
+	// try {
+	// 	MAP_DATA.readValues();
+	// } catch (FileNotFoundException e1) {
+	// 	e1.printStackTrace();
+	// }
+	//MAP_DATA.printValues();
 	//================= SIMULATION SETTINGS ======================
+
 	//================= MOTION PLANNERS ======================
 	
 	/*
@@ -184,8 +208,6 @@ public class NewMapTesting {
 		if ( blockSpawns.get(i)[2] == 1 && nrTTAs > 0) spawnBaseLvlSA1 = true;
 		if ( blockSpawns.get(i)[2] == 2 && nrTTAs > 0) spawnBaseLvlSA2 = true;
 	}
-
-	final long startTime = System.currentTimeMillis();
 
 	for ( int agentType =0; agentType<3; agentType++ ){ // spawnOrder = DA,TA,SA,TTA, for every agent type
 		OreState oreState = new OreState(MAP_DATA.getCapacity(3), MAP_DATA.getStartOre(3));

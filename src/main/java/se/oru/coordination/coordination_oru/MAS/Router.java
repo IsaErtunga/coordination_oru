@@ -12,10 +12,16 @@ import java.util.Map;
 public class Router {
 
     protected int periodMili = 250;
+    public ArrayList<String> loggedMessages;
+    public long startTime;
 
     public HashMap<Integer, ArrayList<Message>> inboxes = new HashMap<Integer, ArrayList<Message>>();
     public HashMap<Integer, ArrayList<Message>> outboxes = new HashMap<Integer, ArrayList<Message>>();
-
+    
+    public Router(long startTime, ArrayList<String> loggedMessages) {
+        this.startTime = startTime;
+        this.loggedMessages = loggedMessages;
+    }
 
     public void enterNetwork(TransportAgent a){
         synchronized(this.inboxes){ this.inboxes.put(a.robotID, a.inbox); }
@@ -40,6 +46,11 @@ public class Router {
         synchronized(this.outboxes){ this.outboxes.remove(robotID); }
     }
 
+    protected double getTime(){
+        long diff = System.currentTimeMillis() - this.startTime;
+        return (double)(diff)/1000.0;
+    }
+
 
     public void run(){
         //TODO implement protection to check if robotID exist to router
@@ -57,6 +68,10 @@ public class Router {
                         agentOutbox.clear();
                     }
                 }
+            }
+
+            for (Message msg: outputMessages) {
+                this.loggedMessages.add(this.getTime() + "," + msg.type);
             }
 
             synchronized(this.inboxes){

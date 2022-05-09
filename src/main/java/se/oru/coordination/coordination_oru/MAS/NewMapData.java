@@ -3,8 +3,77 @@ package se.oru.coordination.coordination_oru.MAS;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 import com.vividsolutions.jts.geom.Coordinate;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.HashMap;
+import java.util.Scanner;
 
 public class NewMapData {
+    protected HashMap<String, Integer> values = new HashMap<String, Integer>();
+
+    public void readValues() throws FileNotFoundException {
+        Scanner sc = new Scanner(new File("/home/parallels/Projects/coordination_oru/experimentValues/values.csv"));
+        sc.useDelimiter(",");
+
+        int numCols = 12;
+        int counter = 0;
+        String result = "";
+ 
+        while (sc.hasNext()) {
+            if (counter == numCols) break;
+            int value = Integer.parseInt(sc.next());
+        
+            switch(counter) {
+                case 1:
+                    values.put("blocks", value);
+                    break;
+                case 2:
+                    values.put("DAs", value);
+                    break;
+                case 3:
+                    values.put("TAs", value);
+                    break;
+                case 4:
+                    values.put("SAs", value);
+                    break;
+                case 5:
+                    values.put("TTas", value);
+                    break;
+                case 6:
+                    values.put("TASpeed", value);
+                    break;
+                case 7:
+                    values.put("TTASpeed", value);
+                    break;
+                case 8:
+                    values.put("DACap", value);
+                    break;
+                case 9:
+                    values.put("TACap", value);
+                    break;
+                case 10:
+                    values.put("SACap", value);
+                    break;
+                case 11:
+                    values.put("TTACap", value);
+                    break;
+                default:
+                    break;
+              }
+
+            counter++;
+        }
+        sc.close();
+    }
+
+    public void printValues() {
+        System.out.println("_________________Parameter Values________________");
+        for (String name: values.keySet()) {
+            String key = name.toString();
+            String value = values.get(name).toString();
+            System.out.println(key + " " + value);
+        }
+    }
 
     public Pose getPose(int robotID){
         int block = robotID / 1000;

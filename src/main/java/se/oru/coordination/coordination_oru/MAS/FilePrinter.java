@@ -1,21 +1,54 @@
 package se.oru.coordination.coordination_oru.MAS;
 
-
-// Java Program to Write Into a File
-// using writeString() Method
- 
-// Importing required classes
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
- 
+import java.util.HashMap;
+import java.util.Scanner;    
+
 // Main class
 public class FilePrinter {
     protected String separator = ",";
+    protected boolean isActive;
+    protected String EXPERIMENT_NR;
+    public ArrayList<String> loggedMessages;
+    public ArrayList<String> experiments = new ArrayList<String>(); 
+
+    private String path = "/home/parallels/Documents/coordination_oru/testResults/experiments";
     protected ArrayList<Integer> robots = new ArrayList<Integer>();
+
+    public FilePrinter(boolean isActive, ArrayList<String> loggedMessages) {
+        this.isActive = isActive;
+        if (isActive) {
+            try {
+                readValues();
+                this.loggedMessages = loggedMessages;
+                // this.path = this.path + this.EXPERIMENT_NR;
+                // new File(this.path).mkdirs();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void readValues() throws FileNotFoundException {
+        Scanner sc = new Scanner(new File("/home/parallels/Documents/coordination_oru/experimentValues/values.csv"));
+        sc.useDelimiter(",");
+        this.EXPERIMENT_NR = sc.next();  
+        sc.close();
+    }
+
+    protected void getDataAndTime() {
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd_HH:mm:ss");  
+        LocalDateTime now = LocalDateTime.now();  
+        System.out.println(dtf.format(now));  
+    }
 
     /**
      * For writing storage state into file
@@ -23,29 +56,86 @@ public class FilePrinter {
      * @param ore
      * @throws IOException
      */
-    protected void write(double time, double ore, int robotID) throws IOException {
-        Path path = Path.of("/home/parallels/" + "OreState" + robotID + ".csv");
-        String content = time + this.separator + ore + "\n";
-        if (Files.exists(path)) {
-            Files.write(path, content.getBytes(), StandardOpenOption.APPEND);
-        } else {
-            Files.write(path, content.getBytes(), StandardOpenOption.CREATE);
+    protected void logOreState(double time, double ore, int robotID) {
+        if (isActive) {
+            String content = this.EXPERIMENT_NR + this.separator + robotID + this.separator + "ORESTATE" +  this.separator + time + this.separator + ore + "\n";
+            synchronized(this.experiments) {
+                this.experiments.add(content);
+            }
         }
+    }
+
+    /**
+     * Function that logs messages with times
+     * @param time
+     */
+    public void logMessages() {
+        if (isActive) {
+            ArrayList<String> loggedMessagesCopy;
+            synchronized(this.loggedMessages) {
+                loggedMessagesCopy = new ArrayList<String>(this.loggedMessages);
+                this.loggedMessages.clear();
+            }
+
+            String content = "";
+            for (String msg: loggedMessagesCopy) {
+                content += this.EXPERIMENT_NR + this.separator + "MESSAGE" + this.separator + msg + "\n";
+            }
+            synchronized(this.experiments) {
+                this.experiments.add(content);
+            }
+        }
+    } 
+
+    /**
+     * 
+     * @param time
+     * @param waitTime
+     */
+    protected void addWaitingTimeMeasurment(String type, double waitTime, int robotID) {
+        if (isActive) {
+            String content = this.EXPERIMENT_NR + this.separator + robotID + this.separator + "TIME" + this.separator + type + this.separator + waitTime + "\n";
+            synchronized(this.experiments) {
+                this.experiments.add(content);
+            }
+        }
+    } 
+
+    /**
+     * Writes to file with provided path and content
+     * @param path
+     * @param content
+     */
+    private void writeToFile(String content) {
+        Path path = Path.of(this.path);
+        try {
+            if (Files.exists(path)) {
+                Files.write(path, content.getBytes(), StandardOpenOption.APPEND);
+            } else {
+                Files.write(path, content.getBytes(), StandardOpenOption.CREATE);
+            }
+        } catch (IOException e) {
+                e.printStackTrace();
+        }
+    }
+
+    public void writeValueToFile() {
+        ArrayList<String> experimentsCopy;
+        synchronized(this.experiments) {
+            experimentsCopy = new ArrayList<String>(this.experiments);
+            this.experiments.clear();
+        }
+        
+        String testContent = "";
+        for (String experiment: experimentsCopy) {
+            testContent += experiment;
+            //System.out.println("EXPERIMENT: ->" + experiment);
+        }
+        this.writeToFile(testContent);
     }
  
     public static void main(String[] args) {
-    //     FilePrinter fp = new FilePrinter();
-    //     try {
-    //         fp.write(0.5, 20.0, 1);
-    //         fp.write(0.5, 20.0, 1);
-    //         fp.write(0.5, 23.0, 2);
-    //         fp.write(0.5, 23.0, 1);
-    //         fp.write(0.5, 23.0, 2);
-    //     } catch (IOException e) {
-    //         // TODO Auto-generated catch block
-    //         e.printStackTrace();
-    //     }
-    // }
- 
+        // FilePrinter fp = new FilePrinter(); 
+
     }
 }
