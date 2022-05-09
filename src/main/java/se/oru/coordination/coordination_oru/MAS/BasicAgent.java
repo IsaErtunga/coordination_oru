@@ -37,7 +37,8 @@ public class BasicAgent extends HelpFunctions{
     protected double TTAcapacity;
 
     // For testing
-    //protected FilePrinter fp;
+    // protected static FilePrinter fp = null;
+    // protected static ArrayList<String> loggedMessages = new ArrayList<String>();
 
     // for auction
     protected ArrayList<Message> offers = new ArrayList<Message>();
@@ -59,7 +60,8 @@ public class BasicAgent extends HelpFunctions{
 
         }
         synchronized(this.outbox){ this.outbox.add(m); }
-        //this.fp.addMessageCounter(this.getTime(), m.type);
+        // synchronized (loggedMessages) {loggedMessages.add(this.getTime() + ","+ m.type);}
+    
         return taskID;
     }
 

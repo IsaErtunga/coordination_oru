@@ -139,7 +139,7 @@ public class HelpFunctions {
      * @return time elapsed in seconds. 
      */
     public double stopTimer(long startTime) {
-        return (System.currentTimeMillis() - startTime) / 1000;
+        return (System.currentTimeMillis() - startTime) / 1000.0;
     }
 
     /**

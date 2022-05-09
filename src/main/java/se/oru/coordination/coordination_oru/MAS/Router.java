@@ -16,6 +16,19 @@ public class Router {
     public HashMap<Integer, ArrayList<Message>> inboxes = new HashMap<Integer, ArrayList<Message>>();
     public HashMap<Integer, ArrayList<Message>> outboxes = new HashMap<Integer, ArrayList<Message>>();
 
+    public ArrayList<String> loggedMessages;
+    public long startTime;
+
+    public Router(long startTime, ArrayList<String> loggedMessages) {
+        this.startTime = startTime;
+        this.loggedMessages = loggedMessages;
+    }
+
+    protected double getTime(){
+        long diff = System.currentTimeMillis() - this.startTime;
+        return (double)(diff)/1000.0;
+    }
+
 
     public void enterNetwork(TransportAgent a){
         synchronized(this.inboxes){ this.inboxes.put(a.robotID, a.inbox); }
@@ -55,6 +68,10 @@ public class Router {
                     outputMessages.addAll(t.getValue());
                     t.getValue().clear();
                 }
+            }
+
+            for (Message msg: outputMessages) {
+                this.loggedMessages.add(this.getTime() + "," + msg.type);
             }
 
             synchronized(this.inboxes){

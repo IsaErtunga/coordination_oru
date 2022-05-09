@@ -17,17 +17,18 @@ public class FilePrinter {
     protected String separator = ",";
     protected boolean isActive;
     protected String EXPERIMENT_NR;
-    public HashMap<String, ArrayList<String>> savedValues = new HashMap<String, ArrayList<String>>();
+    public ArrayList<String> loggedMessages;
     public ArrayList<String> experiments = new ArrayList<String>(); 
 
     private String path = "/home/parallels/Projects/coordination_oru/testResults/experiments";
     protected ArrayList<Integer> robots = new ArrayList<Integer>();
 
-    public FilePrinter(boolean isActive) {
+    public FilePrinter(boolean isActive, ArrayList<String> loggedMessages) {
         this.isActive = isActive;
         if (isActive) {
             try {
                 readValues();
+                this.loggedMessages = loggedMessages;
                 // this.path = this.path + this.EXPERIMENT_NR;
                 // new File(this.path).mkdirs();
             } catch (FileNotFoundException e) {
@@ -55,19 +56,11 @@ public class FilePrinter {
      * @param ore
      * @throws IOException
      */
-    protected void write(double time, double ore, int robotID) {
+    protected void logOreState(double time, double ore, int robotID) {
         if (isActive) {
-            String path = this.path + "/OreState" + robotID + ".csv";
-            String content = time + this.separator + ore + "\n";
-            //this.writeToFile(path, content);
-            if (this.savedValues.containsKey(path)) {
-                synchronized(this.savedValues) {
-                    this.savedValues.get(path).add(content);
-                }
-            } else {
-                synchronized(this.savedValues) {
-                    this.savedValues.put(path, new ArrayList<String>());
-                }
+            String content = this.EXPERIMENT_NR + this.separator + robotID + this.separator + "ORESTATE" +  this.separator + time + this.separator + ore + "\n";
+            synchronized(this.experiments) {
+                this.experiments.add(content);
             }
         }
     }
@@ -76,11 +69,21 @@ public class FilePrinter {
      * Function that logs messages with times
      * @param time
      */
-    protected void addMessageCounter(Double time, String messageType) {
+    public void logMessages() {
         if (isActive) {
-            Path path = Path.of(this.path + "/Messages" + ".csv");
-            String content = time + this.separator + messageType + "\n";
-            //this.writeToFile(path, content);
+            ArrayList<String> loggedMessagesCopy;
+            synchronized(this.loggedMessages) {
+                loggedMessagesCopy = new ArrayList<String>(this.loggedMessages);
+                this.loggedMessages.clear();
+            }
+
+            String content = "";
+            for (String msg: loggedMessagesCopy) {
+                content += this.EXPERIMENT_NR + this.separator + "MESSAGE" + this.separator + msg + "\n";
+            }
+            synchronized(this.experiments) {
+                this.experiments.add(content);
+            }
         }
     } 
 
@@ -91,9 +94,7 @@ public class FilePrinter {
      */
     protected void addWaitingTimeMeasurment(String type, double waitTime, int robotID) {
         if (isActive) {
-            String path = this.path + "/WaitingTimes" + robotID + ".csv";
-            String content = path + this.separator +  type + this.separator + waitTime + "\n";
-            //this.writeToFile(path, content);
+            String content = this.EXPERIMENT_NR + this.separator + robotID + this.separator + "TIME" + this.separator + type + this.separator + waitTime + "\n";
             synchronized(this.experiments) {
                 this.experiments.add(content);
             }
@@ -118,17 +119,7 @@ public class FilePrinter {
         }
     }
 
-    public void printSavedValues() {
-        for (String path: this.savedValues.keySet()) {
-            ArrayList<String> values = this.savedValues.get(path);
-            System.out.println(path + " -> [" + values.toString() +"]");
-        }
-    }
-
-
-
     public void writeValueToFile() {
-    
         ArrayList<String> experimentsCopy;
         synchronized(this.experiments) {
             experimentsCopy = new ArrayList<String>(this.experiments);

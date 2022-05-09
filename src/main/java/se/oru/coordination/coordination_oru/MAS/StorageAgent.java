@@ -204,7 +204,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
 
         // Write ore to file
         int docId = this.robotID % 1000;
-        //this.fp.write(this.getTime(), this.amount, docId);
+        this.fp.logOreState(this.getTime(), this.amount, docId);
 
         /*
         double oreChange = Double.parseDouble(this.parseMessage(m, "informInfo")[0]);
@@ -356,7 +356,8 @@ public class StorageAgent extends AuctioneerBidderAgent{
                 if (bestOffer.isNull == true) continue;
 
                 Task task = this.generateTaskFromOffer(bestOffer);
-                this.fp.addWaitingTimeMeasurment("auctionToTask", this.stopTimer(startTime), this.robotID);
+                Double timeElapsed = this.stopTimer(startTime);
+                this.fp.addWaitingTimeMeasurment("auctionToTask", timeElapsed, this.robotID);
                 double[] occupiedTimes = this.translateTAtaskTimesToOccupyTimes(task, this.occupancyPadding);
                 task.startTime = occupiedTimes[0];
                 task.endTime = occupiedTimes[1];

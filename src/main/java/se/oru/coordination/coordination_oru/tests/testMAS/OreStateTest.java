@@ -156,9 +156,9 @@ public class OreStateTest {
 
 	double SAOreCapacity = 200.0;
 	double SAStartOre = 0.0;
-
+	ArrayList<String> loggedMessages = new ArrayList<String>();
     												/*		ROUTER THREAD	*/
-	Router router = new Router();
+	Router router = new Router((long) 0.0, loggedMessages);
 	Thread t3 = new Thread() {
 		public void run() {
 			router.run();

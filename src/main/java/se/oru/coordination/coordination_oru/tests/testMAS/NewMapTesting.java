@@ -86,9 +86,10 @@ public class NewMapTesting {
 	tec.setUseInternalCriticalPoints(false);
 
     final long startTime = System.currentTimeMillis();
+	ArrayList<String> loggedMessages = new ArrayList<String>();
 	
     												//		ROUTER THREAD
-	Router router = new Router();
+	Router router = new Router(startTime, loggedMessages);
 	Thread t3 = new Thread() {
 		public void run() {
 			router.run();
@@ -97,14 +98,14 @@ public class NewMapTesting {
 	t3.start();
 
 	//================= SIMULATION SETTINGS ======================
-	FilePrinter fp = new FilePrinter(true);
+	FilePrinter fp = new FilePrinter(true, loggedMessages);
 	Thread printer = new Thread() {
 		@Override
 		public void run() {
 			this.setPriority(Thread.MAX_PRIORITY);	
 			while (true) {
+				fp.logMessages();
 				fp.writeValueToFile();
-				//fp.printSavedValues();
 
 				try { Thread.sleep(5000); }
 				catch (InterruptedException e) { e.printStackTrace(); }
