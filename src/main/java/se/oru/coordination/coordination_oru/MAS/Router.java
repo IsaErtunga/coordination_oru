@@ -11,7 +11,7 @@ import java.util.Map;
 
 public class Router {
 
-    protected int periodMili = 200;
+    protected int periodMili = 250;
 
     public HashMap<Integer, ArrayList<Message>> inboxes = new HashMap<Integer, ArrayList<Message>>();
     public HashMap<Integer, ArrayList<Message>> outboxes = new HashMap<Integer, ArrayList<Message>>();
@@ -49,35 +49,37 @@ public class Router {
         while(true){
             //this.print();
 
-            synchronized(this.outboxes){ 
-                
+            synchronized(this.outboxes){
                 for (Map.Entry<Integer, ArrayList<Message>> t : this.outboxes.entrySet()) {
-                    outputMessages.addAll(t.getValue());
-                    t.getValue().clear();
+                    ArrayList<Message> agentOutbox = t.getValue();
+                    synchronized(agentOutbox){
+                        outputMessages.addAll(agentOutbox);
+                        agentOutbox.clear();
+                    }
                 }
             }
 
             synchronized(this.inboxes){
                 for (Message m : outputMessages){
-
+                    
                     if ( m.receiver.size() <= 0 ){      // if receiver int arr size = 0: broadcast
                         for (Map.Entry<Integer, ArrayList<Message>> t : this.inboxes.entrySet()) {
                             if ( t.getKey() == m.sender ) continue;
-
-                            this.inboxes.get(t.getKey()).add(new Message(m.sender, t.getKey(),m.type, m.body));
+                            ArrayList<Message> agentInbox = this.inboxes.get(t.getKey());
+                            synchronized(agentInbox){ agentInbox.add(new Message(m.sender, t.getKey(),m.type, m.body));  }
                         }
                     }
 
                     else{                               // send to receiver id's
                         for (int receiver : m.receiver){
-                            this.inboxes.get(receiver).add(new Message(m.sender, receiver, m.type, m.body)); 
+                            ArrayList<Message> agentInbox = this.inboxes.get(receiver);
+                            synchronized(agentInbox){ agentInbox.add(new Message(m.sender, receiver, m.type, m.body));  }
                         }
                     }
                 }
             }
             
             outputMessages.clear();
-
             try { Thread.sleep(this.periodMili); }
             catch (InterruptedException e) { e.printStackTrace(); }
         }

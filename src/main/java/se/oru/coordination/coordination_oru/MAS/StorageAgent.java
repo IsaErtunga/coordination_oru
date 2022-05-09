@@ -317,8 +317,8 @@ public class StorageAgent extends AuctioneerBidderAgent{
             double lookOre;
             synchronized(this.timeSchedule){
                 if ( this.timeSchedule.getSize() > this.taskCap) continue;
-                this.print("-- in status. about to get auction time");
-                this.timeSchedule.printSchedule(this.COLOR);
+                // this.print("-- in status. about to get auction time");
+                // this.timeSchedule.printSchedule(this.COLOR);
                 lookOre = this.timeSchedule.getLowestOreAfterTime(this.getTime()+10.0+this.LOAD_DUMP_TIME);
             }
 
@@ -383,8 +383,8 @@ public class StorageAgent extends AuctioneerBidderAgent{
                 task.endTime = occupiedTimes[1];
                 synchronized(this.timeSchedule){
                     this.timeSchedule.addEvent(task);
-                    this.print("task added:");
-                    this.timeSchedule.printSchedule(this.COLOR);
+                    // this.print("task added:");
+                    // this.timeSchedule.printSchedule(this.COLOR);
                 }
             } else {
                 this.print("-- in status : all seems good...");

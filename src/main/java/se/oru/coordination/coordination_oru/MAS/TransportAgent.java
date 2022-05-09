@@ -73,7 +73,9 @@ public class TransportAgent extends MobileAgent{
         };
         stateThread.start();
 
-        this.taskExecutionThread();
+        //this.taskExecutionThread();
+
+        this.stateHandler();
     
 
     }

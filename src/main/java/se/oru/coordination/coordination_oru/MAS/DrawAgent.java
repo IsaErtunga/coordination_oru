@@ -18,7 +18,7 @@ public class DrawAgent extends BidderAgent{
 
     public DrawAgent(   int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp,
                         long startTime){} // old, not used anymore
-    public DrawAgent( int robotID, Router router, NewMapData mapInfo, long startTime, ReedsSheppCarPlanner mp){
+    public DrawAgent( int robotID, Router router, NewMapData mapInfo, long startTime){
 
         this.robotID = robotID;
         this.COLOR = "\033[0;36m";
@@ -26,7 +26,6 @@ public class DrawAgent extends BidderAgent{
         this.capacity = mapInfo.getCapacity(robotID);
         this.amount= mapInfo.getStartOre(robotID);
 
-        this.mp = mp;
         this.agentVelocity = mapInfo.getVelocity(2); // 2 is for TA beacuse it only interacts with TA's
         this.TAcapacity = mapInfo.getCapacity(2);
         this.initialPose = mapInfo.getPose(robotID);

@@ -281,8 +281,8 @@ public class TransportTruckAgent extends MobileAgent{
                     this.print("TASK ABORTED");
                     this.sendMessage(new Message(this.robotID, task.partner, "inform", Integer.toString(task.taskID)+this.separator+"abort"));
                 }
-                this.print("initialState -- task added");
-                this.timeSchedule.printSchedule(this.COLOR);
+                // this.print("initialState -- task added");
+                // this.timeSchedule.printSchedule(this.COLOR);
             }
 
             else {

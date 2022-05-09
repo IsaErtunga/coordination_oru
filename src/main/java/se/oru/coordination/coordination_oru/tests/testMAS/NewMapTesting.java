@@ -5,12 +5,14 @@ import java.util.Calendar;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Arrays;
+import java.util.logging.Level;
 
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 import org.metacsp.multi.spatioTemporal.paths.PoseSteering;
 import org.sat4j.ExitCode;
 
 import com.vividsolutions.jts.geom.Coordinate;
+import org.metacsp.utility.logging.MetaCSPLogging;
 
 import se.oru.coordination.coordination_oru.ConstantAccelerationForwardModel;
 import se.oru.coordination.coordination_oru.CriticalSection;
@@ -57,6 +59,8 @@ public class NewMapTesting {
 		}
 	});
 
+	MetaCSPLogging.setLevel(Level.OFF);
+
 	//Define robot geometries (here, the same for all robots)
 
 	double xl = 4.0;
@@ -75,7 +79,7 @@ public class NewMapTesting {
 
 	// viz map file
 	final String yamlFile = "maps/MineMap4Block.yaml";
-
+	double resolution = 0.1;
 
 	//Set up a simple GUI
 	BrowserVisualization viz = new BrowserVisualization();
@@ -83,10 +87,8 @@ public class NewMapTesting {
 	viz.setInitialTransform(2.0, 1.0, 1.0); // good for MineMap2Block (i think)
 	tec.setVisualization(viz);
 	tec.setUseInternalCriticalPoints(false);
-
-    final long startTime = System.currentTimeMillis();
 	
-    												//		ROUTER THREAD
+												//		ROUTER THREAD
 	Router router = new Router();
 	Thread t3 = new Thread() {
 		public void run() {
@@ -101,17 +103,29 @@ public class NewMapTesting {
 	//================= SIMULATION SETTINGS ======================
 	NewMapData MAP_DATA = new NewMapData();
 	//================= SIMULATION SETTINGS ======================
-
 	//================= MOTION PLANNERS ======================
-	ReedsSheppCarPlanner TAmotionPlanner = new ReedsSheppCarPlanner();
-	TAmotionPlanner.setFootprint(MAP_DATA.getAgentSize(2));
-	TAmotionPlanner.setTurningRadius(2.0); 				//default is 1.0
-	TAmotionPlanner.setDistanceBetweenPathPoints(0.5); 	//default is 0.5 
-	TAmotionPlanner.setMap(yamlFile);
+	ReedsSheppCarPlanner TA1_mp = new ReedsSheppCarPlanner(ReedsSheppCarPlanner.PLANNING_ALGORITHM.LBTRRT);
+	TA1_mp.setPlanningTimeInSecs(5.0);
+	TA1_mp.setFootprint(MAP_DATA.getAgentSize(2));
+	TA1_mp.setTurningRadius(2.0); 				//default is 1.0
+	TA1_mp.setDistanceBetweenPathPoints(1.0); 	//default is 0.5 
+	TA1_mp.setMap(yamlFile);
+	ReedsSheppCarPlanner TA2_mp = new ReedsSheppCarPlanner(ReedsSheppCarPlanner.PLANNING_ALGORITHM.LBTRRT);
+	TA2_mp.setPlanningTimeInSecs(5.0);
+	TA2_mp.setFootprint(MAP_DATA.getAgentSize(2));
+	TA2_mp.setTurningRadius(2.0); 				//default is 1.0
+	TA2_mp.setDistanceBetweenPathPoints(1.0); 	//default is 0.5 
+	TA2_mp.setMap(yamlFile);
+	ReedsSheppCarPlanner TA3_mp = new ReedsSheppCarPlanner(ReedsSheppCarPlanner.PLANNING_ALGORITHM.LBTRRT);
+	TA3_mp.setPlanningTimeInSecs(5.0);
+	TA3_mp.setFootprint(MAP_DATA.getAgentSize(2));
+	TA3_mp.setTurningRadius(2.0); 				//default is 1.0
+	TA3_mp.setDistanceBetweenPathPoints(1.0); 	//default is 0.5 
+	TA3_mp.setMap(yamlFile);
 	ReedsSheppCarPlanner TTAmotionPlanner = new ReedsSheppCarPlanner();
 	TTAmotionPlanner.setFootprint(MAP_DATA.getAgentSize(4));
 	TTAmotionPlanner.setTurningRadius(2.0); 				//default is 1.0
-	TTAmotionPlanner.setDistanceBetweenPathPoints(0.5); 	//default is 0.5 
+	TTAmotionPlanner.setDistanceBetweenPathPoints(1.0); 	//default is 0.5 
 	TTAmotionPlanner.setMap(yamlFile);
 	//================= MOTION PLANNERS ======================
 
@@ -138,15 +152,13 @@ public class NewMapTesting {
 	// ============== HERE YOU ALTER THE SCENARIO =================
 
 	// agents spawning in rep, blocks. index0 = DA's, index2 = TA's, index3 = SA's
-	Integer[] block1Agents = new Integer[]{5,2,1}; 
-	Integer[] block2Agents = new Integer[]{1,1,1};
+	Integer[] block1Agents = new Integer[]{5,3,1}; 
+	Integer[] block2Agents = new Integer[]{0,0,0};
 	Integer[] block3Agents = new Integer[]{0,0,0};
 	Integer[] block4Agents = new Integer[]{0,0,0};
 	// base lvl. index0 = TTA
-	int nrTTAs = 1;
-
+	int nrTTAs = 0;
 	// ============================================================
-
 
 	// =========== DONT CHANGE ANYTHING AFTER THIS LINE============
 	ArrayList<Integer[]> blockSpawns = new ArrayList<Integer[]>();
@@ -155,12 +167,16 @@ public class NewMapTesting {
 	blockSpawns.add(block3Agents);
 	blockSpawns.add(block4Agents);
 
+	ReedsSheppCarPlanner[] mps = new ReedsSheppCarPlanner[]{TA1_mp, TA2_mp, TA3_mp};
+
 	boolean spawnBaseLvlSA1 = false;
 	boolean spawnBaseLvlSA2 = false;
 	for ( int i=0; i<4; i++ ){
 		if ( blockSpawns.get(i)[2] == 1 && nrTTAs > 0) spawnBaseLvlSA1 = true;
 		if ( blockSpawns.get(i)[2] == 2 && nrTTAs > 0) spawnBaseLvlSA2 = true;
 	}
+
+	final long startTime = System.currentTimeMillis();
 
 	for ( int agentType =0; agentType<3; agentType++ ){ // spawnOrder = DA,TA,SA,TTA, for every agent type
 		OreState oreState = new OreState(MAP_DATA.getCapacity(3), MAP_DATA.getStartOre(3));
@@ -179,7 +195,7 @@ public class NewMapTesting {
 						public void run() {
 							this.setPriority(Thread.MAX_PRIORITY);	
 			
-							DrawAgent DA = new DrawAgent(agentID, router, MAP_DATA, startTime, TAmotionPlanner );
+							DrawAgent DA = new DrawAgent(agentID, router, MAP_DATA, startTime );
 							DA.listener();
 						}
 					};
@@ -192,19 +208,16 @@ public class NewMapTesting {
 					try { Thread.sleep(300); }
 					catch (InterruptedException e) { e.printStackTrace(); }
 					int agentID = (block+1)*1000 + 200 + spawnOrderTA[agent];
+					ReedsSheppCarPlanner mp = mps[agent];
 					Thread t = new Thread() {
 						@Override
 						public void run() {
-							this.setPriority(Thread.MAX_PRIORITY);	
-			
-							TransportAgent r = new TransportAgent( agentID, tec, MAP_DATA, router, startTime, TAmotionPlanner );
+							TransportAgent r = new TransportAgent( agentID, tec, MAP_DATA, router, startTime, mp );
 							r.start();
 						}
-							
 					};
 					t.start();
 				}
-
 
 			} else if ( agentType == 2 ){ //spawn SA
 				int[] spawnOrderSA = new int[]{1,2};
