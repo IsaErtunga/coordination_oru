@@ -96,6 +96,21 @@ public class FilePrinter {
         }
     } 
 
+        /**
+     * 
+     * @param time
+     * @param waitTime
+     */
+    protected void addDistanceMeasurment(String type, double distance, int robotID) {
+        if (isActive) {
+            double timeStamp = this.getTime();
+            String content = this.EXPERIMENT_NR + this.separator + robotID + this.separator + "DISTANCE" + this.separator + type + this.separator + timeStamp + this.separator + distance + "\n";
+            synchronized(this.experiments) {
+                this.experiments.add(content);
+            }
+        }
+    } 
+
     /**
      * 
      * @param time

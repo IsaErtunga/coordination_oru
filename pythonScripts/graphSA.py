@@ -44,7 +44,6 @@ def plotOreState(oreStates):
             robotOreState[0].append(float(oreState[3]))
             robotOreState[1].append(float(oreState[4]))
     
-    print(oreStateById)
     for plot in oreStateById.keys():
         plt.figure()
         plt.step(oreStateById[plot][0], oreStateById[plot][1], label="Ore state")

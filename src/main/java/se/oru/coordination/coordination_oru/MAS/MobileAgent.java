@@ -212,11 +212,8 @@ public class MobileAgent extends AuctioneerBidderAgent{
         double planTime = 2.0;
 
         this.mp.setPlanningTimeInSecs(planTime);
-        long startTime = this.startTimer();
         sNextMission = this.createMission(sNextTask, sCurrTask == null ? this.initialPose : sCurrTask.toPose);
 
-        Double elapsedTime = this.stopTimer(startTime);
-        this.fp.addWaitingTimeMeasurment("pathCalculation", elapsedTime, this.robotID); 
 
         PoseSteering[] path = sNextMission.getPath();
         double pathDist = this.calculatePathDist(path);
@@ -253,6 +250,7 @@ public class MobileAgent extends AuctioneerBidderAgent{
             } 
 
             if ( missionIsDone ){ // if we are done with mission
+                this.fp.addDistanceMeasurment("Task", this.calculatePathDist(sCurrMission.getPath()), this.robotID);
                 this.sleep((int)this.LOAD_DUMP_TIME*1000);
                 Message doneMessage = new Message(this.robotID, sCurrTask.partner, "inform", sCurrTask.taskID + this.separator + "done" + "," + sCurrTask.ore);
                 this.sendMessage(doneMessage);
