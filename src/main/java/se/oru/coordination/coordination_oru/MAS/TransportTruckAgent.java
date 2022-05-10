@@ -32,7 +32,7 @@ public class TransportTruckAgent extends MobileAgent{
                         ReedsSheppCarPlanner mp, Pose startPos, Router router){}
 
     public TransportTruckAgent( int r_id, TrajectoryEnvelopeCoordinatorSimulation tec, NewMapData mapInfo, Router router,
-                                long startTime, ReedsSheppCarPlanner mp, HashMap<String, PoseSteering[]> pathStorage){
+                                long startTime, ReedsSheppCarPlanner mp, HashMap<String, PoseSteering[]> pathStorage, FilePrinter fp){
         
         
         this.robotID = r_id;
@@ -52,6 +52,8 @@ public class TransportTruckAgent extends MobileAgent{
 
         this.LOAD_DUMP_TIME = 0.0;//15.0 * 5.6 / (this.agentVelocity*2);
         this.taskCap = 2;
+
+        this.fp = fp;
 
         this.timeSchedule = new TimeScheduleNew(this.initialPose, this.capacity, mapInfo.getStartOre(r_id));
 
