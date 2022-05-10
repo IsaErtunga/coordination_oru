@@ -259,7 +259,7 @@ public class NewMapTesting {
 						public void run() {
 							this.setPriority(Thread.MAX_PRIORITY);	
 
-							StorageAgent SA = new StorageAgent(agentID, router, startTime, MAP_DATA, oreState, pathStorage, TTAmotionPlanner, fp);
+							StorageAgent SA = new StorageAgent(agentID, router, startTime, MAP_DATA, os, pathStorage, fp);
 							SA.start();
 						}
 					};
@@ -275,7 +275,7 @@ public class NewMapTesting {
 				@Override
 				public void run() {
 					this.setPriority(Thread.MAX_PRIORITY);	
-					StorageAgent SA = new StorageAgent(9301, router, startTime, MAP_DATA, oreState, pathStorage, TTAmotionPlanner, fp);
+					StorageAgent SA = new StorageAgent(9301, router, startTime, MAP_DATA, oreState1, pathStorage, fp);
 					SA.start();
 				}
 			};
@@ -289,7 +289,7 @@ public class NewMapTesting {
 				@Override
 				public void run() {
 					this.setPriority(Thread.MAX_PRIORITY);	
-					StorageAgent SA = new StorageAgent(9302, router, startTime, MAP_DATA, oreState, pathStorage, TTAmotionPlanner, fp);
+					StorageAgent SA = new StorageAgent(9302, router, startTime, MAP_DATA, oreState2, pathStorage, fp);
 					SA.start();
 				}
 			};

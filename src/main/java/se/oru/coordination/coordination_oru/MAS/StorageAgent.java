@@ -28,7 +28,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
                         ReedsSheppCarPlanner mp, OreState oreState, HashMap<String, PoseSteering[]> pathStorage){}
 
     public StorageAgent(int r_id, Router router, long startTime, NewMapData mapInfo, OreState oreState,
-                        HashMap<String, PoseSteering[]> pathStorage, ReedsSheppCarPlanner mp, FilePrinter fp){  
+                        HashMap<String, PoseSteering[]> pathStorage, FilePrinter fp){  
 
         this.robotID = r_id;
         this.COLOR = "\033[1;33m";
