@@ -308,7 +308,7 @@ public class NewMapTesting {
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);	
 
-				TransportTruckAgent TTA = new TransportTruckAgent( agentID, tec, MAP_DATA, router, startTime, mp3, pathStorage);
+				TransportTruckAgent TTA = new TransportTruckAgent( agentID, tec, MAP_DATA, router, startTime, mp3, pathStorage,fp);
 				TTA.start();
 			}
 		};

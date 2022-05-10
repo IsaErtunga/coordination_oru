@@ -22,8 +22,9 @@ public class FilePrinter {
     public ArrayList<String> loggedMessages;
     public ArrayList<String> experiments = new ArrayList<String>(); 
     
-
-    private String path = "/home/parallels/Projects/coordination_oru/testResults/experiments.csv";
+    private String path = "/home/parallels/Documents/coordination_oru/testResults/experiments.csv";
+    private String Alexpath = "/home/parallels/Documents/coordination_oru/testResults/experiments.csv";
+    private String Isapath = "/home/parallels/Projects/coordination_oru/testResults/experiments.csv";
     protected ArrayList<Integer> robots = new ArrayList<Integer>();
 
     public FilePrinter(boolean isActive, ArrayList<String> loggedMessages, long startTime) {
@@ -47,7 +48,7 @@ public class FilePrinter {
     }
 
     public void readValues() throws FileNotFoundException {
-        Scanner sc = new Scanner(new File("/home/parallels/Projects/coordination_oru/experimentValues/values.csv"));
+        Scanner sc = new Scanner(new File("/home/parallels/Documents/coordination_oru/experimentValues/values.csv"));
         sc.useDelimiter(",");
         this.EXPERIMENT_NR = sc.next();  
         sc.close();
