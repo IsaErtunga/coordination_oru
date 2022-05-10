@@ -80,8 +80,15 @@ public class StorageAgent extends AuctioneerBidderAgent{
 
         int block = this.robotID / 1000;
         if ( block != 9  ) this.status();
-
     }
+
+    /**
+     * Stochastically update capacity
+     */
+    // protected void changeCapacity() {
+    //     double newCapacity = 
+    //     this.capacity = newCap
+    // }
 
     protected void updateAmountThread(){
         while (true){

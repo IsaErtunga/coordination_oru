@@ -44,6 +44,10 @@ public class TimeScheduleNew {
         return -1.0;
     }
 
+    public void setCapacity(double capacity) {
+        this.capacity = capacity;
+    }
+
     public int getSize(){
         ArrayList<Task> scheduleCopy = new ArrayList<Task>(this.schedule);
         scheduleCopy.removeIf(i -> i.isTTAtask == true);

@@ -101,6 +101,7 @@ public class NewMapTesting {
 	};
 	t3.start();
 
+	// Has path. 
 	FilePrinter fp = new FilePrinter(true, loggedMessages, startTime);			//		FILE PRINTER
 	Thread printer = new Thread() {
 		@Override
@@ -119,6 +120,7 @@ public class NewMapTesting {
 
 
 	//================= SIMULATION SETTINGS ======================
+	// has path
 	NewMapData MAP_DATA = new NewMapData();
 	try {
 		MAP_DATA.readValues();
@@ -184,7 +186,7 @@ public class NewMapTesting {
 	Integer[] block3Agents = new Integer[]{0,0,0};
 	Integer[] block4Agents = new Integer[]{0,0,0};
 	// base lvl. index0 = TTA
-	int nrTTAs = 1;
+	int nrTTAs = 0;
 	// ============================================================
 
 	// =========== DONT CHANGE ANYTHING AFTER THIS LINE============
