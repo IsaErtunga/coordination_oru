@@ -31,7 +31,7 @@ public class MobileAgent extends AuctioneerBidderAgent{
 
     protected FilePrinter fp;
     private long startTimeIdleness = 0;
-    protected boolean robotBreakdownTest = false;
+    protected double robotBreakdownTestProb = 0.0;
     
     public void addRobotToSimulation(){
         synchronized(this.tec){
@@ -51,8 +51,11 @@ public class MobileAgent extends AuctioneerBidderAgent{
     }
 
     protected void breakRobotTest(){
-        int secs = this.rand.nextInt((120 - 50) + 1) + 50;
-        this.sleep(1000*secs);
+        if ( this.robotBreakdownTestProb == 0.0 ) return;
+        int startTimeInSec = (int)(this.clockStartTime)/1000.0;
+        int secondsBeforeBoom = this.rand.nextInt( (int)(60*5/this.robotBreakdownTestProb) ); 
+        this.sleep(1000 * secondsBeforeBoom);
+        
         PoseSteering[] newPath = this.getPath(this.pStorage, this.mp, new Pose(139.5, 22.0, Math.PI/2), new Pose(139.5, 22.0, Math.PI/2));
 
         synchronized(this.timeSchedule){ this.timeSchedule.wipeSchedule(); }

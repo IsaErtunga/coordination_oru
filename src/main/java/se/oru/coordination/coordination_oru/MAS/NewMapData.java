@@ -76,8 +76,8 @@ public class NewMapData {
         }
     }
 
-    public boolean getRobotBreakdownTest(){
-        return false;
+    public double getRobotBreakdownTestProb(){
+        return 0.05;
     }
 
     public Pose getPose(int robotID){

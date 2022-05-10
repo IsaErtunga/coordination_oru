@@ -46,7 +46,7 @@ public class TransportAgent extends MobileAgent{
 
         this.fp = fp;
 
-        this.robotBreakdownTest = mapInfo.getRobotBreakdownTest();
+        this.robotBreakdownTestProb = mapInfo.getRobotBreakdownTestProb();
 
         this.print("initiated");
         this.print("loadDump time-->"+this.LOAD_DUMP_TIME);
