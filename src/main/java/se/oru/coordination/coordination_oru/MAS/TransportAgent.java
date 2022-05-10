@@ -46,6 +46,8 @@ public class TransportAgent extends MobileAgent{
 
         this.fp = fp;
 
+        this.robotBreakdownTest = mapInfo.getRobotBreakdownTest();
+
         this.print("initiated");
         this.print("loadDump time-->"+this.LOAD_DUMP_TIME);
         // enter network and broadcast our id to others.
@@ -78,6 +80,15 @@ public class TransportAgent extends MobileAgent{
             }
         };
         stateThread.start();
+
+        if ( this.robotBreakdownTest ){
+            Thread robotBreakThread = new Thread() {
+                public void run() {
+                    This.breakRobotTest();
+                }
+            };
+            robotBreakThread.start();
+        }
 
         //this.taskExecutionThread();
 

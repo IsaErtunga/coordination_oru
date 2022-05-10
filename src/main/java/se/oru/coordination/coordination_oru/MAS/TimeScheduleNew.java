@@ -271,6 +271,11 @@ public class TimeScheduleNew {
         return taskToAbort;
     }
 
+    public void wipeSchedule(){
+        this.currentTask = null;
+        this.schedule = null;
+    }
+
     /**
      * this func will find a slot in the schedule were the ore-level is low and return the start & end time of that slot.
      * @param slotSize the size needed for the slot

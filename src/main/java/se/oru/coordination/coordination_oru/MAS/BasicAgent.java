@@ -207,7 +207,7 @@ public class BasicAgent extends HelpFunctions{
         while(true){
             if ( this.goOffline ){
                 this.sendMessage(new Message(this.robotID, "goodbye-world", ""), true );
-                this.sleep(5000);
+                this.sleep(1000*100000);
                 this.goOffline = false;
                 //this.router.leaveNetwork(this.robotID);
             }

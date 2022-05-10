@@ -76,6 +76,10 @@ public class NewMapData {
         }
     }
 
+    public boolean getRobotBreakdownTest(){
+        return false;
+    }
+
     public Pose getPose(int robotID){
         int block = robotID / 1000;
         int type = (robotID % 1000) / 100;

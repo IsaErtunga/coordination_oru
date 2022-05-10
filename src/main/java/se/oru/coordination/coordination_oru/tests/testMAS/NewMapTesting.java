@@ -102,7 +102,7 @@ public class NewMapTesting {
 	t3.start();
 
 	// Has path. 
-	FilePrinter fp = new FilePrinter(true, loggedMessages, startTime);			//		FILE PRINTER
+	FilePrinter fp = new FilePrinter(false, loggedMessages, startTime);			//		FILE PRINTER
 	Thread printer = new Thread() {
 		@Override
 		public void run() {
@@ -181,7 +181,7 @@ public class NewMapTesting {
 	// ============== HERE YOU ALTER THE SCENARIO =================
 
 	// agents spawning in rep, blocks. index0 = DA's, index2 = TA's, index3 = SA's
-	Integer[] block1Agents = new Integer[]{0,0,0}; 
+	Integer[] block1Agents = new Integer[]{2,2,2}; 
 	Integer[] block2Agents = new Integer[]{0,0,0};
 	Integer[] block3Agents = new Integer[]{0,0,0};
 	Integer[] block4Agents = new Integer[]{0,0,0};

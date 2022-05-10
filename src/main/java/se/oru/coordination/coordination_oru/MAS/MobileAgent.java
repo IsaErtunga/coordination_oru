@@ -10,6 +10,7 @@ import org.metacsp.multi.spatioTemporal.paths.PoseSteering;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Collections;
+import java.util.Set;
 import java.lang.Math;
 
 public class MobileAgent extends AuctioneerBidderAgent{
@@ -18,18 +19,19 @@ public class MobileAgent extends AuctioneerBidderAgent{
     protected Coordinate[] rShape;
     protected double robotSpeed = 20.0;
     protected double robotAcceleration = 10.0;
-    protected int TASK_EXECUTION_PERIOD_MS = 200;
+
+    protected String STATE;
     protected Task sCurrTask = null;
     protected Task sNextTask = null;
     protected Mission sCurrMission = null;
     protected Mission sNextMission = null;
 
     protected boolean startReplan = false;
-    protected String STATE;
     protected ArrayList<Pose> waitingWithTaskPoses = new ArrayList<Pose>();
 
     protected FilePrinter fp;
     private long startTimeIdleness = 0;
+    protected boolean robotBreakdownTest = false;
     
     public void addRobotToSimulation(){
         synchronized(this.tec){
@@ -46,6 +48,28 @@ public class MobileAgent extends AuctioneerBidderAgent{
         
         this.tec.setMotionPlanner(this.robotID, this.mp); // Motion planner
         }
+    }
+
+    protected void breakRobotTest(){
+        int secs = this.rand.nextInt((120 - 50) + 1) + 50;
+        this.sleep(1000*secs);
+        PoseSteering[] newPath = this.getPath(this.pStorage, this.mp, new Pose(139.5, 22.0, Math.PI/2), new Pose(139.5, 22.0, Math.PI/2));
+
+        synchronized(this.timeSchedule){ this.timeSchedule.wipeSchedule(); }
+        synchronized(this.inbox){ this.inbox.add(0, new Message()); }
+        this.sCurrMission = null;
+        this.sCurrTask = null;
+        this.sNextMission = null;
+        this.sNextTask = null;
+        this.STATE = "BREAK";
+
+        synchronized(this.tec){
+            this.tec.replacePath(this.robotID, newPath, 0, false,Collections.EMPTY_SET);
+        }
+        this.sleep(500);
+        synchronized(this.inbox){ this.inbox.clear(); }
+
+        this.print("successfull breakdown"); 
     }
     
     protected void setRobotSpeedAndAcc(double speed, double acc){
@@ -152,6 +176,9 @@ public class MobileAgent extends AuctioneerBidderAgent{
                     this.replanCurrentMissionState();
                     // make sure we have no deadlocks and stuff
                     break;
+                case "BREAK":
+                    // for testBreakRobot
+                    return;
             }
         }
     }
