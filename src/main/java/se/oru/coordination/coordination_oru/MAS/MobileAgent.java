@@ -125,7 +125,7 @@ public class MobileAgent extends AuctioneerBidderAgent{
 
     protected void stateHandler(){
         this.STATE = "START_NEXT_MISSION_STATE";
-        String prevState = "";
+        String prevState = this.STATE;
         while ( true ){
             this.sleep(100);
             switch(this.STATE){
@@ -258,6 +258,9 @@ public class MobileAgent extends AuctioneerBidderAgent{
                 if ( sCurrTask.partner != -1 ){
                     Message doneMessage = new Message(this.robotID, sCurrTask.partner, "inform", sCurrTask.taskID + this.separator + "done" + "," + sCurrTask.ore);
                     this.sendMessage(doneMessage);
+                } else {
+                    // log collected ore
+                    this.fp.logCollectedOre(Math.abs(sCurrTask.ore));
                 }
                 
                 this.STATE = "START_NEXT_MISSION_STATE";
