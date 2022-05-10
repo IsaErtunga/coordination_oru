@@ -17,18 +17,22 @@ public class FilePrinter {
     protected String separator = ",";
     protected boolean isActive;
     protected String EXPERIMENT_NR;
+    protected long startTime;
+
     public ArrayList<String> loggedMessages;
     public ArrayList<String> experiments = new ArrayList<String>(); 
+    
 
-    private String path = "/home/parallels/Documents/coordination_oru/testResults/experiments";
+    private String path = "/home/parallels/Projects/coordination_oru/testResults/experiments";
     protected ArrayList<Integer> robots = new ArrayList<Integer>();
 
-    public FilePrinter(boolean isActive, ArrayList<String> loggedMessages) {
+    public FilePrinter(boolean isActive, ArrayList<String> loggedMessages, long startTime) {
         this.isActive = isActive;
         if (isActive) {
             try {
                 readValues();
                 this.loggedMessages = loggedMessages;
+                this.startTime = startTime;
                 // this.path = this.path + this.EXPERIMENT_NR;
                 // new File(this.path).mkdirs();
             } catch (FileNotFoundException e) {
@@ -37,8 +41,13 @@ public class FilePrinter {
         }
     }
 
+    protected double getTime(){
+        long diff = System.currentTimeMillis() - this.startTime;
+        return (double)(diff)/1000.0;
+    }
+
     public void readValues() throws FileNotFoundException {
-        Scanner sc = new Scanner(new File("/home/parallels/Documents/coordination_oru/experimentValues/values.csv"));
+        Scanner sc = new Scanner(new File("/home/parallels/Projects/coordination_oru/experimentValues/values.csv"));
         sc.useDelimiter(",");
         this.EXPERIMENT_NR = sc.next();  
         sc.close();
@@ -87,6 +96,21 @@ public class FilePrinter {
         }
     } 
 
+        /**
+     * 
+     * @param time
+     * @param waitTime
+     */
+    protected void addDistanceMeasurment(String type, double distance, int robotID) {
+        if (isActive) {
+            double timeStamp = this.getTime();
+            String content = this.EXPERIMENT_NR + this.separator + robotID + this.separator + "DISTANCE" + this.separator + type + this.separator + timeStamp + this.separator + distance + "\n";
+            synchronized(this.experiments) {
+                this.experiments.add(content);
+            }
+        }
+    } 
+
     /**
      * 
      * @param time
@@ -94,7 +118,8 @@ public class FilePrinter {
      */
     protected void addWaitingTimeMeasurment(String type, double waitTime, int robotID) {
         if (isActive) {
-            String content = this.EXPERIMENT_NR + this.separator + robotID + this.separator + "TIME" + this.separator + type + this.separator + waitTime + "\n";
+            double timeStamp = this.getTime();
+            String content = this.EXPERIMENT_NR + this.separator + robotID + this.separator + "TIME" + this.separator + type + this.separator + timeStamp + this.separator + waitTime + "\n";
             synchronized(this.experiments) {
                 this.experiments.add(content);
             }

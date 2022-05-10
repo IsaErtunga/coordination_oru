@@ -11,6 +11,9 @@ public class StorageAgent extends AuctioneerBidderAgent{
 
     protected double TTAagentSpeed;
 
+    protected FilePrinter fp;
+
+
     public StorageAgent(int r_id, Router router, double capacity, Pose startPos, long startTime){} // deprecated
     public StorageAgent(int r_id, Router router, double capacity, Pose startPos, Pose startPoseRight, long startTime, ReedsSheppCarPlanner mp){} // deprecated
 
@@ -25,7 +28,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
                         ReedsSheppCarPlanner mp, OreState oreState, HashMap<String, PoseSteering[]> pathStorage){}
 
     public StorageAgent(int r_id, Router router, long startTime, NewMapData mapInfo, OreState oreState,
-                        HashMap<String, PoseSteering[]> pathStorage ){  
+                        HashMap<String, PoseSteering[]> pathStorage, ReedsSheppCarPlanner mp, FilePrinter fp){  
 
         this.robotID = r_id;
         this.COLOR = "\033[1;33m";
@@ -49,6 +52,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
         this.taskCap = 3;
 
         this.pStorage = pathStorage;
+        this.fp = fp;
 
         this.print("initiated");
         this.print("loadDump time-->"+this.LOAD_DUMP_TIME);
@@ -82,7 +86,14 @@ public class StorageAgent extends AuctioneerBidderAgent{
     protected void updateAmountThread(){
         while (true){
             this.sleep(500);
+            double oldOreAmount = this.amount;
             synchronized(this.timeSchedule){ this.amount = this.timeSchedule.getAmount(); }
+            
+            if (oldOreAmount != this.amount) {
+                // Write ore to file
+                int docId = this.robotID % 1000;
+                this.fp.logOreState(this.getTime(), this.amount, docId);
+            }
         }
     }
 
@@ -286,11 +297,16 @@ public class StorageAgent extends AuctioneerBidderAgent{
             if ( auctionTime != -1.0 ){
                 //this.print("requesting ore with auction time-->"+auctionTime);
                 // ========= time auction creation
+                long startTime = this.startTimer();
                 Message bestOffer = this.offerService(auctionTime);
                 if (bestOffer.isNull == true) continue;
                 // ==============================
 
                 Task task = this.generateTaskFromOffer(bestOffer);
+                
+                Double timeElapsed = this.stopTimer(startTime);
+                this.fp.addWaitingTimeMeasurment("auctionToTask", timeElapsed, this.robotID);
+                
                 double[] occupiedTimes = this.translateTAtaskTimesToOccupyTimes(task, this.occupancyPadding);
                 task.startTime = occupiedTimes[0];
                 task.endTime = occupiedTimes[1];

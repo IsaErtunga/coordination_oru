@@ -27,6 +27,9 @@ public class MobileAgent extends AuctioneerBidderAgent{
     protected boolean startReplan = false;
     protected String STATE;
     protected ArrayList<Pose> waitingWithTaskPoses = new ArrayList<Pose>();
+
+    protected FilePrinter fp;
+    private long startTimeIdleness = 0;
     
     public void addRobotToSimulation(){
         synchronized(this.tec){
@@ -122,17 +125,23 @@ public class MobileAgent extends AuctioneerBidderAgent{
 
     protected void stateHandler(){
         this.STATE = "START_NEXT_MISSION_STATE";
-
+        String prevState = "";
         while ( true ){
             this.sleep(100);
             switch(this.STATE){
                 case "START_NEXT_MISSION_STATE":
+                    if (prevState != this.STATE) {
+                        this.startTimeIdleness = this.startTimer();
+                    }
+                    prevState = this.STATE;
                     this.startNextMissionState();
+                
                     break;
     
                 case "TRACK_MISSION_STATE":
+                    // if prevState == START_NEXT_MISSION_STATE
+                    prevState = this.STATE;
                     this.trackMissionState();
-
                     // make sure we have no deadlocks and stuff
                     break;
                 case "PREPARE_MEXT_MISSION_STATE":
@@ -167,7 +176,12 @@ public class MobileAgent extends AuctioneerBidderAgent{
         sCurrTask = sNextTask;
         sNextMission = null;
         sNextTask = null;
+
+
         synchronized(this.tec){ this.tec.addMissions(sCurrMission); }
+        Double elapsedTime = this.stopTimer(this.startTimeIdleness);
+        this.fp.addWaitingTimeMeasurment("idleUponExecution", elapsedTime, this.robotID); 
+
         this.print("--startNextMissionState: added mission to tec");
 
         if ( timeUntilMissionStart < -0.5 ) { // update schedule partners of new delay if we start late
@@ -200,6 +214,8 @@ public class MobileAgent extends AuctioneerBidderAgent{
 
         // this.mp.setPlanningTimeInSecs(planTime);
         sNextMission = this.createMission(sNextTask, sCurrTask == null ? this.initialPose : sCurrTask.toPose);
+
+
         PoseSteering[] path = sNextMission.getPath();
         double pathDist = this.calculatePathDist(path);
     
@@ -220,6 +236,7 @@ public class MobileAgent extends AuctioneerBidderAgent{
         boolean missionIsDone = false;
         boolean isWaiting = false;
         RobotReport rr;
+        long startTime = 0;
 
         while ( true ){
             this.sleep(1000);
@@ -236,6 +253,7 @@ public class MobileAgent extends AuctioneerBidderAgent{
             } 
 
             if ( missionIsDone ){ // if we are done with mission
+                this.fp.addDistanceMeasurment("Task", this.calculatePathDist(sCurrMission.getPath()), this.robotID);
                 this.sleep((int)this.LOAD_DUMP_TIME*1000);
                 if ( sCurrTask.partner != -1 ){
                     Message doneMessage = new Message(this.robotID, sCurrTask.partner, "inform", sCurrTask.taskID + this.separator + "done" + "," + sCurrTask.ore);
@@ -247,11 +265,19 @@ public class MobileAgent extends AuctioneerBidderAgent{
             }
 
             if ( isWaiting == false && rr.getCriticalPoint() == rr.getPathIndex()){
+                startTime = this.startTimer();
                 this.print("started waiting");
                 isWaiting = true;
                 continue;
             }
+            Boolean oldIsWaiting = isWaiting;
+
             isWaiting = rr.getCriticalPoint() == rr.getPathIndex();
+
+            if (oldIsWaiting == true && isWaiting == false) {
+                Double elapsedTime = this.stopTimer(startTime);
+                this.fp.addWaitingTimeMeasurment("congestion", elapsedTime, this.robotID); 
+            }
 
             // if ( isWaiting == false && rr.getCriticalPoint() == rr.getPathIndex()){ // if we notice now that we are waiting for path to slove
             //     isWaiting = true;

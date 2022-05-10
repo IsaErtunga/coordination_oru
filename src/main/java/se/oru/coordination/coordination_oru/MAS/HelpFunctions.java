@@ -129,6 +129,23 @@ public class HelpFunctions {
     }
 
     /**
+     * Starts timer
+     * @return Current time in milliseconds
+     */
+    public long startTimer() {
+        return System.currentTimeMillis();
+    }
+
+    /**
+     * Stops timer
+     * @param startTime
+     * @return time elapsed in seconds. 
+     */
+    public double stopTimer(long startTime) {
+        return (System.currentTimeMillis() - startTime) / 1000.0;
+    }
+
+    /**
      * Returns value from Cumulative Distribution Function
      * ATM: Exponential distribution Can play around with which one we want. 
      * Value is distance. Around 65 distance = 0 in result

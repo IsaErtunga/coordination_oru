@@ -1,5 +1,6 @@
 package se.oru.coordination.coordination_oru.tests.testMAS;
 
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Comparator;
@@ -30,6 +31,7 @@ import se.oru.coordination.coordination_oru.MAS.TransportTruckAgent;
 import se.oru.coordination.coordination_oru.MAS.Router;
 import se.oru.coordination.coordination_oru.MAS.StorageAgent;
 import se.oru.coordination.coordination_oru.MAS.DrawAgent;
+import se.oru.coordination.coordination_oru.MAS.FilePrinter;
 import se.oru.coordination.coordination_oru.MAS.Message;
 import se.oru.coordination.coordination_oru.MAS.OreState;
 import se.oru.coordination.coordination_oru.MAS.NewMapData;
@@ -99,30 +101,30 @@ public class NewMapTesting {
 	};
 	t3.start();
 
-	// FilePrinter fp = new FilePrinter(true, loggedMessages);			//		FILE PRINTER
-	// Thread printer = new Thread() {
-	// 	@Override
-	// 	public void run() {
-	// 		this.setPriority(Thread.MAX_PRIORITY);	
-	// 		while (true) {
-	// 			fp.logMessages();
-	// 			fp.writeValueToFile();
+	FilePrinter fp = new FilePrinter(true, loggedMessages, startTime);			//		FILE PRINTER
+	Thread printer = new Thread() {
+		@Override
+		public void run() {
+			this.setPriority(Thread.MAX_PRIORITY);	
+			while (true) {
+				fp.logMessages();
+				fp.writeValueToFile();
 
-	// 			try { Thread.sleep(5000); }
-	// 			catch (InterruptedException e) { e.printStackTrace(); }
-	// 		}
-	// 	}
-	// };
-	// printer.start();
+				try { Thread.sleep(5000); }
+				catch (InterruptedException e) { e.printStackTrace(); }
+			}
+		}
+	};
+	printer.start();
 
 
 	//================= SIMULATION SETTINGS ======================
 	NewMapData MAP_DATA = new NewMapData();
-	// try {
-	// 	MAP_DATA.readValues();
-	// } catch (FileNotFoundException e1) {
-	// 	e1.printStackTrace();
-	// }
+	try {
+		MAP_DATA.readValues();
+	} catch (FileNotFoundException e1) {
+		e1.printStackTrace();
+	}
 	//MAP_DATA.printValues();
 	//================= SIMULATION SETTINGS ======================
 
@@ -237,7 +239,7 @@ public class NewMapTesting {
 					Thread t = new Thread() {
 						@Override
 						public void run() {
-							TransportAgent r = new TransportAgent( agentID, tec, MAP_DATA, router, startTime, mp );
+							TransportAgent r = new TransportAgent( agentID, tec, MAP_DATA, router, startTime, mp, fp );
 							r.start();
 						}
 					};
@@ -257,7 +259,7 @@ public class NewMapTesting {
 						public void run() {
 							this.setPriority(Thread.MAX_PRIORITY);	
 
-							StorageAgent SA = new StorageAgent(agentID, router, startTime, MAP_DATA, os, pathStorage);
+							StorageAgent SA = new StorageAgent(agentID, router, startTime, MAP_DATA, oreState, pathStorage, TTAmotionPlanner, fp);
 							SA.start();
 						}
 					};
@@ -273,7 +275,7 @@ public class NewMapTesting {
 				@Override
 				public void run() {
 					this.setPriority(Thread.MAX_PRIORITY);	
-					StorageAgent SA = new StorageAgent(9301, router, startTime, MAP_DATA, oreState1, pathStorage);
+					StorageAgent SA = new StorageAgent(9301, router, startTime, MAP_DATA, oreState, pathStorage, TTAmotionPlanner, fp);
 					SA.start();
 				}
 			};
@@ -287,7 +289,7 @@ public class NewMapTesting {
 				@Override
 				public void run() {
 					this.setPriority(Thread.MAX_PRIORITY);	
-					StorageAgent SA = new StorageAgent(9302, router, startTime, MAP_DATA, oreState2, pathStorage);
+					StorageAgent SA = new StorageAgent(9302, router, startTime, MAP_DATA, oreState, pathStorage, TTAmotionPlanner, fp);
 					SA.start();
 				}
 			};
