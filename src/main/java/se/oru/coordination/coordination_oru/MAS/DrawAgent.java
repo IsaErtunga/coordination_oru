@@ -152,15 +152,15 @@ public class DrawAgent extends BidderAgent{
         if (t.pathDist <= 2.0) return 0;
 
         // ore eval [1000, 0]
-        int oreEval = Math.abs(t.ore) > this.TAcapacity-0.1 ? (int)1000*this.ORE_WEIGHT : (int)this.linearDecreasingComparingFunc(Math.abs(t.ore), this.TAcapacity, this.TAcapacity, 500.0) * this.ORE_WEIGHT; // 1.0
+        int oreEval =  (int) (Math.abs(t.ore) > this.TAcapacity-0.1 ? 1000*this.ORE_WEIGHT : this.linearDecreasingComparingFunc(Math.abs(t.ore), this.TAcapacity, this.TAcapacity, 500.0) * this.ORE_WEIGHT); // 1.0
         
         // dist evaluation [1000, 0]
-        int distEval = (int)this.concaveDecreasingFunc(t.pathDist, 1000.0, 80.0, 300.0)*this.DIST_WEIGHT; // 1.0
+        int distEval = (int) (this.concaveDecreasingFunc(t.pathDist, 1000.0, 80.0, 300.0)*this.DIST_WEIGHT); // 1.0
 
         // congestion eval [500, 0]
         double nearTaskT = this.timeSchedule.evaluateEventSlot(t.startTime, t.endTime, t.partner);
         nearTaskT = nearTaskT == -1.0 ? 30.0 : nearTaskT < 30.0 ? nearTaskT : 30.0;
-        int congestionEval = (int)this.linearIncreasingComparingFunc(nearTaskT, 0.0, 30.0, 1000.0) * this.CONGESTION_WEIGHT; // 0.5
+        int congestionEval = (int) (this.linearIncreasingComparingFunc(nearTaskT, 0.0, 30.0, 1000.0) * this.CONGESTION_WEIGHT); // 0.5
 
         this.print("with robot-->"+m.sender +" dist-->"+ String.format("%.2f",t.pathDist) 
             +" distanceEval-->"+distEval

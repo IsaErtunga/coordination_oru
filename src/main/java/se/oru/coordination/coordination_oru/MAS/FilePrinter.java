@@ -23,7 +23,7 @@ public class FilePrinter {
     public ArrayList<String> experiments = new ArrayList<String>(); 
     
 
-    private String path = "/home/parallels/Projects/coordination_oru/testResults/experiments";
+    private String path = "/home/parallels/Projects/coordination_oru/testResults/experiments.csv";
     protected ArrayList<Integer> robots = new ArrayList<Integer>();
 
     public FilePrinter(boolean isActive, ArrayList<String> loggedMessages, long startTime) {

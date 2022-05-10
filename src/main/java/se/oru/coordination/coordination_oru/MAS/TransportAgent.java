@@ -29,7 +29,7 @@ public class TransportAgent extends MobileAgent{
 
         this.DIST_WEIGHT = mapInfo.getWeights(r_id)[0];
         this.ORE_WEIGHT = mapInfo.getWeights(r_id)[1];
-        this.CONGESTION_WEIGHT = mapInfo.getWeights(r_id)[2];
+        this.TIME_WEIGHT = mapInfo.getWeights(r_id)[2];
 
         this.agentVelocity = mapInfo.getVelocity(2);
         this.setRobotSpeedAndAcc(this.agentVelocity, 20.0);
@@ -285,14 +285,14 @@ public class TransportAgent extends MobileAgent{
         if ( t.pathDist < 2.0 ) return 0;
 
         // ore eval [1000, 0]
-        int oreEval = Math.abs(t.ore) > this.capacity-0.1 ? (int)1000*this.ORE_WEIGHT : (int)this.linearDecreasingComparingFunc(Math.abs(t.ore), this.capacity, this.capacity, 500.0)*this.ORE_WEIGHT;
+        int oreEval = (int) (Math.abs(t.ore) > this.capacity-0.1 ? 1000*this.ORE_WEIGHT : this.linearDecreasingComparingFunc(Math.abs(t.ore), this.capacity, this.capacity, 500.0)*this.ORE_WEIGHT);
         
         // dist evaluation [1500, 0]
-        int distEval = (int)this.concaveDecreasingFunc(t.fromPose.distanceTo(t.toPose), 1000.0, 80.0, 300.0)*this.DIST_WEIGHT; // [1500, 0]
+        int distEval = (int) (this.concaveDecreasingFunc(t.fromPose.distanceTo(t.toPose), 1000.0, 80.0, 300.0)*this.DIST_WEIGHT); // [1500, 0]
 
         // time bonus [500, 0]
         double oreRequestTime = Double.parseDouble(this.parseMessage(m, "startTime")[0]); // startTime of cnp-msg is when auctioneer wants ore
-        int timeEval = (int)this.linearDecreasingComparingFunc(t.endTime, oreRequestTime, 45.0, 1000.0)*this.TIME_WEIGHT;  
+        int timeEval = (int) (this.linearDecreasingComparingFunc(t.endTime, oreRequestTime, 45.0, 1000.0)*this.TIME_WEIGHT);  
         
         this.print("with robot-->"+m.sender +"\t dist-->"+ String.format("%.2f",t.pathDist) 
                         +"\tdistance eval-->"+distEval
