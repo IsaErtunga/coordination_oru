@@ -177,10 +177,10 @@ public class NewMapTesting {
 	// ============== HERE YOU ALTER THE SCENARIO =================
 
 	// agents spawning in rep, blocks. index0 = DA's, index2 = TA's, index3 = SA's
-	Integer[] block1Agents = new Integer[]{5,2,2}; 
-	Integer[] block2Agents = new Integer[]{3,2,2};
-	Integer[] block3Agents = new Integer[]{6,3,2};
-	Integer[] block4Agents = new Integer[]{3,1,2};
+	Integer[] block1Agents = new Integer[]{0,0,0}; 
+	Integer[] block2Agents = new Integer[]{0,0,0};
+	Integer[] block3Agents = new Integer[]{0,0,0};
+	Integer[] block4Agents = new Integer[]{0,0,0};
 	// base lvl. index0 = TTA
 	int nrTTAs = 1;
 	// ============================================================

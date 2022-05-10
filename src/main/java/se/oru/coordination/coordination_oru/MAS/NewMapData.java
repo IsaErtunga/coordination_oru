@@ -145,6 +145,15 @@ public class NewMapData {
         return 0.0;
     }
 
+    public double[] getWeights(int agentType){
+        if ( agentType > 1000 ) agentType = (agentType % 1000) / 100;
+
+        if ( agentType == 1 ) return new double[]{1.0,1.0,1.0}; // ore, dist, congestion
+        if ( agentType == 2 ) return new double[]{1.0,1.0,1.0}; // ore, dist, time
+
+        return null;
+    }
+
     public double getTurningRad(int robotType){
         return 0.5;
     }
@@ -153,7 +162,7 @@ public class NewMapData {
         if ( robotType > 1000 ) robotType = (robotType % 1000) / 100;
 
         if ( robotType == 2 ) return 5.6;
-        if ( robotType == 4 ) return 4*this.getVelocity(2);
+        if ( robotType == 4 ) return this.getVelocity(2);
 
         return -1.0;
     }

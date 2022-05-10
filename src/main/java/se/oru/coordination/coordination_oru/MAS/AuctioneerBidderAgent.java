@@ -7,8 +7,10 @@ public class AuctioneerBidderAgent extends AuctioneerAgent{
     // ===================== BIDDER FUNCTIONS BELOW ===================
     // ================================================================
     // ================================================================
-    protected int rejectionCount = 0;
-
+    protected double DIST_WEIGHT;
+    protected double ORE_WEIGHT;
+    protected double TIME_WEIGHT;
+    protected double CONGESTION_WEIGHT;
     /**
      * Basic offer calc func. this needs to be overwritten in final agent object
      * @param agentTask the task generated from the auction

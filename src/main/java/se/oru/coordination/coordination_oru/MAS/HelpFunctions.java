@@ -149,9 +149,10 @@ public class HelpFunctions {
         return res < 0 ? 0 : res;
     }
 
-    public double concaveDecreasingFunc(double input, double yValueAt0, double refrenceMaxInput){
-        if ( input <= refrenceMaxInput -1.0 ) return yValueAt0 * Math.pow(input / refrenceMaxInput -1.0, 2.0);
-        return 0.0;
+    public double concaveDecreasingFunc(double x, double maxYval, double minXval, double maxXval){
+        if ( x <= minXval ) return maxYval;
+        else if ( x >= maxXval ) return 0.0;
+        return maxYval * Math.pow((x-minXval) / maxXval -1.0, 2.0);
     }
 
     public double linearDecreasingComparingFunc(double input, double compareVal, double upperDiffVal, double maxReturn){

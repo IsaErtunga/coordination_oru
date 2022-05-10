@@ -27,6 +27,10 @@ public class TransportAgent extends MobileAgent{
         this.tec = tec;
         this.initialPose = mapInfo.getPose(r_id);
 
+        this.DIST_WEIGHT = mapInfo.getWeights(r_id)[0];
+        this.ORE_WEIGHT = mapInfo.getWeights(r_id)[1];
+        this.CONGESTION_WEIGHT = mapInfo.getWeights(r_id)[2];
+
         this.agentVelocity = mapInfo.getVelocity(2);
         this.setRobotSpeedAndAcc(this.agentVelocity, 20.0);
         this.rShape = mapInfo.getAgentSize(r_id);
@@ -279,24 +283,21 @@ public class TransportAgent extends MobileAgent{
         if ( t.pathDist < 2.0 ) return 0;
 
         // ore eval [1000, 0]
-        int oreEval = Math.abs(t.ore) > this.capacity-0.1 ? 1000 : (int)this.linearDecreasingComparingFunc(Math.abs(t.ore), this.capacity, this.capacity, 500.0);
+        int oreEval = Math.abs(t.ore) > this.capacity-0.1 ? (int)1000*this.ORE_WEIGHT : (int)this.linearDecreasingComparingFunc(Math.abs(t.ore), this.capacity, this.capacity, 500.0)*this.ORE_WEIGHT;
         
         // dist evaluation [1500, 0]
-        int distEval = (int)this.concaveDecreasingFunc(t.fromPose.distanceTo(t.toPose), 700.0, 120.0); // [1500, 0]
+        int distEval = (int)this.concaveDecreasingFunc(t.fromPose.distanceTo(t.toPose), 1000.0, 80.0, 300.0)*this.DIST_WEIGHT; // [1500, 0]
 
         // time bonus [500, 0]
-        double cnpEndTime = Double.parseDouble(this.parseMessage(m, "startTime")[0]);
-        int timeEval = (int)this.linearDecreasingComparingFunc(t.endTime, cnpEndTime, 30.0, 700.0);  
-
-        //TODO how long we have to sleep is part of equation
+        double oreRequestTime = Double.parseDouble(this.parseMessage(m, "startTime")[0]); // startTime of cnp-msg is when auctioneer wants ore
+        int timeEval = (int)this.linearDecreasingComparingFunc(t.endTime, oreRequestTime, 45.0, 1000.0)*this.TIME_WEIGHT;  
         
-        //TODO add eval for using middle space of map. using middle space is BAD
-
         this.print("with robot-->"+m.sender +"\t dist-->"+ String.format("%.2f",t.pathDist) 
                         +"\tdistance eval-->"+distEval
-                        +"\t cnp endTime-->"+String.format("%.2f",cnpEndTime) 
-                        +"\t timeDiff-->"+String.format("%.2f",Math.abs(cnpEndTime - t.endTime )) 
+                        +"\t cnp endTime-->"+String.format("%.2f",oreRequestTime) 
+                        +"\t timeDiff-->"+String.format("%.2f",Math.abs(oreRequestTime - t.endTime )) 
                         +"\ttime eval-->"+timeEval);
+
         return oreEval + distEval + timeEval;
     }   
 

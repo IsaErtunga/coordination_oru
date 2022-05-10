@@ -199,36 +199,6 @@ public class StorageAgent extends AuctioneerBidderAgent{
         this.print("currentOre -->"+this.amount);
     }
 
-    // will not use because to late to implement
-    /*
-    @Override
-    protected void handleAccept(int taskID, Message m){
-        if ( m.sender/ 1000 == 9 ){ // if accept from TTA
-            Task task = null;
-            synchronized(this.timeSchedule){
-                boolean eventAdded = this.timeSchedule.setEventActive(taskID, true);
-                if ( eventAdded ) task = this.timeSchedule.getEvent(taskID);
-                this.print("event active from TTA");
-             }
-             if ( task != null ){
-                String body = task.taskID +this.separator+ task.startTime +this.separator+ task.endTime +this.separator+ task.ore;
-                this.print("tta-slot msg sent");
-                this.sendMessage(new Message(this.robotID, this.getStorageReceivers(), "tta-slot", body));
-             } else {
-                this.print("tta-msg not sent");
-             }
-
-        } else {
-            boolean eventAdded;
-            synchronized(this.timeSchedule){ eventAdded = this.timeSchedule.setEventActive(taskID); }
-            this.print("accept-msg, taskID-->"+taskID+"\twith robot-->"+m.sender+"\ttask added-->"+eventAdded);
-            if ( eventAdded == false ){
-                this.print("sending abort msg to-->"+m.sender);
-                this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
-            }
-        }
-    }
-    */
     @Override
     protected void handleAccept(int taskID, Message m){
         boolean eventAdded;
@@ -292,7 +262,6 @@ public class StorageAgent extends AuctioneerBidderAgent{
         while (true){
             this.sleep(1000);
 
-            int scSize;
             double lookOre;
             synchronized(this.timeSchedule){
                 if ( this.timeSchedule.getSize() > this.taskCap) continue;
@@ -302,7 +271,6 @@ public class StorageAgent extends AuctioneerBidderAgent{
             }
 
             double slotSize = this.occupancyPadding*3+this.LOAD_DUMP_TIME;
-
             double auctionTime = -1.0;
             while ( lookOre < 0.9*this.capacity && auctionTime == -1.0 ){
                 if ( lookOre > 0.4 * this.capacity ) this.sleep(2000);

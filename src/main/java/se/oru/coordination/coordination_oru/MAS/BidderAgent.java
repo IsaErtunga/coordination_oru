@@ -2,7 +2,11 @@ package se.oru.coordination.coordination_oru.MAS;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 
 public class BidderAgent extends BasicAgent{
-    protected int rejectionCount = 0;
+
+    protected double DIST_WEIGHT;
+    protected double ORE_WEIGHT;
+    protected double TIME_WEIGHT;
+    protected double CONGESTION_WEIGHT;
 
     /**
      * Basic offer calc func. this needs to be overwritten in final agent object
