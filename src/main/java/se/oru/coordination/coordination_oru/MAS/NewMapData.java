@@ -67,6 +67,7 @@ public class NewMapData {
         sc.close();
     }
 
+  
     public void printValues() {
         System.out.println("_________________Parameter Values________________");
         for (String name: values.keySet()) {
@@ -76,8 +77,17 @@ public class NewMapData {
         }
     }
 
+
+    public boolean getLowCapacityTest() {
+        return false;
+    }
+
+    public double getDropMessageTest() {
+        return 1.0;
+    }
+
     public double getRobotBreakdownTestProb(){
-        return 0.05;
+        return 0.0;
     }
 
     public Pose getPose(int robotID){
