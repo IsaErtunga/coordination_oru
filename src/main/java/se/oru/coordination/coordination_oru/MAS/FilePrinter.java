@@ -162,18 +162,20 @@ public class FilePrinter {
     }
 
     public void writeValueToFile() {
-        ArrayList<String> experimentsCopy;
-        synchronized(this.experiments) {
-            experimentsCopy = new ArrayList<String>(this.experiments);
-            this.experiments.clear();
+        if (isActive) {
+            ArrayList<String> experimentsCopy;
+            synchronized(this.experiments) {
+                experimentsCopy = new ArrayList<String>(this.experiments);
+                this.experiments.clear();
+            }
+            
+            String testContent = "";
+            for (String experiment: experimentsCopy) {
+                testContent += experiment;
+                //System.out.println("EXPERIMENT: ->" + experiment);
+            }
+            this.writeToFile(testContent);
         }
-        
-        String testContent = "";
-        for (String experiment: experimentsCopy) {
-            testContent += experiment;
-            //System.out.println("EXPERIMENT: ->" + experiment);
-        }
-        this.writeToFile(testContent);
     }
  
     public static void main(String[] args) {

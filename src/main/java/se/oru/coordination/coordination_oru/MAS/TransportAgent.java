@@ -81,16 +81,12 @@ public class TransportAgent extends MobileAgent{
         };
         stateThread.start();
 
-        if ( this.robotBreakdownTest ){
-            Thread robotBreakThread = new Thread() {
-                public void run() {
-                    This.breakRobotTest();
-                }
-            };
-            robotBreakThread.start();
-        }
-
-        //this.taskExecutionThread();
+        Thread robotBreakThread = new Thread() {
+            public void run() {
+                This.breakRobotTest();
+            }
+        };
+        robotBreakThread.start();
 
         this.stateHandler();
     }

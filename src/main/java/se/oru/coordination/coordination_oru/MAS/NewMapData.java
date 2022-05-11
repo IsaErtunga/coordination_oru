@@ -83,11 +83,11 @@ public class NewMapData {
     }
 
     public double getDropMessageTest() {
-        return 0.9;
+        return 1.0;
     }
 
     public double getRobotBreakdownTestProb(){
-        return 0.05;
+        return 0.0;
     }
 
     public Pose getPose(int robotID){

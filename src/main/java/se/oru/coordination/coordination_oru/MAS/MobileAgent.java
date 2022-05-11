@@ -52,8 +52,9 @@ public class MobileAgent extends AuctioneerBidderAgent{
 
     protected void breakRobotTest(){
         if ( this.robotBreakdownTestProb == 0.0 ) return;
-        int startTimeInSec = (int)(this.clockStartTime)/1000.0;
-        int secondsBeforeBoom = this.rand.nextInt( (int)(60*5/this.robotBreakdownTestProb) ); 
+        int secondsBeforeBoom = this.rand.nextInt( (int)(30/this.robotBreakdownTestProb)) - (int)this.clockStartTime;  //TODO fix stupid boyy
+        secondsBeforeBoom = secondsBeforeBoom < 0 ? 0 : secondsBeforeBoom;
+        this.print("will break at time "+this.getTime()+secondsBeforeBoom);
         this.sleep(1000 * secondsBeforeBoom);
         
         PoseSteering[] newPath = this.getPath(this.pStorage, this.mp, new Pose(139.5, 22.0, Math.PI/2), new Pose(139.5, 22.0, Math.PI/2));

@@ -62,41 +62,27 @@ public class NewMapTesting {
 	});
 
 	MetaCSPLogging.setLevel(Level.OFF);
-
 	//Define robot geometries (here, the same for all robots)
-
 	double xl = 4.0;
 	double yl = 2.8;
 	Coordinate footprint1 = new Coordinate(-xl,yl);
 	Coordinate footprint2 = new Coordinate(xl,yl);
 	Coordinate footprint3 = new Coordinate(xl,-yl);
 	Coordinate footprint4 = new Coordinate(-xl,-yl);
-
 	tec.setDefaultFootprint(footprint1, footprint2, footprint3, footprint4);
-
-	//Set up infrastructure that maintains the representation
-	tec.setupSolver(0, 100000000);
-	//Start the thread that checks and enforces dependencies at every clock tick
-	tec.startInference();
-
-	// viz map file
-	final String yamlFile = "maps/MineMap4Block.yaml";
-	double resolution = 0.1;
-
-	//Set up a simple GUI
-	BrowserVisualization viz = new BrowserVisualization();
+	tec.setupSolver(0, 100000000);//Set up infrastructure that maintains the representation
+	tec.startInference();//Start the thread that checks and enforces dependencies at every clock tick
+	final String yamlFile = "maps/MineMap4Block.yaml"; // viz map file	
+	BrowserVisualization viz = new BrowserVisualization();//Set up a simple GUI
 	viz.setMap(yamlFile);
 	viz.setInitialTransform(2.0, 1.0, 1.0); // good for MineMap2Block (i think)
 	tec.setVisualization(viz);
 	tec.setUseInternalCriticalPoints(false);
 
-	final long startTime = System.currentTimeMillis();
-												
-	ArrayList<String> loggedMessages = new ArrayList<String>();		//		ROUTER THREAD
-	
 
-	// Has path. 
-	FilePrinter fp = new FilePrinter(false, loggedMessages, startTime);			//		FILE PRINTER
+	final long startTime = System.currentTimeMillis();
+	ArrayList<String> loggedMessages = new ArrayList<String>();					//		FILE PRINTER
+	FilePrinter fp = new FilePrinter(false, loggedMessages, startTime);			
 	Thread printer = new Thread() {
 		@Override
 		public void run() {
@@ -112,14 +98,14 @@ public class NewMapTesting {
 	};
 	printer.start();
 
-	NewMapData MAP_DATA = new NewMapData();
+	NewMapData MAP_DATA = new NewMapData();										//		MAP DATA
 	try {
 		MAP_DATA.readValues();
 	} catch (FileNotFoundException e1) {
 		e1.printStackTrace();
 	}
 
-	Router router = new Router(startTime, loggedMessages, MAP_DATA);
+	Router router = new Router(startTime, loggedMessages, MAP_DATA);			//		ROUTER THREAD
 	Thread t3 = new Thread() {
 		public void run() {
 			router.run();
@@ -128,22 +114,7 @@ public class NewMapTesting {
 	t3.start();
 
 
-	//================= SIMULATION SETTINGS ======================
-	// has path
-
-	//MAP_DATA.printValues();
-	//================= SIMULATION SETTINGS ======================
-
 	//================= MOTION PLANNERS ======================
-	
-	/*
-	LBTRRT is reliable 
-	LBTRRT 2.0s , 4.0 BPP is ok
-	RRTstar 2.0s, 4.0 BPP is better
-
-	*/
-
-
 	ReedsSheppCarPlanner mp1 = new ReedsSheppCarPlanner();
 	mp1.setPlanningTimeInSecs(5.0);
 	mp1.setFootprint(MAP_DATA.getAgentSize(2));
@@ -162,36 +133,20 @@ public class NewMapTesting {
 	mp3.setMap(yamlFile);
 	//================= MOTION PLANNERS ======================
 
+
 	//================= PATH STORAGE ======================
 	HashMap<String, PoseSteering[]> pathStorage = new HashMap<String, PoseSteering[]>();
 	//================= PATH STORAGE ======================
 
-	/* good example with 2SA 3TA: 
-	int[] TAs = new int[]{1201, 1202,1203};
-	int[] DAs = new int[]{1103,1105,1107,1108,1109};
-	*/
 
-	/* good example with 1SA 2TA
-	int[] TAs = new int[]{1201,1203};
-	int[] DAs = new int[]{1102,1103,1105,1106};
-	*/
-
-	/*
-	int[] TAs = new int[]{1201,1202,1203};
-	int[] DAs = new int[]{1103,1105,1106,1107,1109};
-	*/
-
-	// ============================================================
 	// ============== HERE YOU ALTER THE SCENARIO =================
-
-	// agents spawning in rep, blocks. index0 = DA's, index2 = TA's, index3 = SA's
-	Integer[] block1Agents = new Integer[]{2,2,2}; 
-	Integer[] block2Agents = new Integer[]{0,0,0};
+	Integer[] block1Agents = new Integer[]{2,2,2}; // agents spawning in rep, blocks. index0 = DA's, index2 = TA's, index3 = SA's
+	Integer[] block2Agents = new Integer[]{2,2,2};
 	Integer[] block3Agents = new Integer[]{0,0,0};
 	Integer[] block4Agents = new Integer[]{0,0,0};
-	// base lvl. index0 = TTA
-	int nrTTAs = 1;
+	int nrTTAs = 0;
 	// ============================================================
+
 
 	// =========== DONT CHANGE ANYTHING AFTER THIS LINE============
 	ArrayList<Integer[]> blockSpawns = new ArrayList<Integer[]>();
