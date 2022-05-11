@@ -204,15 +204,12 @@ public class NewMapTesting {
 				}
 
 			} else if ( agentType == 1 ){ //spawn TA
-				int[] spawnOrderTA = new int[]{1,2,3};
+				int[] spawnOrderTA = new int[]{1,2,3,4,5};
 				for ( int agent = 0; agent<nrAgents; agent++ ){
-					try { Thread.sleep(300); }
-					catch (InterruptedException e) { e.printStackTrace(); }
-
 					int agentID = (block+1)*1000 + 200 + spawnOrderTA[agent];
 					ReedsSheppCarPlanner mp;
-					if ( spawnOrderTA[agent] == 1 ) mp = mp1;
-					else if ( spawnOrderTA[agent] == 2 ) mp = mp2;
+					if ( spawnOrderTA[agent] == 1 || spawnOrderTA[agent] == 5) mp = mp1;
+					else if ( spawnOrderTA[agent] == 2 || spawnOrderTA[agent] == 4) mp = mp2;
 					else mp = mp3;
 
 					Thread t = new Thread() {
@@ -223,6 +220,10 @@ public class NewMapTesting {
 						}
 					};
 					t.start();
+					if ( agentID != 5 ){
+						try { Thread.sleep(3000); }
+						catch (InterruptedException e) { e.printStackTrace(); }
+					}
 				}
 
 			} else if ( agentType == 2 ){ //spawn SA
