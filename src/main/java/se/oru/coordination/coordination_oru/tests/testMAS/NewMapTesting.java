@@ -93,16 +93,10 @@ public class NewMapTesting {
 	final long startTime = System.currentTimeMillis();
 												
 	ArrayList<String> loggedMessages = new ArrayList<String>();		//		ROUTER THREAD
-	Router router = new Router(startTime, loggedMessages);
-	Thread t3 = new Thread() {
-		public void run() {
-			router.run();
-		}
-	};
-	t3.start();
+	
 
 	// Has path. 
-	FilePrinter fp = new FilePrinter(true, loggedMessages, startTime);			//		FILE PRINTER
+	FilePrinter fp = new FilePrinter(false, loggedMessages, startTime);			//		FILE PRINTER
 	Thread printer = new Thread() {
 		@Override
 		public void run() {
@@ -118,15 +112,25 @@ public class NewMapTesting {
 	};
 	printer.start();
 
-
-	//================= SIMULATION SETTINGS ======================
-	// has path
 	NewMapData MAP_DATA = new NewMapData();
 	try {
 		MAP_DATA.readValues();
 	} catch (FileNotFoundException e1) {
 		e1.printStackTrace();
 	}
+
+	Router router = new Router(startTime, loggedMessages, MAP_DATA);
+	Thread t3 = new Thread() {
+		public void run() {
+			router.run();
+		}
+	};
+	t3.start();
+
+
+	//================= SIMULATION SETTINGS ======================
+	// has path
+
 	//MAP_DATA.printValues();
 	//================= SIMULATION SETTINGS ======================
 

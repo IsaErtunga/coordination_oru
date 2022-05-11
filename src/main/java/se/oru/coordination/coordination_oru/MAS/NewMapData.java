@@ -82,8 +82,8 @@ public class NewMapData {
         return false;
     }
 
-    public boolean getDropMessageTest() {
-        return false;
+    public double getDropMessageTest() {
+        return 0.9;
     }
 
     public Pose getPose(int robotID){

@@ -8,19 +8,24 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 public class Router {
 
     protected int periodMili = 250;
     public ArrayList<String> loggedMessages;
     public long startTime;
+    public double dropMessagePercentage;
 
     public HashMap<Integer, ArrayList<Message>> inboxes = new HashMap<Integer, ArrayList<Message>>();
     public HashMap<Integer, ArrayList<Message>> outboxes = new HashMap<Integer, ArrayList<Message>>();
+
+    Random rand = new Random();
     
-    public Router(long startTime, ArrayList<String> loggedMessages) {
+    public Router(long startTime, ArrayList<String> loggedMessages, NewMapData mapData) {
         this.startTime = startTime;
         this.loggedMessages = loggedMessages;
+        this.dropMessagePercentage = mapData.getDropMessageTest();
     }
 
     public void enterNetwork(TransportAgent a){
@@ -76,7 +81,10 @@ public class Router {
 
             synchronized(this.inboxes){
                 for (Message m : outputMessages){
-                    
+                    if ((double) (rand.nextInt(100))/100 > this.dropMessagePercentage) {
+                        System.out.println("DROPPED MESSAGE: " + m.sender + ", " + m.type);
+                        continue;
+                    }
                     if ( m.receiver.size() <= 0 ){      // if receiver int arr size = 0: broadcast
                         for (Map.Entry<Integer, ArrayList<Message>> t : this.inboxes.entrySet()) {
                             if ( t.getKey() == m.sender ) continue;
