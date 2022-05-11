@@ -11,60 +11,61 @@ import java.util.Scanner;
 public class NewMapData {
     protected HashMap<String, Integer> values = new HashMap<String, Integer>();
 
+    protected double SACapicity;
+    protected double TTASpeed = 5.6 * 2;
+    protected double[] TAWeights = new double[]{1.0, 1.0, 1.0};
+
+    protected double dropMessageTestProb = 1.0;
+    protected double breakdownTestProb = 0.0;
+    protected double lowCapacityTest = 1.0;
+
+    protected boolean dropMessageActive = false;
+    protected boolean breakdownTestActive = false;
+    protected boolean lowCapacityTestActive = false;
+
+    public int scalability = 0;
+
     public void readValues() throws FileNotFoundException {
         Scanner sc = new Scanner(new File("/home/parallels/Documents/coordination_oru/experimentValues/values.csv"));
         // alexPath "/home/parallels/Documents/coordination_oru/experimentValues/values.csv"
         sc.useDelimiter(",");
 
-        int numCols = 12;
-        int counter = 0;
-        String result = "";
- 
-        while (sc.hasNext()) {
-            if (counter == numCols) break;
+        int numCols = 8;
+
+        for (int i = 0; i < numCols; i++) {
+            if (!sc.hasNext()) break;
             int value = Integer.parseInt(sc.next());
-        
-            switch(counter) {
+
+            switch(i) {
                 case 1:
-                    values.put("blocks", value);
+                    values.put("Scalability", value);
                     break;
                 case 2:
-                    values.put("DAs", value);
+                    values.put("RobustLevel", value);
                     break;
                 case 3:
-                    values.put("TAs", value);
+                    values.put("RobustCase", value);
                     break;
                 case 4:
-                    values.put("SAs", value);
+                    values.put("efficiency", value);
                     break;
                 case 5:
-                    values.put("TTas", value);
+                    values.put("distance", value);
                     break;
                 case 6:
-                    values.put("TASpeed", value);
+                    values.put("ore", value);
                     break;
                 case 7:
-                    values.put("TTASpeed", value);
-                    break;
-                case 8:
-                    values.put("DACap", value);
-                    break;
-                case 9:
-                    values.put("TACap", value);
-                    break;
-                case 10:
-                    values.put("SACap", value);
-                    break;
-                case 11:
-                    values.put("TTACap", value);
+                    values.put("time", value);
                     break;
                 default:
                     break;
-              }
-
-            counter++;
+            } 
         }
         sc.close();
+
+        // Set all values
+        this.setExperimentValues();
     }
 
   
@@ -77,16 +78,84 @@ public class NewMapData {
         }
     }
 
+    private void setExperimentValues() {
+        for (String key: values.keySet()) {
+            int value = values.get(key);
+            switch (key) {
+                case "Scalability":
+                    this.scalability = value;
+                    if (value == 1) {
+                        this.TTASpeed = 5.6 * 4;
+                    } else if (value == 2) {
+                        this.TTASpeed = 5.6 * 8;
+                    }
+                    break;
+                case "RobustLevel":
+                    if (value == 1) {
+                        this.dropMessageTestProb = 0.98;
+                        this.breakdownTestProb = 0.01;
+                        this.lowCapacityTest = 0.75;
+                    } else if (value == 2) {
+                        this.dropMessageTestProb = 0.95;
+                        this.breakdownTestProb = 0.05;
+                        this.lowCapacityTest = 0.50;
+                    }
+                    break;
+                case "RobustCase":
+                    if (value == 1) {
+                        this.dropMessageActive = true;
+                    } else if (value == 2) {
+                        this.breakdownTestActive = true;
+                    } else if (value == 3) {
+                        this.lowCapacityTestActive = true;
+                    } 
+                    break;
 
-    public boolean getLowCapacityTest() {
-        return false;
+                case "efficiency":
+                    if (value == 0) {
+                        this.SACapicity = 500.0;
+                    } else if (value == 1) {
+                        this.SACapicity = 500.0 * 0.75;
+                    } else if (value == 2) {
+                        this.SACapicity = 500.0 * 0.50;
+                    }
+                    break;
+                case "distance":
+                    this.TAWeights[0] = (double)value;
+                    break;
+                case "ore":
+                    this.TAWeights[1] = (double)value;
+                    break;
+                case "time":
+                    this.TAWeights[2] = (double)value;
+                    break;
+                default:
+                    break;
+            }
+
+        }
+    }
+
+
+    public double getLowCapacityTest() {
+        if (this.lowCapacityTestActive) {
+            return this.lowCapacityTest;
+        } 
+        return 1.0; 
+        
     }
 
     public double getDropMessageTest() {
-        return 1.0;
+        if (this.dropMessageActive) {
+            return this.dropMessageTestProb;
+        } 
+        return 1.0; 
     }
 
-    public double getRobotBreakdownTestProb(){
+    public double getRobotBreakdownTestProb() {
+        if (this.breakdownTestActive) {
+            return this.breakdownTestProb;
+        } 
         return 0.0;
     }
 
@@ -153,7 +222,7 @@ public class NewMapData {
         if ( agentType > 1000 ) agentType = (agentType % 1000) / 100;
 
         if ( agentType == 1 ) return 100.0;
-        if ( agentType == 3 ) return 500.0;
+        if ( agentType == 3 ) return this.SACapicity;
         if ( agentType == 2 ) return 8.0;
         if ( agentType == 4 ) return 50.0;
 
@@ -164,7 +233,7 @@ public class NewMapData {
         if ( agentType > 1000 ) agentType = (agentType % 1000) / 100;
 
         if ( agentType == 1 ) return new double[]{1.0,1.0,1.0}; // ore, dist, congestion
-        if ( agentType == 2 ) return new double[]{1.0,1.0,1.0}; // ore, dist, time
+        if ( agentType == 2 ) return this.TAWeights; // ore, dist, time
 
         return null;
     }
@@ -177,7 +246,7 @@ public class NewMapData {
         if ( robotType > 1000 ) robotType = (robotType % 1000) / 100;
 
         if ( robotType == 2 ) return 5.6;
-        if ( robotType == 4 ) return 4 * this.getVelocity(2);
+        if ( robotType == 4 ) return this.TTASpeed;
 
         return -1.0;
     }

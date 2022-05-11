@@ -105,6 +105,8 @@ public class NewMapTesting {
 		e1.printStackTrace();
 	}
 
+	MAP_DATA.printValues();
+
 	Router router = new Router(startTime, loggedMessages, MAP_DATA);			//		ROUTER THREAD
 	Thread t3 = new Thread() {
 		public void run() {
@@ -140,11 +142,27 @@ public class NewMapTesting {
 
 
 	// ============== HERE YOU ALTER THE SCENARIO =================
-	Integer[] block1Agents = new Integer[]{2,2,2}; // agents spawning in rep, blocks. index0 = DA's, index2 = TA's, index3 = SA's
-	Integer[] block2Agents = new Integer[]{2,2,2};
-	Integer[] block3Agents = new Integer[]{0,0,0};
-	Integer[] block4Agents = new Integer[]{0,0,0};
-	int nrTTAs = 0;
+	// Base case
+	Integer[] block1Agents = new Integer[]{5,3,2}; // agents spawning in rep, blocks. index0 = DA's, index2 = TA's, index3 = SA's
+	Integer[] block2Agents = new Integer[]{3,2,2};
+	Integer[] block3Agents = new Integer[]{2,1,2};
+	Integer[] block4Agents = new Integer[]{4,2,2};
+	int nrTTAs = 1;
+	if (MAP_DATA.scalability == 1) {
+		// Higher scalability 
+		block1Agents = new Integer[]{5,4,2}; 
+		block2Agents = new Integer[]{3,3,2};
+		block3Agents = new Integer[]{3,2,2};
+		block4Agents = new Integer[]{4,2,2};
+	} else if (MAP_DATA.scalability == 2) {
+		// Highest scalability
+		block1Agents = new Integer[]{5,4,2}; 
+		block2Agents = new Integer[]{3,3,2};
+		block3Agents = new Integer[]{7,5,2};
+		block4Agents = new Integer[]{4,3,2};
+	}
+
+
 	// ============================================================
 
 
