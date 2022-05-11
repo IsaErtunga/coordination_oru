@@ -12,7 +12,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
     protected double TTAagentSpeed;
 
     protected FilePrinter fp;
-    protected boolean lowCapacityTest = false;
+    protected double lowCapacityVolume = 1.0;
 
 
     public StorageAgent(int r_id, Router router, double capacity, Pose startPos, long startTime){} // deprecated
@@ -56,9 +56,10 @@ public class StorageAgent extends AuctioneerBidderAgent{
 
         // Testing
         this.fp = fp;
-        this.lowCapacityTest = mapInfo.getLowCapacityTest();
+        this.lowCapacityVolume = mapInfo.getLowCapacityTest();
 
         this.print("initiated");
+        this.print("Capacity: " + this.capacity);
         this.print("loadDump time-->"+this.LOAD_DUMP_TIME);
         router.enterNetwork(this);
         this.sendMessage(new Message(this.robotID, "hello-world", ""), true);
@@ -80,7 +81,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
         };
         amountThread.start();
 
-        if (this.lowCapacityTest) {
+        if (this.lowCapacityVolume < 1.0) {
             Thread lowerCapacityTest = new Thread() {
                 public void run() {
                     This.changeCapacity();
@@ -103,8 +104,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
         // Sleep for 2 minutes
         this.sleep(1000 * 120);
 
-        double percentage = 0.8;
-        double newCapacity = this.capacity * percentage;
+        double newCapacity = this.capacity * this.lowCapacityVolume;
 
         this.capacity = newCapacity;
         this.timeSchedule.setCapacity(newCapacity);

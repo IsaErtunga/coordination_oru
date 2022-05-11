@@ -7,8 +7,8 @@ import java.nio.file.Files;
 import java.nio.file.Path; 
 
 public class TestFramework {
-    public static int EXPERIMENTS = 2;
-    public static int EMPERIMENT_TIME = 2 * 60;
+    public static int EXPERIMENTS = 1;
+    public static int EMPERIMENT_TIME = 5 * 60;
     public static int CURRENT_EXPERIMENT;
     private static String experimentValuesPath = "/home/parallels/Projects/coordination_oru/experimentValues";
 
@@ -24,26 +24,6 @@ public class TestFramework {
         } catch (IOException e) {
                 e.printStackTrace();
         }
-    }
-
-    public static String readCSV() throws FileNotFoundException {
-        Scanner sc = new Scanner(new File("/home/parallels/Downloads/Testing Scenarios - Blad1.csv"));
-        sc.useDelimiter(",");
-
-        int numCols = 12;
-        int counter = 0;
-        String result = "";
- 
-        while (sc.hasNext()) {
-            if (counter == numCols) break;
-            String value = sc.next();
-
-            result = result + value + ",";
-            counter++;
-        }
-        sc.close();
-        return result;
-
     }
 
     public static void runTest(String content) throws IOException {
@@ -77,11 +57,11 @@ public class TestFramework {
     }
 
     public static void main(String[] args) throws FileNotFoundException  {
-        Scanner sc = new Scanner(new File("/home/parallels/Downloads/Testing Scenarios - Blad1.csv"));
+        String experimentDataPath = "/home/parallels/Projects/coordination_oru/experimentData/OriginalSystemExperiments.csv";
+        Scanner sc = new Scanner(new File(experimentDataPath));
         sc.useDelimiter(",");
         for (int i = 0; i < EXPERIMENTS; i++) {
-            int numCols = 12;
-            int counter = 0;
+            int numCols = 8;
             String result = "";
 
             for (int col = 0; col < numCols; col++) {

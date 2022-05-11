@@ -52,8 +52,9 @@ public class MobileAgent extends AuctioneerBidderAgent{
 
     protected void breakRobotTest(){
         if ( this.robotBreakdownTestProb == 0.0 ) return;
-        int secondsBeforeBoom = this.rand.nextInt( (int)(30/this.robotBreakdownTestProb)) - (int)this.clockStartTime;  //TODO fix stupid boyy
-        secondsBeforeBoom = secondsBeforeBoom < 0 ? 0 : secondsBeforeBoom;
+        int secondsBeforeBoom = this.rand.nextInt( (int)(30/this.robotBreakdownTestProb)) - (int) (this.clockStartTime/1000);  //TODO fix stupid boyy
+        secondsBeforeBoom = secondsBeforeBoom <= 0 ? 1 : secondsBeforeBoom;
+        this.print("WTF?:_"+ secondsBeforeBoom);
         this.print("will break at time "+this.getTime()+secondsBeforeBoom);
         this.sleep(1000 * secondsBeforeBoom);
         
