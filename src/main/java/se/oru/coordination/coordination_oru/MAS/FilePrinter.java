@@ -22,7 +22,7 @@ public class FilePrinter {
     public ArrayList<String> loggedMessages;
     public ArrayList<String> experiments = new ArrayList<String>(); 
     
-    private String path = "/home/parallels/Documents/coordination_oru/testResults/experiments.csv";
+    private String path = "/home/parallels/Projects/coordination_oru/testResults/experiments.csv";
     private String Alexpath = "/home/parallels/Documents/coordination_oru/testResults/experiments.csv";
     private String Isapath = "/home/parallels/Projects/coordination_oru/testResults/experiments.csv";
     protected ArrayList<Integer> robots = new ArrayList<Integer>();
@@ -48,7 +48,7 @@ public class FilePrinter {
     }
 
     public void readValues() throws FileNotFoundException {
-        Scanner sc = new Scanner(new File("/home/parallels/Documents/coordination_oru/experimentValues/values.csv"));
+        Scanner sc = new Scanner(new File("/home/parallels/Projects/coordination_oru/experimentValues/values.csv"));
         sc.useDelimiter(",");
         this.EXPERIMENT_NR = sc.next();  
         sc.close();
@@ -69,6 +69,22 @@ public class FilePrinter {
     protected void logOreState(double time, double ore, int robotID) {
         if (isActive) {
             String content = this.EXPERIMENT_NR + this.separator + robotID + this.separator + "ORESTATE" +  this.separator + time + this.separator + ore + "\n";
+            synchronized(this.experiments) {
+                this.experiments.add(content);
+            }
+        }
+    }
+
+    /**
+     * For writing storage state into file
+     * @param time
+     * @param ore
+     * @throws IOException
+     */
+    protected void logCollectedOre(double ore) {
+        if (isActive) {
+            double timeStamp = this.getTime();
+            String content = this.EXPERIMENT_NR + this.separator + "COLLECTED_ORE" +  this.separator + timeStamp + this.separator + ore + "\n";
             synchronized(this.experiments) {
                 this.experiments.add(content);
             }
