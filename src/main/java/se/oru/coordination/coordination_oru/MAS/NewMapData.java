@@ -26,7 +26,7 @@ public class NewMapData {
     public int scalability = 0;
 
     public void readValues() throws FileNotFoundException {
-        Scanner sc = new Scanner(new File("/home/parallels/Projects/coordination_oru/experimentValues/values.csv"));
+        Scanner sc = new Scanner(new File("/home/parallels/Documents/coordination_oru/experimentValues/values.csv"));
         // alexPath "/home/parallels/Documents/coordination_oru/experimentValues/values.csv"
         sc.useDelimiter(",");
 

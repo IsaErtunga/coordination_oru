@@ -82,7 +82,7 @@ public class NewMapTesting {
 
 	final long startTime = System.currentTimeMillis();
 	ArrayList<String> loggedMessages = new ArrayList<String>();					//		FILE PRINTER
-	FilePrinter fp = new FilePrinter(true, loggedMessages, startTime);			
+	FilePrinter fp = new FilePrinter(false, loggedMessages, startTime);			
 	Thread printer = new Thread() {
 		@Override
 		public void run() {
