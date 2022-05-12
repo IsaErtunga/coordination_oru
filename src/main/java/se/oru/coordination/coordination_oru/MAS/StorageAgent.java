@@ -242,7 +242,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
         boolean eventAdded;
         synchronized(this.timeSchedule){
             this.print("adding task");
-            this.timeSchedule.printSchedule(this.COLOR);
+            //this.timeSchedule.printSchedule(this.COLOR);
             eventAdded = this.timeSchedule.setEventActive(taskID);
         }
 
@@ -324,14 +324,14 @@ public class StorageAgent extends AuctioneerBidderAgent{
             if ( auctionTime != -1.0 ){
                 //this.print("requesting ore with auction time-->"+auctionTime);
                 // ========= time auction creation
-                long startTime = this.startTimer();
+                double startTime = this.getTime();
                 Message bestOffer = this.offerService(auctionTime);
                 if (bestOffer.isNull == true) continue;
                 // ==============================
 
                 Task task = this.generateTaskFromOffer(bestOffer);
                 
-                Double timeElapsed = this.stopTimer(startTime);
+                double timeElapsed = this.getTime() - startTime;
                 this.fp.addWaitingTimeMeasurment("auctionToTask", timeElapsed, this.robotID);
                 
                 double[] occupiedTimes = this.translateTAtaskTimesToOccupyTimes(task, this.occupancyPadding);

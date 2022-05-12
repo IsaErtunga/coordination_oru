@@ -4,10 +4,11 @@ import java.io.*;
 import java.util.HashMap;
 import java.util.Scanner;
 import java.nio.file.Files;
-import java.nio.file.Path; 
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption; 
 
 public class TestFramework {
-    public static int EXPERIMENTS = 1;
+    public static int EXPERIMENTS = 14;
     public static int EMPERIMENT_TIME = 5 * 60;
     public static int CURRENT_EXPERIMENT;
     private static String experimentValuesPath = "/home/parallels/Projects/coordination_oru/experimentValues";
@@ -20,7 +21,7 @@ public class TestFramework {
     private static void writeToFile(String path, String content) {
         Path realPath = Path.of(experimentValuesPath + path);
         try {
-            Files.write(realPath, content.getBytes());
+            Files.write(realPath, content.getBytes(), StandardOpenOption.TRUNCATE_EXISTING);
         } catch (IOException e) {
                 e.printStackTrace();
         }
@@ -70,7 +71,7 @@ public class TestFramework {
                     result = result + value + ",";
                 }
             }
-            result = result.replace("\n", "");
+            result = result.replaceAll("\\r|\\n", "");
             try {
                 runTest(result);
             } catch (IOException e) {
