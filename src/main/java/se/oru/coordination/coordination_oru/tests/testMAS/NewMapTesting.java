@@ -147,7 +147,12 @@ public class NewMapTesting {
 	Integer[] block2Agents = new Integer[]{3,2,2};
 	Integer[] block3Agents = new Integer[]{2,1,2};
 	Integer[] block4Agents = new Integer[]{4,2,2};
-	int nrTTAs = 1;
+
+	// Integer[] block1Agents = new Integer[]{1,1,1}; // agents spawning in rep, blocks. index0 = DA's, index2 = TA's, index3 = SA's
+	// Integer[] block2Agents = new Integer[]{1,1,1};
+	// Integer[] block3Agents = new Integer[]{1,1,1};
+	// Integer[] block4Agents = new Integer[]{1,1,1};
+	int nrTTAs = 0;
 	if (MAP_DATA.scalability == 1) {
 		// Higher scalability 
 		block1Agents = new Integer[]{5,4,2}; 
@@ -180,7 +185,9 @@ public class NewMapTesting {
 	OreState oreState1 = new OreState(MAP_DATA.getCapacity(3), MAP_DATA.getStartOre(3));
 	OreState oreState2 = new OreState(MAP_DATA.getCapacity(3), MAP_DATA.getStartOre(3));
 
-	for ( int agentType =0; agentType<3; agentType++ ){ // spawnOrder = DA,TA,SA,TTA, for every agent type
+	int[] spawnOrder = new int[]{0,1,2,3}; // 0=DA,1=TA,2=SA,3=TTA
+
+	for ( int agentType : spawnOrder ){ // spawnOrder = DA,TA,SA,TTA, for every agent type
 
 		for ( int block = 0; block <4; block++ ){	// for every block
 			int nrAgents = blockSpawns.get(block)[agentType];
