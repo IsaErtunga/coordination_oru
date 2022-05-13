@@ -70,7 +70,7 @@ public class NewMapTesting {
 	Coordinate footprint3 = new Coordinate(xl,-yl);
 	Coordinate footprint4 = new Coordinate(-xl,-yl);
 	tec.setDefaultFootprint(footprint1, footprint2, footprint3, footprint4);
-	tec.setupSolver(0, 100000000);//Set up infrastructure that maintains the representation
+	tec.setupSolver(0, 40 *1000);//Set up infrastructure that maintains the representation
 	tec.startInference();//Start the thread that checks and enforces dependencies at every clock tick
 	final String yamlFile = "maps/MineMap4Block.yaml"; // viz map file	
 	BrowserVisualization viz = new BrowserVisualization();//Set up a simple GUI
