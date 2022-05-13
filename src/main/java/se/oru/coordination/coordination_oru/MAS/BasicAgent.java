@@ -1,5 +1,6 @@
 package se.oru.coordination.coordination_oru.MAS;
 import se.oru.coordination.coordination_oru.motionplanning.ompl.ReedsSheppCarPlanner;
+import se.oru.coordination.coordination_oru.simulation2D.TrajectoryEnvelopeCoordinatorSimulation;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 import com.vividsolutions.jts.geom.Coordinate;
 import org.metacsp.multi.spatioTemporal.paths.PoseSteering;
@@ -33,7 +34,8 @@ public class BasicAgent extends HelpFunctions{
 
     // for time
     public Random rand = new Random(System.currentTimeMillis());
-    protected long clockStartTime;
+    protected TrajectoryEnvelopeCoordinatorSimulation tec;
+    protected double TEMPORAL_RESOLUTION;
     protected TimeScheduleNew timeSchedule;
     protected double occupancyPadding = 0.0;
     protected double agentVelocity = 5.6;
@@ -130,12 +132,28 @@ public class BasicAgent extends HelpFunctions{
      * @param s string to be printed
      */
     protected void print(String s){
-        //System.out.println(this.COLOR+this.robotID+" TIME["+String.format("%.2f",this.getTime()) + "]\t" + s + "\033[0m");
+        System.out.println(this.COLOR+this.robotID+" TIME["+String.format("%.2f",this.getTime()) + "]\t" + s + "\033[0m");
+    }
+
+    /**
+     * Call when need to sleep
+     * @param ms
+     */
+    public void sleep(int ms) {
+        double timeDone = this.getTime() + ms/1000.0;
+        try { Thread.sleep( (int)(ms * 1000.0/this.TEMPORAL_RESOLUTION) ); }
+        catch (InterruptedException e) { e.printStackTrace(); }
+        double deltaTime = timeDone - this.getTime();
+        if ( deltaTime > 0.01 ){
+            try { Thread.sleep( (int)(deltaTime * 1000.0/this.TEMPORAL_RESOLUTION) ); }
+            catch (InterruptedException e) { e.printStackTrace(); }
+        }
     }
 
     protected double getTime(){
-        long diff = System.currentTimeMillis() - this.clockStartTime;
-        return (double)(diff)/1000.0;
+        long clock;
+        synchronized(this.tec){ clock = this.tec.getCurrentTimeInMillis(); }
+        return (double)(clock)/this.TEMPORAL_RESOLUTION;
     }
 
     protected double getNextTime(){

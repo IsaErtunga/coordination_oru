@@ -15,7 +15,7 @@ import java.util.Scanner;
 // Main class
 public class FilePrinter {
     protected String separator = ",";
-    protected boolean isActive;
+    public boolean isActive;
     protected String EXPERIMENT_NR;
     protected long startTime;
 
@@ -23,8 +23,6 @@ public class FilePrinter {
     public ArrayList<String> experiments = new ArrayList<String>(); 
     
     private String path = "/home/parallels/Projects/coordination_oru/testResults/experiments.csv";
-    private String Alexpath = "/home/parallels/Documents/coordination_oru/testResults/experiments.csv";
-    private String Isapath = "/home/parallels/Projects/coordination_oru/testResults/experiments.csv";
     protected ArrayList<Integer> robots = new ArrayList<Integer>();
 
     public FilePrinter(boolean isActive, ArrayList<String> loggedMessages, long startTime) {

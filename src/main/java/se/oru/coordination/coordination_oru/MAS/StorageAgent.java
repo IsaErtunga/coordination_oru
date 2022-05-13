@@ -6,6 +6,7 @@ import java.util.HashMap;
 import org.metacsp.multi.spatioTemporal.paths.PoseSteering;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 import se.oru.coordination.coordination_oru.motionplanning.ompl.ReedsSheppCarPlanner;
+import se.oru.coordination.coordination_oru.simulation2D.TrajectoryEnvelopeCoordinatorSimulation;
 
 public class StorageAgent extends AuctioneerBidderAgent{
 
@@ -28,11 +29,13 @@ public class StorageAgent extends AuctioneerBidderAgent{
     public StorageAgent(int r_id, Router router, double capacity, double startOre, Pose startPos,long startTime, 
                         ReedsSheppCarPlanner mp, OreState oreState, HashMap<String, PoseSteering[]> pathStorage){}
 
-    public StorageAgent(int r_id, Router router, long startTime, NewMapData mapInfo, OreState oreState,
+    public StorageAgent(int r_id, Router router, NewMapData mapInfo, OreState oreState, TrajectoryEnvelopeCoordinatorSimulation tec,
                         HashMap<String, PoseSteering[]> pathStorage, FilePrinter fp){  
 
         this.robotID = r_id;
         this.COLOR = "\033[1;33m";
+        this.tec = tec;
+        this.TEMPORAL_RESOLUTION = tec.getTemporalResolution();
         this.capacity = mapInfo.getCapacity(r_id);
         this.amount = mapInfo.getStartOre(r_id);
         this.initialPose = mapInfo.getPose(r_id);
@@ -42,7 +45,6 @@ public class StorageAgent extends AuctioneerBidderAgent{
         this.TTAagentSpeed = mapInfo.getVelocity(4);
 
         this.timeSchedule = new TimeScheduleNew(oreState, this.initialPose, this.capacity, this.amount);
-        this.clockStartTime = startTime;
 
         //this.occupancyPadding = 7.0;
         this.occupancyPadding = (25.0 / this.agentVelocity) * 1.7;

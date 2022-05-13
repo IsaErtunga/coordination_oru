@@ -106,46 +106,6 @@ public class HelpFunctions {
     }
 
     /**
-     * Compare robot pose to task end pose to see if Task is finished
-     * @param task
-     * @return
-     */
-    protected void waitUntilCurrentTaskComplete (TrajectoryEnvelopeCoordinatorSimulation tec, int agentID, int cycleSleepTimeMs) {
-        while ( true ){
-            synchronized(tec){
-                if ( tec.isFree(agentID) == true ) break;
-            }
-            this.sleep(cycleSleepTimeMs);
-        }
-    }
-
-    /**
-     * Call when need to sleep
-     * @param ms
-     */
-    public void sleep(int ms) {
-        try { Thread.sleep(ms); }
-        catch (InterruptedException e) { e.printStackTrace(); }
-    }
-
-    /**
-     * Starts timer
-     * @return Current time in milliseconds
-     */
-    public long startTimer() {
-        return System.currentTimeMillis();
-    }
-
-    /**
-     * Stops timer
-     * @param startTime
-     * @return time elapsed in seconds. 
-     */
-    public double stopTimer(long startTime) {
-        return (System.currentTimeMillis() - startTime) / 1000.0;
-    }
-
-    /**
      * Returns value from Cumulative Distribution Function
      * ATM: Exponential distribution Can play around with which one we want. 
      * Value is distance. Around 65 distance = 0 in result

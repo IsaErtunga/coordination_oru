@@ -20,11 +20,12 @@ public class TransportAgent extends MobileAgent{
     protected double TIME_WAITING_ORESTATE_CHANGE = 4.0;
 
     public TransportAgent(  int r_id, TrajectoryEnvelopeCoordinatorSimulation tec, NewMapData mapInfo,
-                            Router router, long startTime, ReedsSheppCarPlanner mp, FilePrinter fp){
+                            Router router, ReedsSheppCarPlanner mp, FilePrinter fp){
         
         this.robotID = r_id;
         this.COLOR = "\033[0;32m";
         this.tec = tec;
+        this.TEMPORAL_RESOLUTION = tec.getTemporalResolution(); 
         this.initialPose = mapInfo.getPose(r_id);
 
         this.DIST_WEIGHT = mapInfo.getWeights(r_id)[0];
@@ -40,7 +41,6 @@ public class TransportAgent extends MobileAgent{
         this.capacity = mapInfo.getCapacity(r_id);
         this.TIME_WAITING_FOR_OFFERS = 3.0;
 
-        this.clockStartTime = startTime;
         this.timeSchedule = new TimeScheduleNew(this.initialPose, this.capacity, mapInfo.getStartOre(r_id));
         this.LOAD_DUMP_TIME = 0.0;//15.0 * 5.6 / this.agentVelocity;
 

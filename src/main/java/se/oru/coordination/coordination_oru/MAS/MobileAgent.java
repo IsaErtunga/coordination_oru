@@ -1,5 +1,4 @@
 package se.oru.coordination.coordination_oru.MAS;
-import se.oru.coordination.coordination_oru.simulation2D.TrajectoryEnvelopeCoordinatorSimulation;
 import se.oru.coordination.coordination_oru.ConstantAccelerationForwardModel;
 import com.vividsolutions.jts.geom.Coordinate;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
@@ -10,12 +9,10 @@ import org.metacsp.multi.spatioTemporal.paths.PoseSteering;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Collections;
-import java.util.Set;
 import java.lang.Math;
 
 public class MobileAgent extends AuctioneerBidderAgent{
 
-    protected TrajectoryEnvelopeCoordinatorSimulation tec;
     protected Coordinate[] rShape;
     protected double robotSpeed = 20.0;
     protected double robotAcceleration = 10.0;
@@ -30,7 +27,6 @@ public class MobileAgent extends AuctioneerBidderAgent{
     protected ArrayList<Pose> waitingWithTaskPoses = new ArrayList<Pose>();
 
     protected FilePrinter fp;
-    private double startTimeIdleness = 0;
     protected double robotBreakdownTestProb = 0.0;
     
     public void addRobotToSimulation(){
@@ -66,7 +62,7 @@ public class MobileAgent extends AuctioneerBidderAgent{
         this.STATE = "BREAK";
 
         synchronized(this.tec){
-            this.tec.replacePath(this.robotID, newPath, 0, false,Collections.EMPTY_SET);
+            this.tec.replacePath(this.robotID, newPath, 0, false, Collections.EMPTY_SET);
         }
         this.sleep(500);
         synchronized(this.inbox){ this.inbox.clear(); }
@@ -149,22 +145,15 @@ public class MobileAgent extends AuctioneerBidderAgent{
 
     protected void stateHandler(){
         this.STATE = "START_NEXT_MISSION_STATE";
-        String prevState = this.STATE;
         while ( true ){
             this.sleep(100);
             switch(this.STATE){
-                case "START_NEXT_MISSION_STATE":
-                    if (prevState != this.STATE) {
-                        this.startTimeIdleness = this.getTime();
-                    }
-                    prevState = this.STATE;
+                case "START_NEXT_MISSION_STATE":                    
                     this.startNextMissionState();
-                
                     break;
     
                 case "TRACK_MISSION_STATE":
                     // if prevState == START_NEXT_MISSION_STATE
-                    prevState = this.STATE;
                     this.trackMissionState();
                     // make sure we have no deadlocks and stuff
                     break;
@@ -184,19 +173,16 @@ public class MobileAgent extends AuctioneerBidderAgent{
     }
 
     protected void startNextMissionState(){
-        this.prepareNextMissionState();
-        if ( sNextTask == null ) return;
-
-        double now = this.getTime();
-        double timeUntilMissionStart = sNextTask.startTime - now;    // handle if next mission starts later
-        this.print("--startNextMissionState: time until mission starts: "+timeUntilMissionStart);
-        if ( timeUntilMissionStart > 4.0 ){
-            this.sleep( 1000 );
-            return;
-
-        } else if ( timeUntilMissionStart > 0.5 ){
-            this.sleep( (int)((timeUntilMissionStart-0.5)*1000.0) );
+        double now;
+        double meassureStart = this.getTime();
+        while ( true ){
+            this.prepareNextMissionState();
+            now = this.getTime();
+            if ( sNextTask != null && sNextTask.startTime - now < 0.7) break;
+            else if ( sNextTask != null && sNextTask.startTime - now > 2.0 ) this.sleep(500);
+            else this.sleep(2000);
         }
+
         synchronized(this.timeSchedule){this.timeSchedule.getNextEvent();} // here we dedicate to doing the mission
 
         sCurrMission = sNextMission;                                                   // start next mission
@@ -204,14 +190,13 @@ public class MobileAgent extends AuctioneerBidderAgent{
         sNextMission = null;
         sNextTask = null;
 
-
         synchronized(this.tec){ this.tec.addMissions(sCurrMission); }
-        Double elapsedTime = this.getTime() - this.startTimeIdleness;
+        Double elapsedTime = this.getTime() - meassureStart;
         this.fp.addWaitingTimeMeasurment("idleUponExecution", elapsedTime, this.robotID); 
 
         this.print("--startNextMissionState: added mission to tec");
 
-        if ( timeUntilMissionStart < -0.5 ) { // update schedule partners of new delay if we start late
+        if ( sCurrTask.startTime - now < -0.5 ) { // update schedule partners of new delay if we start late
             double nextStartTime = sCurrTask.endTime - sCurrTask.startTime + now;
             sCurrTask.startTime = now;
             sCurrTask.endTime = nextStartTime;
@@ -237,42 +222,30 @@ public class MobileAgent extends AuctioneerBidderAgent{
         sNextTask = nextTinSchedule;
         double now = this.getTime();
 
-        // double planTime = 2.0;
-
-        // this.mp.setPlanningTimeInSecs(planTime);
         sNextMission = this.createMission(sNextTask, sCurrTask == null ? this.initialPose : sCurrTask.toPose);
-
 
         PoseSteering[] path = sNextMission.getPath();
         double pathDist = this.calculatePathDist(path);
-    
-        //if ( path[path.length-1].getPose().distanceTo(sNextTask.toPose) > 3.0 || pathDist*1.3 > sNextTask.pathDist ){
+        
         if ( pathDist/sNextTask.pathDist > 1.3 ){
             this.print("--prepareNextMissionState: path calculated but not good. path is "+(pathDist/sNextTask.pathDist)+" times the size of distEst");
             sNextMission = null;
             sNextTask = null;
         } else {
             this.print("--prepareNextMissionState: created mission in-->"+(this.getTime() - now)+" seconds");
-            //this.savePathToStorage(this.pStorage, path);
         }
     }
 
     protected void trackMissionState(){
         this.print("--trackMissionState");
-        int scSize;
         boolean missionIsDone = false;
         boolean isWaiting = false;
         RobotReport rr;
-        long startTime = 0;
+        double startTime = 0.0;
 
         while ( true ){
             this.sleep(1000);
             this.prepareNextMissionState(); // replan next mission if it is changed
-
-            // if ( isWaiting && this.startReplan){
-            //     this.STATE = "REPLAN_CURRENT_MISSION";
-            //     break;
-            // }
 
             synchronized(this.tec){ 
                 missionIsDone = this.tec.isFree(this.robotID);
@@ -295,7 +268,7 @@ public class MobileAgent extends AuctioneerBidderAgent{
             }
 
             if ( isWaiting == false && rr.getCriticalPoint() == rr.getPathIndex()){
-                startTime = this.startTimer();
+                startTime = this.getTime();
                 this.print("started waiting");
                 isWaiting = true;
                 continue;
@@ -305,17 +278,9 @@ public class MobileAgent extends AuctioneerBidderAgent{
             isWaiting = rr.getCriticalPoint() == rr.getPathIndex();
 
             if (oldIsWaiting == true && isWaiting == false) {
-                Double elapsedTime = this.stopTimer(startTime);
+                Double elapsedTime = this.getTime() - startTime;
                 this.fp.addWaitingTimeMeasurment("congestion", elapsedTime, this.robotID); 
             }
-
-            // if ( isWaiting == false && rr.getCriticalPoint() == rr.getPathIndex()){ // if we notice now that we are waiting for path to slove
-            //     isWaiting = true;
-            //     this.waitingWithTaskPoses.add(0, currentT.fromPose);
-            //     this.waitingWithTaskPoses.add(1, currentT.toPose);
-            //     String body = this.stringifyPose(currentT.fromPose)+this.separator+this.stringifyPose(currentT.toPose);
-            //     this.sendMessage(new Message(this.robotID, this.getReceivers("TRANSPORT"),"waiting",body), true);
-            // }
         }
     }
 
@@ -323,7 +288,4 @@ public class MobileAgent extends AuctioneerBidderAgent{
         this.print("--replanCurrentMissionState");
 
     }
-
-
-
 }

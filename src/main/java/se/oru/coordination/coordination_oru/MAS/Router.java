@@ -13,19 +13,18 @@ import java.util.Random;
 public class Router {
 
     protected int periodMili = 250;
-    public ArrayList<String> loggedMessages;
-    public long startTime;
     public double dropMessagePercentage;
+    public int msgCount = 0;
+    protected boolean isActive = true;
 
     public HashMap<Integer, ArrayList<Message>> inboxes = new HashMap<Integer, ArrayList<Message>>();
     public HashMap<Integer, ArrayList<Message>> outboxes = new HashMap<Integer, ArrayList<Message>>();
 
     Random rand = new Random();
     
-    public Router(long startTime, ArrayList<String> loggedMessages, NewMapData mapData) {
-        this.startTime = startTime;
-        this.loggedMessages = loggedMessages;
+    public Router(NewMapData mapData, double temporal_res) {
         this.dropMessagePercentage = mapData.getDropMessageTest();
+        this.periodMili = (int)(this.periodMili * temporal_res/1000.0);
     }
 
     public void enterNetwork(TransportAgent a){
@@ -51,18 +50,17 @@ public class Router {
         synchronized(this.outboxes){ this.outboxes.remove(robotID); }
     }
 
-    protected double getTime(){
-        long diff = System.currentTimeMillis() - this.startTime;
-        return (double)(diff)/1000.0;
+    public int deActivate(){
+        this.isActive = false;
+        return this.msgCount;
     }
-
 
     public void run(){
         //TODO implement protection to check if robotID exist to router
 
         ArrayList<Message> outputMessages = new ArrayList<Message>();
 
-        while(true){
+        while(this.isActive){
             //this.print();
 
             synchronized(this.outboxes){
@@ -75,6 +73,7 @@ public class Router {
                 }
             }
 
+            msgCount += outputMessages.size();
             // for (Message msg: outputMessages) {
             //     this.loggedMessages.add(this.getTime() + "," + msg.type);
             // }

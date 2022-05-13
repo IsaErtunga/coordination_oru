@@ -32,14 +32,14 @@ public class TransportTruckAgent extends MobileAgent{
                         ReedsSheppCarPlanner mp, Pose startPos, Router router){}
 
     public TransportTruckAgent( int r_id, TrajectoryEnvelopeCoordinatorSimulation tec, NewMapData mapInfo, Router router,
-                                long startTime, ReedsSheppCarPlanner mp, HashMap<String, PoseSteering[]> pathStorage, FilePrinter fp){
+                                ReedsSheppCarPlanner mp, HashMap<String, PoseSteering[]> pathStorage, FilePrinter fp){
         
         
         this.robotID = r_id;
         this.COLOR = "\033[1;94m";
         this.tec = tec;
+        this.TEMPORAL_RESOLUTION = tec.getTemporalResolution();
         this.initialPose = mapInfo.getPose(r_id);
-        this.clockStartTime = startTime;
 
         this.agentVelocity = mapInfo.getVelocity(4);
         this.setRobotSpeedAndAcc(this.agentVelocity, 20.0);
