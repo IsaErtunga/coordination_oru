@@ -184,11 +184,11 @@ public class NewMapData {
             if ( type == 1 ) return new Pose(x + 80.0, 16.0 + 33.8*(uniqueID-1), Math.PI);
 
             else if ( type == 2 ){
-                if ( uniqueID == 1 ) return new Pose(x + 106.0,20.0 + 1*68.0, Math.PI/2);  
-                if ( uniqueID == 2 ) return new Pose(x + 106.0,20.0 + 3*68.0, 3*Math.PI/2);  
-                if ( uniqueID == 3 ) return new Pose(x + 106.0,20.0 + 2*68.0, 3*Math.PI/2);  
-                if ( uniqueID == 4 ) return new Pose(x + 106.0,20.0 + 0*68.0, Math.PI/2);  
-                if ( uniqueID == 5 ) return new Pose(x + 106.0,20.0 + 4*68.0, 3*Math.PI/2);  
+                if ( uniqueID == 1 ) return new Pose(x + 106.0,20.0 + 1*82.5, Math.PI/2);  
+                if ( uniqueID == 2 ) return new Pose(x + 106.0,20.0 + 3*82.5, 3*Math.PI/2);  
+                if ( uniqueID == 3 ) return new Pose(x + 106.0,20.0 + 2*82.5, 3*Math.PI/2);  
+                if ( uniqueID == 4 ) return new Pose(x + 106.0,20.0 + 0*82.5, Math.PI/2);  
+                if ( uniqueID == 5 ) return new Pose(x + 106.0,20.0 + 4*82.5, 3*Math.PI/2);  
 
             } else if ( type == 3){
                 if ( uniqueID == 1 ) return new Pose(x + 129.0, 121.0, 0.0); 
