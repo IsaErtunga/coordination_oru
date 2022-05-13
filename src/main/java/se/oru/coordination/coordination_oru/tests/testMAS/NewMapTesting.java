@@ -73,16 +73,16 @@ public class NewMapTesting {
 	tec.setupSolver(0, 100000000);//Set up infrastructure that maintains the representation
 	tec.startInference();//Start the thread that checks and enforces dependencies at every clock tick
 	final String yamlFile = "maps/MineMap4Block.yaml"; // viz map file	
-	// BrowserVisualization viz = new BrowserVisualization();//Set up a simple GUI
-	// viz.setMap(yamlFile);
-	// viz.setInitialTransform(2.0, 1.0, 1.0); // good for MineMap2Block (i think)
-	// tec.setVisualization(viz);
+	BrowserVisualization viz = new BrowserVisualization();//Set up a simple GUI
+	viz.setMap(yamlFile);
+	viz.setInitialTransform(2.0, 1.0, 1.0); // good for MineMap2Block (i think)
+	tec.setVisualization(viz);
 	tec.setUseInternalCriticalPoints(false);
 
 
 	final long startTime = System.currentTimeMillis();
 	ArrayList<String> loggedMessages = new ArrayList<String>();					//		FILE PRINTER
-	FilePrinter fp = new FilePrinter(true, loggedMessages, startTime);			
+	FilePrinter fp = new FilePrinter(false, loggedMessages, startTime);			
 	Thread printer = new Thread() {
 		@Override
 		public void run() {
@@ -152,7 +152,7 @@ public class NewMapTesting {
 	// Integer[] block2Agents = new Integer[]{1,1,1};
 	// Integer[] block3Agents = new Integer[]{1,1,1};
 	// Integer[] block4Agents = new Integer[]{1,1,1};
-	int nrTTAs = 0;
+	int nrTTAs = 1;
 	if (MAP_DATA.scalability == 1) {
 		// Higher scalability 
 		block1Agents = new Integer[]{5,4,2}; 

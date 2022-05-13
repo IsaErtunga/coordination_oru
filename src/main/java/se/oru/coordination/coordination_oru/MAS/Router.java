@@ -75,9 +75,9 @@ public class Router {
                 }
             }
 
-            for (Message msg: outputMessages) {
-                this.loggedMessages.add(this.getTime() + "," + msg.type);
-            }
+            // for (Message msg: outputMessages) {
+            //     this.loggedMessages.add(this.getTime() + "," + msg.type);
+            // }
 
             synchronized(this.inboxes){
                 for (Message m : outputMessages){

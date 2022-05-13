@@ -12,7 +12,7 @@ public class NewMapData {
     protected HashMap<String, Integer> values = new HashMap<String, Integer>();
 
     protected double SACapicity;
-    protected double TTASpeed = 5.6 * 2;
+    protected double TTASpeed = 5.6 * 4;
     protected double[] TAWeights = new double[]{1.0, 1.0, 1.0};
 
     protected double dropMessageTestProb = 1.0;
@@ -85,7 +85,7 @@ public class NewMapData {
                 case "Scalability":
                     this.scalability = value;
                     if (value == 1) {
-                        this.TTASpeed = 5.6 * 4;
+                        this.TTASpeed = 5.6 * 6;
                     } else if (value == 2) {
                         this.TTASpeed = 5.6 * 8;
                     }
@@ -215,7 +215,7 @@ public class NewMapData {
 
         if ( agentType == 1 ) return this.getCapacity(agentType);
         if ( agentType == 2 ) return 0.0;
-        if ( agentType == 3 ) return this.getCapacity(agentType)/2;
+        if ( agentType == 3 ) return this.getCapacity(agentType)/4;
         if ( agentType == 4 ) return 0.0;
         return 0.0;
     }
@@ -223,7 +223,7 @@ public class NewMapData {
     public double getCapacity(int agentType){
         if ( agentType > 1000 ) agentType = (agentType % 1000) / 100;
 
-        if ( agentType == 1 ) return 100.0;
+        if ( agentType == 1 ) return 150.0;
         if ( agentType == 3 ) return this.SACapicity;
         if ( agentType == 2 ) return 8.0;
         if ( agentType == 4 ) return 50.0;

@@ -311,7 +311,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
             double slotSize = this.occupancyPadding*3+this.LOAD_DUMP_TIME;
             double auctionTime = -1.0;
             while ( lookOre < 0.9*this.capacity && auctionTime == -1.0 ){
-                if ( lookOre > 0.4 * this.capacity ) this.sleep(2000);
+                if ( lookOre > 0.8 * this.capacity ) this.sleep(4000);
                 double timeLookAfter = this.getTime()+10.0+this.LOAD_DUMP_TIME;
                 double timeLookBefore = timeLookAfter + 90.0; // two minutes plan ahead
                 synchronized(this.timeSchedule){
