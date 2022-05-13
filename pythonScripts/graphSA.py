@@ -1,4 +1,3 @@
-from cProfile import label
 import json
 from time import time
 import matplotlib.pyplot as plt
@@ -8,28 +7,53 @@ import json
 
 plt.rcParams["figure.figsize"] = [7.50, 3.50]
 plt.rcParams["figure.autolayout"] = True
-path = "/home/parallels/Projects/coordination_oru/testResults/experiments"
+path = "/home/parallels/Projects/coordination_oru/testResults/experiments.csv"
+
+"""
+1. base
+2. Scalability(high) 
+3. Scalability(very high)
+4. low message drop test
+5. high message drop test
+6. low agent drop test
+7. high agent drop test
+8. low storage volume drop test
+9. high storage drop test
+10. Efficiency(high)
+11. efficiency(very high)
+12. Distance off
+13. Ore off
+14. Time off
+"""
 
 
 def readExperimentFile():
     oreStates = []
     messages = []
     times = []
-    
+    collectedOre = []
+    distances = []
+    test = input("Input number of test: ")
     with open(path,'r') as csvfile:
         measure = csv.reader(csvfile, delimiter = ',')
         for experiment in measure:
-            if (experiment[0] == "1"):
+            if (experiment[0] == test):
                 if ("ORESTATE" in experiment):
                     oreStates.append(experiment)
                 elif ("MESSAGE" in experiment):
                     messages.append(experiment)
                 elif ("TIME" in experiment):
                     times.append(experiment)
-    
+                elif ("COLLECTED_ORE" in experiment):
+                    collectedOre.append(experiment)
+                elif ("DISTANCE" in experiment):
+                    distances.append(experiment)
+
     plotOreState(oreStates=oreStates)
     plotMessages(messages=messages)
     plotWaitingTimes(times=times)
+    plotCollectedOre(collectedOre=collectedOre)
+    plotDistances(distances=distances)
 
             
 
@@ -51,7 +75,8 @@ def plotOreState(oreStates):
         plt.title('Storage Agent: ' + plot)
         plt.xlabel('Time')
         plt.ylabel('Ore')
-  
+        print("Final ore state",  oreStateById[plot][1][-1])
+    print("")
 
 # Plot message count
 def plotMessages(messages):
@@ -95,7 +120,6 @@ def plotMessages(messages):
 # Plot message count
 def plotWaitingTimes(times):
     waitingTimes = {
-        "pathCalculation": [[], [], 1],
         "auctionToTask" : [[], [], 1],
         "idleUponExecution": [[], [], 1],
         "congestion": [[], [], 1]
@@ -113,22 +137,27 @@ def plotWaitingTimes(times):
             waitingTimes[type][1].append(waitValue)
         waitingTimes[type][2] += 1
 
-
-
-    # print(json.dumps(waitingTimes,sort_keys=True, indent=2))
-    
     plt.figure()
     for measurment in waitingTimes.keys():
         plt.step(waitingTimes[measurment][0], waitingTimes[measurment][1], label=measurment)
         plt.title('Waiting Times: ' + measurment)    
 
-
     plt.title('Waiting Times')
-    
     plt.legend(loc="upper left")
     plt.xlabel('Measurment')
     plt.ylabel('Wait Time')
 
+def plotCollectedOre(collectedOre):
+    totalCollectedOre = 0.0
+    for measurment in collectedOre:
+        totalCollectedOre += float(measurment[3])
+    print("TOTAL COLLECTED ORE: \n", totalCollectedOre)
+
+def plotDistances(distances):
+    totalDistances = 0.0
+    for measurment in distances:
+        totalDistances += float(measurment[5])
+    print("TOTAL DISTANCE TRAVELLED: \n", totalDistances)
 
 readExperimentFile()
 plt.show()

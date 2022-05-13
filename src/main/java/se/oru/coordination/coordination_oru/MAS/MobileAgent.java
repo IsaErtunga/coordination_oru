@@ -30,7 +30,7 @@ public class MobileAgent extends AuctioneerBidderAgent{
     protected ArrayList<Pose> waitingWithTaskPoses = new ArrayList<Pose>();
 
     protected FilePrinter fp;
-    private long startTimeIdleness = 0;
+    private double startTimeIdleness = 0;
     protected double robotBreakdownTestProb = 0.0;
     
     public void addRobotToSimulation(){
@@ -155,7 +155,7 @@ public class MobileAgent extends AuctioneerBidderAgent{
             switch(this.STATE){
                 case "START_NEXT_MISSION_STATE":
                     if (prevState != this.STATE) {
-                        this.startTimeIdleness = this.startTimer();
+                        this.startTimeIdleness = this.getTime();
                     }
                     prevState = this.STATE;
                     this.startNextMissionState();
@@ -206,7 +206,7 @@ public class MobileAgent extends AuctioneerBidderAgent{
 
 
         synchronized(this.tec){ this.tec.addMissions(sCurrMission); }
-        Double elapsedTime = this.stopTimer(this.startTimeIdleness);
+        Double elapsedTime = this.getTime() - this.startTimeIdleness;
         this.fp.addWaitingTimeMeasurment("idleUponExecution", elapsedTime, this.robotID); 
 
         this.print("--startNextMissionState: added mission to tec");
