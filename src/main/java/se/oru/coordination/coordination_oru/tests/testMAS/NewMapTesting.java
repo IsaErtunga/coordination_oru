@@ -41,27 +41,27 @@ public class NewMapTesting {
 
 	public static void main(String[] args) throws InterruptedException {
 
-	double temporal_res = 500.0;
-	SimTime ssm = new SimTime(1000.0, System.currentTimeMillis());
+	double temporal_res = 1000.0;
+	// SimTime ssm = new SimTime(1000.0, System.currentTimeMillis());
 
-	Thread simTimeThread = new Thread() {
-		public void run() {
-			ssm.startClock();
-		}
-	};
-	simTimeThread.start();
+	// Thread simTimeThread = new Thread() {
+	// 	public void run() {
+	// 		ssm.startClock();
+	// 	}
+	// };
+	// simTimeThread.start();
 
-	int i=0;
-	while (true){
-		System.out.println("normalTime-->"+ssm.time());
-		System.out.println("simTime-->"+ssm.SIM_time());
+	// int i=0;
+	// while (true){
+	// 	System.out.println("normalTime-->"+ssm.time());
+	// 	System.out.println("simTime-->"+ssm.SIM_time());
 
-		try { Thread.sleep(1000); }
-		catch (InterruptedException e) { e.printStackTrace(); }
-		i++;
-		if ( i > 20 ) break;
+	// 	try { Thread.sleep(1000); }
+	// 	catch (InterruptedException e) { e.printStackTrace(); }
+	// 	i++;
+	// 	if ( i > 20 ) break;
 
-	}
+	// }
 
 	final TrajectoryEnvelopeCoordinatorSimulation tec = new TrajectoryEnvelopeCoordinatorSimulation(1000, temporal_res, 50.0,20.0);
 	//tec.setBreakDeadlocks(true, true, true);
