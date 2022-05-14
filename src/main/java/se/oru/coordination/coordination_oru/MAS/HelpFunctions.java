@@ -11,34 +11,6 @@ import java.util.HashMap;
 import java.lang.Math;
 
 public class HelpFunctions {
-
-    public PoseSteering[] getPath(HashMap<String, PoseSteering[]> paths, ReedsSheppCarPlanner mp, Pose from, Pose[] to){
-        // String pathID = String.format("%.2f",from.getX())+"," +String.format("%.2f",from.getY());
-        // for (Pose p : to){
-        //     pathID += "->"+String.format("%.2f",p.getX())+"," +String.format("%.2f",p.getY());
-        // }
-        String pathID = String.format("%.2f",from.getX())+"," +String.format("%.2f",from.getY());
-        pathID += "->"+String.format("%.2f",to[to.length-1].getX())+"," +String.format("%.2f",to[to.length-1].getY());
-
-        PoseSteering[] path = null;
-        if ( paths != null ) synchronized(paths){ path = paths.get(pathID); }
-        if (path != null) return path;
-        
-        synchronized(mp){
-            mp.setStart(from);
-            mp.setGoals(to);
-            if (!mp.plan()) throw new Error ("No path between " + from + " and " + to);
-            return mp.getPath();
-        }
-    }
-    public PoseSteering[] getPath(HashMap<String, PoseSteering[]> paths, ReedsSheppCarPlanner mp, Pose from, Pose to){
-        Pose[] toPoses = new Pose[] {to};
-        return this.getPath(paths, mp, from, toPoses);
-    }
-    public PoseSteering[] getPath(ReedsSheppCarPlanner mp, Pose from, Pose to){
-        Pose[] toPoses = new Pose[] {to};
-        return this.getPath(null, mp, from, toPoses);
-    }
     
     public PoseSteering[] calculatePath(ReedsSheppCarPlanner mp, Pose from, Pose[] to){
         synchronized(mp){
@@ -52,14 +24,6 @@ public class HelpFunctions {
         return this.calculatePath(mp, from, new Pose[] {to});
     }
 
-    public void savePathToStorage(HashMap<String, PoseSteering[]> paths, PoseSteering[] path ){
-        Pose from = path[0].getPose();
-        Pose to = path[path.length-1].getPose();
-        String pathID = String.format("%.2f",from.getX())+"," +String.format("%.2f",from.getY());
-        pathID += "->"+String.format("%.2f",to.getX())+"," +String.format("%.2f",to.getY());
-
-        if ( paths != null ) synchronized(paths){ paths.put(pathID, path); }
-    }
 
     public double basicPathDistEstimate(Pose from, Pose to){
         return Math.abs( from.getX() - to.getX() ) + Math.abs( from.getY() - to.getY() );

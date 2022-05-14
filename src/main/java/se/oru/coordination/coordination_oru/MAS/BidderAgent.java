@@ -32,7 +32,7 @@ public class BidderAgent extends BasicAgent{
      * @return a Task with attributes extracted from m
      */
     protected Task generateTaskFromAuction(Message m, Pose ourPose, double ore){
-        double time_padding = 2.0;
+        double time_padding = 1.0;
         String[] mParts = this.parseMessage(m, "", true);
         Pose auctioneerPose = this.posefyString(mParts[2]);
         //double pathDist = ourPose.distanceTo(auctioneerPose);

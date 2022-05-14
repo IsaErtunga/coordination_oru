@@ -209,26 +209,17 @@ public class TransportAgent extends MobileAgent{
     @Override
     protected Task generateTaskFromAuction(Message m, Pose ourPose, double ore){
         String[] mParts = this.parseMessage(m, "", true);
-        double time_padding = 2.0;
+        double time_padding = 1.0;
         Pose SApos = this.posefyString(mParts[2]);
 
         double pathDist = this.basicPathDistEstimate(ourPose, SApos);
         double pathTime = this.calculateDistTime(pathDist, this.agentVelocity) + this.LOAD_DUMP_TIME + time_padding;
         double auctionTimeRequest = Double.parseDouble( mParts[3] );
 
-        int scheduleSize;
-        synchronized(this.timeSchedule){ scheduleSize = this.timeSchedule.getSize(); }
         double ourNextTimeAvailable = this.getNextTime();
         double ourPossibleTimeAtTask = ourNextTimeAvailable + pathTime;
 
-        double tStart = scheduleSize > 2 ? 
-                        ourNextTimeAvailable :
-                        auctionTimeRequest > ourPossibleTimeAtTask ?
-                            auctionTimeRequest - pathTime :
-                            ourNextTimeAvailable;
-
-        //double taskStartTime = auctionTimeRequest > ourPossibleTimeAtTask ? auctionTimeRequest - pathTime : ourNextTimeAvailable;
-        //if ( scheduleSize < 1 ) taskStartTime = auctionTimeRequest > ourPossibleTimeAtTask ? auctionTimeRequest - pathTime : ourNextTimeAvailable;
+        double tStart = auctionTimeRequest > ourPossibleTimeAtTask ? auctionTimeRequest - pathTime : ourNextTimeAvailable;
         double tEnd = tStart + pathTime;
 
         return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, tStart, tEnd, pathDist, ourPose, SApos);

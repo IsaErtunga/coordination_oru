@@ -28,8 +28,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
     public StorageAgent(int r_id, Router router, double capacity, double startOre, Pose startPos,long startTime, 
                         ReedsSheppCarPlanner mp, OreState oreState, HashMap<String, PoseSteering[]> pathStorage){}
 
-    public StorageAgent(int r_id, Router router, long startTime, NewMapData mapInfo, OreState oreState,
-                        HashMap<String, PoseSteering[]> pathStorage, FilePrinter fp){  
+    public StorageAgent(int r_id, Router router, long startTime, NewMapData mapInfo, OreState oreState, FilePrinter fp){  
 
         this.robotID = r_id;
         this.COLOR = "\033[1;33m";
@@ -51,8 +50,6 @@ public class StorageAgent extends AuctioneerBidderAgent{
         this.LOAD_DUMP_TIME = 0.0;//15.0 * 5.6 / this.agentVelocity;
         this.TIME_WAITING_FOR_OFFERS = 8.0;
         this.taskCap = 3;
-
-        this.pStorage = pathStorage;
 
         // Testing
         this.fp = fp;
@@ -311,7 +308,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
             double slotSize = this.occupancyPadding*3+this.LOAD_DUMP_TIME;
             double auctionTime = -1.0;
             while ( lookOre < 0.9*this.capacity && auctionTime == -1.0 ){
-                if ( lookOre > 0.8 * this.capacity ) this.sleep(4000);
+                if ( lookOre > 0.6 * this.capacity ) this.sleep(10000);
                 double timeLookAfter = this.getTime()+10.0+this.LOAD_DUMP_TIME;
                 double timeLookBefore = timeLookAfter + 90.0; // two minutes plan ahead
                 synchronized(this.timeSchedule){

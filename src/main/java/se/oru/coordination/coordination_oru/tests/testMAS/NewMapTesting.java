@@ -136,11 +136,6 @@ public class NewMapTesting {
 	//================= MOTION PLANNERS ======================
 
 
-	//================= PATH STORAGE ======================
-	HashMap<String, PoseSteering[]> pathStorage = new HashMap<String, PoseSteering[]>();
-	//================= PATH STORAGE ======================
-
-
 	// ============== HERE YOU ALTER THE SCENARIO =================
 	// Base case
 	Integer[] block1Agents = new Integer[]{5,3,2}; // agents spawning in rep, blocks. index0 = DA's, index2 = TA's, index3 = SA's
@@ -148,10 +143,10 @@ public class NewMapTesting {
 	Integer[] block3Agents = new Integer[]{2,1,2};
 	Integer[] block4Agents = new Integer[]{4,2,2};
 
-	// Integer[] block1Agents = new Integer[]{1,1,1}; // agents spawning in rep, blocks. index0 = DA's, index2 = TA's, index3 = SA's
-	// Integer[] block2Agents = new Integer[]{1,1,1};
-	// Integer[] block3Agents = new Integer[]{1,1,1};
-	// Integer[] block4Agents = new Integer[]{1,1,1};
+	// Integer[] block1Agents = new Integer[]{0,0,0}; // agents spawning in rep, blocks. index0 = DA's, index2 = TA's, index3 = SA's
+	// Integer[] block2Agents = new Integer[]{0,0,0};
+	// Integer[] block3Agents = new Integer[]{0,0,0};
+	// Integer[] block4Agents = new Integer[]{0,0,0};
 	int nrTTAs = 1;
 	if (MAP_DATA.scalability == 1) {
 		// Higher scalability 
@@ -181,16 +176,15 @@ public class NewMapTesting {
 	boolean spawnBaseLvlSA1 = nrTTAs > 0 ? true : false;
 	boolean spawnBaseLvlSA2 = nrTTAs > 0 ? true : false;
 	
-
 	OreState oreState1 = new OreState(MAP_DATA.getCapacity(3), MAP_DATA.getStartOre(3));
 	OreState oreState2 = new OreState(MAP_DATA.getCapacity(3), MAP_DATA.getStartOre(3));
 
-	int[] spawnOrder = new int[]{0,1,2,3}; // 0=DA,1=TA,2=SA,3=TTA
-
+	int[] spawnOrder = new int[]{0,1,2}; // 0=DA,1=TA,2=SA,3=TTA
 	for ( int agentType : spawnOrder ){ // spawnOrder = DA,TA,SA,TTA, for every agent type
 
 		for ( int block = 0; block <4; block++ ){	// for every block
 			int nrAgents = blockSpawns.get(block)[agentType];
+			if ( nrAgents < 1 ) continue;
 
 			if ( agentType == 0 ){ // spawn DA
 				int[] spawnOrderDA = new int[]{3,9,5,7,6,2,10,4,8,1,11};
@@ -246,7 +240,7 @@ public class NewMapTesting {
 						public void run() {
 							this.setPriority(Thread.MAX_PRIORITY);	
 
-							StorageAgent SA = new StorageAgent(agentID, router, startTime, MAP_DATA, os, pathStorage, fp);
+							StorageAgent SA = new StorageAgent(agentID, router, startTime, MAP_DATA, os, fp);
 							SA.start();
 						}
 					};
@@ -262,7 +256,7 @@ public class NewMapTesting {
 				@Override
 				public void run() {
 					this.setPriority(Thread.MAX_PRIORITY);	
-					StorageAgent SA = new StorageAgent(9301, router, startTime, MAP_DATA, oreState1, pathStorage, fp);
+					StorageAgent SA = new StorageAgent(9301, router, startTime, MAP_DATA, oreState1, fp);
 					SA.start();
 				}
 			};
@@ -276,7 +270,7 @@ public class NewMapTesting {
 				@Override
 				public void run() {
 					this.setPriority(Thread.MAX_PRIORITY);	
-					StorageAgent SA = new StorageAgent(9302, router, startTime, MAP_DATA, oreState2, pathStorage, fp);
+					StorageAgent SA = new StorageAgent(9302, router, startTime, MAP_DATA, oreState2, fp);
 					SA.start();
 				}
 			};
@@ -293,7 +287,7 @@ public class NewMapTesting {
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);	
 
-				TransportTruckAgent TTA = new TransportTruckAgent( agentID, tec, MAP_DATA, router, startTime, mp3, pathStorage,fp);
+				TransportTruckAgent TTA = new TransportTruckAgent( agentID, tec, MAP_DATA, router, startTime, mp3, fp);
 				TTA.start();
 			}
 		};

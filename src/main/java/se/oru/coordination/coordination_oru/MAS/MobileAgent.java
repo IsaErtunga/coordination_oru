@@ -54,7 +54,7 @@ public class MobileAgent extends AuctioneerBidderAgent{
         int secondsBeforeBoom = this.rand.nextInt( (int)(5*60/this.robotBreakdownTestProb)) - (int)this.getTime();  //TODO fix stupid boyy
         secondsBeforeBoom = secondsBeforeBoom < 0 ? 0 : secondsBeforeBoom;
         this.sleep(1000 * secondsBeforeBoom);
-        PoseSteering[] newPath = this.getPath(this.pStorage, this.mp, new Pose(139.5, 22.0, Math.PI/2), new Pose(139.5, 22.0, Math.PI/2));
+        PoseSteering[] newPath = this.calculatePath(this.mp, new Pose(139.5, 22.0, Math.PI/2), new Pose(139.5, 22.0, Math.PI/2));
 
         synchronized(this.timeSchedule){ this.timeSchedule.wipeSchedule(); }
         synchronized(this.inbox){ this.inbox.add(0, new Message()); }
@@ -244,6 +244,7 @@ public class MobileAgent extends AuctioneerBidderAgent{
 
     protected void trackMissionState(){
         this.print("--trackMissionState");
+        RobotReport rr;
         boolean missionIsDone = false;
         boolean isWaiting = false;
         double startTime = 0.0;
@@ -252,7 +253,10 @@ public class MobileAgent extends AuctioneerBidderAgent{
             this.sleep(500);
             this.prepareNextMissionState(); // replan next mission if it is changed
 
-            synchronized(this.tec){ missionIsDone = this.tec.isFree(this.robotID); } 
+            synchronized(this.tec){ 
+                missionIsDone = this.tec.isFree(this.robotID);
+                rr = this.tec.getRobotReport(this.robotID);
+            } 
 
             if ( missionIsDone ){ // if we are done with mission
                 this.print("--trackMissionState: task done. task endTime-->"+sCurrTask.endTime);
@@ -268,7 +272,7 @@ public class MobileAgent extends AuctioneerBidderAgent{
                 break; 
             }
 
-            boolean robotWaitingNow = this.isRobotWaiting();
+            boolean robotWaitingNow = rr.getCriticalPoint() == rr.getPathIndex(); //this.isRobotWaiting();
             if ( isWaiting == false && robotWaitingNow == true ){
                 startTime = this.getTime();
                 this.print("started waiting");
@@ -292,14 +296,14 @@ public class MobileAgent extends AuctioneerBidderAgent{
 
     }
 
-    /**
-     * returns if robot is waiting at critical point that is not near end of mission
-     * @return true if waiting, else false
-     */
-    protected boolean isRobotWaiting(){
-        RobotReport rr;
-        synchronized(this.tec){ rr = this.tec.getRobotReport(this.robotID); }
-        int currPathIndex = rr.getPathIndex();
-        return rr.getCriticalPoint() == currPathIndex && sCurrMission.getPath().length-3 < currPathIndex;
-    }
+    // /**
+    //  * returns if robot is waiting at critical point that is not near end of mission
+    //  * @return true if waiting, else false
+    //  */
+    // protected boolean isRobotWaiting(){
+    //     RobotReport rr;
+    //     synchronized(this.tec){ rr = this.tec.getRobotReport(this.robotID); }
+    //     int currPathIndex = rr.getPathIndex();
+    //     return rr.getCriticalPoint() == currPathIndex && sCurrMission.getPath().length-3 < currPathIndex;
+    // }
 }

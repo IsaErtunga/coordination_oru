@@ -32,7 +32,7 @@ public class TransportTruckAgent extends MobileAgent{
                         ReedsSheppCarPlanner mp, Pose startPos, Router router){}
 
     public TransportTruckAgent( int r_id, TrajectoryEnvelopeCoordinatorSimulation tec, NewMapData mapInfo, Router router,
-                                long startTime, ReedsSheppCarPlanner mp, HashMap<String, PoseSteering[]> pathStorage, FilePrinter fp){
+                                long startTime, ReedsSheppCarPlanner mp, FilePrinter fp){
         
         
         this.robotID = r_id;
@@ -47,7 +47,6 @@ public class TransportTruckAgent extends MobileAgent{
         this.mp = mp;
         this.deliveryPos = mapInfo.getPose(-1);
 
-        this.pStorage = pathStorage;
         this.capacity = mapInfo.getCapacity(r_id);
 
         this.LOAD_DUMP_TIME = 0.0;//15.0 * 5.6 / (this.agentVelocity*2);
@@ -176,7 +175,7 @@ public class TransportTruckAgent extends MobileAgent{
     @Override
     public Mission createMission(Task task, Pose prevToPose) {
         Pose[] toPose = this.navigateCorrectly(task, task.ore > 0.0);
-        PoseSteering[] path = this.getPath(this.pStorage, this.mp, prevToPose, toPose);
+        PoseSteering[] path = this.calculatePath(this.mp, prevToPose, toPose);
         return new Mission( this.robotID, path );
     }
 
@@ -190,7 +189,8 @@ public class TransportTruckAgent extends MobileAgent{
             robotPos = this.timeSchedule.getNextPose();
         }
         //Pose deliveryPos = new Pose(245.0, 105.0, Math.PI);	
-        PoseSteering[] path = this.getPath(this.pStorage, this.mp, robotPos, this.deliveryPos);
+        PoseSteering[] path = this.calculatePath(this.mp, robotPos, this.deliveryPos);
+
         double pathDist = this.calculatePathDist(path);
         double pathTime = this.calculateDistTime(pathDist, this.agentVelocity);
         double taskStartTime = this.getNextTime();

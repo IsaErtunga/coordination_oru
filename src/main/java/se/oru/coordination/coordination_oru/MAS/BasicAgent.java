@@ -19,8 +19,6 @@ public class BasicAgent extends HelpFunctions{
     protected double capacity; // how much ore this agent can carry.
     protected double amount; // how much ore this agent can carry.
     protected String COLOR = "";
-    protected HashMap<String, PoseSteering[]> pStorage = null;
-
 
     // for communication
     protected Router router;
