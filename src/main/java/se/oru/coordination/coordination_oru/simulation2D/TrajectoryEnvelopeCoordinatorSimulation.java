@@ -28,10 +28,12 @@ import se.oru.coordination.coordination_oru.TrackingCallback;
 import se.oru.coordination.coordination_oru.TrajectoryEnvelopeCoordinator;
 import se.oru.coordination.coordination_oru.TrajectoryEnvelopeTrackerDummy;
 import se.oru.coordination.coordination_oru.motionplanning.AbstractMotionPlanner;
+import se.oru.coordination.coordination_oru.MAS.SimTime;
 
 public class TrajectoryEnvelopeCoordinatorSimulation extends TrajectoryEnvelopeCoordinator {
 
 	protected static final long START_TIME = Calendar.getInstance().getTimeInMillis();
+	protected SimTime MAS_simTime = null;
 	protected boolean useInternalCPs = true;
 	
 	protected boolean checkCollisions = false;
@@ -108,7 +110,17 @@ public class TrajectoryEnvelopeCoordinatorSimulation extends TrajectoryEnvelopeC
 	 */
 	public TrajectoryEnvelopeCoordinatorSimulation(int CONTROL_PERIOD, double TEMPORAL_RESOLUTION, double MAX_VELOCITY, double MAX_ACCELERATION) {
 		this(CONTROL_PERIOD, TEMPORAL_RESOLUTION, MAX_VELOCITY, MAX_ACCELERATION, 30);
+		SimTime sm = new SimTime(TEMPORAL_RESOLUTION, START_TIME); // added for Simulated time
+		this.MAS_simTime = sm;
+		Thread simTimeThread = new Thread() {
+			public void run() {
+				sm.startClock();
+			}
+		};
+		simTimeThread.start();
 	}
+
+	
 
 	/**
 	 * Create a new {@link TrajectoryEnvelopeCoordinatorSimulation} with the following default values:
@@ -273,9 +285,20 @@ public class TrajectoryEnvelopeCoordinatorSimulation extends TrajectoryEnvelopeC
 	}
 
 	//Method for measuring time in the trajectory envelope coordinator
+	// @Override
+	// public long getCurrentTimeInMillis() {
+	// 	return Calendar.getInstance().getTimeInMillis()-START_TIME;
+	// }
+
+	//Method for measuring time in the trajectory envelope coordinator
+	// will use same sim time as the MAS system
 	@Override
 	public long getCurrentTimeInMillis() {
-		return Calendar.getInstance().getTimeInMillis()-START_TIME;
+		return this.MAS_simTime.time();
+	}
+
+	public SimTime getSimTimer(){
+		return this.MAS_simTime;
 	}
 	
 	@Override

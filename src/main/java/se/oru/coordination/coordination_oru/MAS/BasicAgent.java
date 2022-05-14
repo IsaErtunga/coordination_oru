@@ -34,7 +34,7 @@ public class BasicAgent extends HelpFunctions{
 
     // for time
     public Random rand = new Random(System.currentTimeMillis());
-    protected TrajectoryEnvelopeCoordinatorSimulation tec;
+    protected SimTime simT = null;
     protected double TEMPORAL_RESOLUTION;
     protected TimeScheduleNew timeSchedule;
     protected double occupancyPadding = 0.0;
@@ -140,24 +140,24 @@ public class BasicAgent extends HelpFunctions{
      * @param ms
      */
     public void sleep(int ms) {
-        double timeDone = this.getTime() + ms/1000.0;
-        try { Thread.sleep( (int)(ms * 1000.0/this.TEMPORAL_RESOLUTION) ); }
-        catch (InterruptedException e) { e.printStackTrace(); }
-        double deltaTime = timeDone - this.getTime();
-        if ( deltaTime > 0.01 ){
-            try { Thread.sleep( (int)(deltaTime * 1000.0/this.TEMPORAL_RESOLUTION) ); }
+        double endTime = this.simT.SIM_time() + ms/1000;
+        while ( endTime-0.5 > this.simT.SIM_time() ){
+            try { Thread.sleep( 50 ); }
             catch (InterruptedException e) { e.printStackTrace(); }
         }
     }
 
+    // protected double getTime(){
+    //     long clock;
+    //     synchronized(this.tec){ clock = this.tec.getCurrentTimeInMillis(); }
+    //     return (double)(clock)/this.TEMPORAL_RESOLUTION;
+    // }
     protected double getTime(){
-        long clock;
-        synchronized(this.tec){ clock = this.tec.getCurrentTimeInMillis(); }
-        return (double)(clock)/this.TEMPORAL_RESOLUTION;
+        return this.simT.SIM_time();
     }
 
     protected double getNextTime(){
-        double STARTUP_ADD = 10.0;
+        double STARTUP_ADD = 10000/this.TEMPORAL_RESOLUTION;
         double nextTime;
         synchronized(this.timeSchedule){ nextTime = this.timeSchedule.getNextStartTime(); }
         return nextTime == -1.0 ? this.getTime()+STARTUP_ADD : nextTime;

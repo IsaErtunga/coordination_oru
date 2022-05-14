@@ -29,6 +29,7 @@ import se.oru.coordination.coordination_oru.util.Missions;
 import se.oru.coordination.coordination_oru.MAS.TransportAgent;
 import se.oru.coordination.coordination_oru.MAS.TransportTruckAgent;
 import se.oru.coordination.coordination_oru.MAS.Router;
+import se.oru.coordination.coordination_oru.MAS.SimTime;
 import se.oru.coordination.coordination_oru.MAS.StorageAgent;
 import se.oru.coordination.coordination_oru.MAS.DrawAgent;
 import se.oru.coordination.coordination_oru.MAS.FilePrinter;
@@ -40,11 +41,33 @@ public class NewMapTesting {
 
 	public static void main(String[] args) throws InterruptedException {
 
-	double temporal_res = 1000.0;
+	double temporal_res = 500.0;
+	SimTime ssm = new SimTime(1000.0, System.currentTimeMillis());
+
+	Thread simTimeThread = new Thread() {
+		public void run() {
+			ssm.startClock();
+		}
+	};
+	simTimeThread.start();
+
+	int i=0;
+	while (true){
+		System.out.println("normalTime-->"+ssm.time());
+		System.out.println("simTime-->"+ssm.SIM_time());
+
+		try { Thread.sleep(1000); }
+		catch (InterruptedException e) { e.printStackTrace(); }
+		i++;
+		if ( i > 20 ) break;
+
+	}
 
 	final TrajectoryEnvelopeCoordinatorSimulation tec = new TrajectoryEnvelopeCoordinatorSimulation(1000, temporal_res, 50.0,20.0);
 	//tec.setBreakDeadlocks(true, true, true);
 	tec.setQuiet(true);
+
+	SimTime sm = tec.getSimTimer();
 
 	//Provide a heuristic for determining orderings thru critical sections
 	tec.addComparator(new Comparator<RobotAtCriticalSection> () {
@@ -120,7 +143,6 @@ public class NewMapTesting {
 
 	//================= MOTION PLANNERS ======================
 	ReedsSheppCarPlanner mp1 = new ReedsSheppCarPlanner();
-	mp1.setPlanningTimeInSecs(5.0);
 	mp1.setFootprint(MAP_DATA.getAgentSize(2));
 	mp1.setTurningRadius(2.0); 				//default is 1.0
 	mp1.setDistanceBetweenPathPoints(2.0); 	//default is 0.5 
@@ -130,11 +152,11 @@ public class NewMapTesting {
 	mp2.setTurningRadius(2.0); 				//default is 1.0
 	mp2.setDistanceBetweenPathPoints(2.0); 	//default is 0.5 
 	mp2.setMap(yamlFile);
-	// ReedsSheppCarPlanner mp3 = new ReedsSheppCarPlanner();
-	// mp3.setFootprint(MAP_DATA.getAgentSize(4));
-	// mp3.setTurningRadius(2.0); 				//default is 1.0
-	// mp3.setDistanceBetweenPathPoints(2.0); 	//default is 0.5 
-	// mp3.setMap(yamlFile);
+	ReedsSheppCarPlanner mp3 = new ReedsSheppCarPlanner();
+	mp3.setFootprint(MAP_DATA.getAgentSize(4));
+	mp3.setTurningRadius(2.0); 				//default is 1.0
+	mp3.setDistanceBetweenPathPoints(2.0); 	//default is 0.5 
+	mp3.setMap(yamlFile);
 	//================= MOTION PLANNERS ======================
 
 
@@ -150,7 +172,7 @@ public class NewMapTesting {
 	// Integer[] block3Agents = new Integer[]{2,1,2};
 	// Integer[] block4Agents = new Integer[]{4,2,2};
 
-	Integer[] block1Agents = new Integer[]{5,3,2}; // agents spawning in rep, blocks. index0 = DA's, index2 = TA's, index3 = SA's
+	Integer[] block1Agents = new Integer[]{7,3,2}; // agents spawning in rep, blocks. index0 = DA's, index2 = TA's, index3 = SA's
 	Integer[] block2Agents = new Integer[]{0,0,0};
 	Integer[] block3Agents = new Integer[]{0,0,0};
 	Integer[] block4Agents = new Integer[]{0,0,0};
@@ -198,7 +220,7 @@ public class NewMapTesting {
 						@Override
 						public void run() {
 							this.setPriority(Thread.MAX_PRIORITY);	
-							DrawAgent DA = new DrawAgent(agentID, router, MAP_DATA, tec );
+							DrawAgent DA = new DrawAgent(agentID, router, MAP_DATA, sm );
 							DA.listener();
 						}
 					};
@@ -210,20 +232,21 @@ public class NewMapTesting {
 				for ( int agent = 0; agent<nrAgents; agent++ ){
 					int agentID = (block+1)*1000 + 200 + spawnOrderTA[agent];
 					ReedsSheppCarPlanner mp;
-					if ( spawnOrderTA[agent] == 1 || spawnOrderTA[agent] >= 4) mp = mp1;
-					else mp = mp2;
+					if ( spawnOrderTA[agent] == 1 || spawnOrderTA[agent] == 5) mp = mp1;
+					else if ( spawnOrderTA[agent] == 2 || spawnOrderTA[agent] == 4) mp = mp2;
+					else mp = mp3;
 
 					Thread t = new Thread() {
 						@Override
 						public void run() {
 							this.setPriority(Thread.MAX_PRIORITY);	
 							tec.setMotionPlanner(agentID, mp);	
-							TransportAgent r = new TransportAgent( agentID, tec, MAP_DATA, router, mp, fp );
+							TransportAgent r = new TransportAgent( agentID, tec, MAP_DATA, router, mp, fp, sm );
 							r.start();
 						}
 					};
 					t.start();
-					try { Thread.sleep(300); }
+					try { Thread.sleep(500); }
 					catch (InterruptedException e) { e.printStackTrace(); }
 				}
 
@@ -237,7 +260,7 @@ public class NewMapTesting {
 						@Override
 						public void run() {
 							this.setPriority(Thread.MAX_PRIORITY);
-							StorageAgent SA = new StorageAgent(agentID, router, MAP_DATA, os, tec, pathStorage, fp);
+							StorageAgent SA = new StorageAgent(agentID, router, MAP_DATA, os, sm, pathStorage, fp);
 							SA.start();
 						}
 					};
@@ -251,7 +274,7 @@ public class NewMapTesting {
 				@Override
 				public void run() {
 					this.setPriority(Thread.MAX_PRIORITY);	
-					StorageAgent SA = new StorageAgent(9301, router, MAP_DATA, oreState1, tec, pathStorage, fp);
+					StorageAgent SA = new StorageAgent(9301, router, MAP_DATA, oreState1, sm, pathStorage, fp);
 					SA.start();
 				}
 			};
@@ -263,7 +286,7 @@ public class NewMapTesting {
 				@Override
 				public void run() {
 					this.setPriority(Thread.MAX_PRIORITY);	
-					StorageAgent SA = new StorageAgent(9302, router, MAP_DATA, oreState2, tec, pathStorage, fp);
+					StorageAgent SA = new StorageAgent(9302, router, MAP_DATA, oreState2, sm, pathStorage, fp);
 					SA.start();
 				}
 			};
@@ -278,7 +301,7 @@ public class NewMapTesting {
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);	
 				tec.setMotionPlanner(agentID, mp2);	
-				TransportTruckAgent TTA = new TransportTruckAgent( agentID, tec, MAP_DATA, router, mp2, pathStorage,fp);
+				TransportTruckAgent TTA = new TransportTruckAgent( agentID, tec, MAP_DATA, router, mp3, pathStorage, fp, sm);
 				TTA.start();
 			}
 		};
@@ -288,9 +311,8 @@ public class NewMapTesting {
 	// wait for experiment to end
 	long elapsed_time;
 	while ( true ){
-		synchronized(tec){
-			elapsed_time = tec.getCurrentTimeInMillis();
-		}
+		elapsed_time = tec.getCurrentTimeInMillis();
+		
 		if ( elapsed_time/temporal_res > 300.0 ) break;
 		try { Thread.sleep(500); }
 		catch (InterruptedException e) { e.printStackTrace(); }

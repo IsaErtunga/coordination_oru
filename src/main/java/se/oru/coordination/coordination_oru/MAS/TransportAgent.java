@@ -20,12 +20,13 @@ public class TransportAgent extends MobileAgent{
     protected double TIME_WAITING_ORESTATE_CHANGE = 4.0;
 
     public TransportAgent(  int r_id, TrajectoryEnvelopeCoordinatorSimulation tec, NewMapData mapInfo,
-                            Router router, ReedsSheppCarPlanner mp, FilePrinter fp){
+                            Router router, ReedsSheppCarPlanner mp, FilePrinter fp, SimTime sm){
         
         this.robotID = r_id;
         this.COLOR = "\033[0;32m";
         this.tec = tec;
-        this.TEMPORAL_RESOLUTION = tec.getTemporalResolution(); 
+        this.simT = sm;
+        this.TEMPORAL_RESOLUTION = sm.getTemporalRes();
         this.initialPose = mapInfo.getPose(r_id);
 
         this.DIST_WEIGHT = mapInfo.getWeights(r_id)[0];
@@ -207,26 +208,24 @@ public class TransportAgent extends MobileAgent{
     @Override
     protected Task generateTaskFromAuction(Message m, Pose ourPose, double ore){
         String[] mParts = this.parseMessage(m, "", true);
-        double time_padding = 2.0;
+        double time_padding = 1000.0/this.TEMPORAL_RESOLUTION;
         Pose SApos = this.posefyString(mParts[2]);
 
         double pathDist = this.basicPathDistEstimate(ourPose, SApos);
         double pathTime = this.calculateDistTime(pathDist, this.agentVelocity) + this.LOAD_DUMP_TIME + time_padding;
         double auctionTimeRequest = Double.parseDouble( mParts[3] );
 
-        int scheduleSize;
-        synchronized(this.timeSchedule){ scheduleSize = this.timeSchedule.getSize(); }
+        // int scheduleSize;
+        // synchronized(this.timeSchedule){ scheduleSize = this.timeSchedule.getSize(); }
         double ourNextTimeAvailable = this.getNextTime();
         double ourPossibleTimeAtTask = ourNextTimeAvailable + pathTime;
 
-        double tStart = scheduleSize > 2 ? 
-                        ourNextTimeAvailable :
-                        auctionTimeRequest > ourPossibleTimeAtTask ?
-                            auctionTimeRequest - pathTime :
-                            ourNextTimeAvailable;
-
-        //double taskStartTime = auctionTimeRequest > ourPossibleTimeAtTask ? auctionTimeRequest - pathTime : ourNextTimeAvailable;
-        //if ( scheduleSize < 1 ) taskStartTime = auctionTimeRequest > ourPossibleTimeAtTask ? auctionTimeRequest - pathTime : ourNextTimeAvailable;
+        // double tStart = scheduleSize > 2 ? 
+        //                 ourNextTimeAvailable :
+        //                 auctionTimeRequest > ourPossibleTimeAtTask ?
+        //                     auctionTimeRequest - pathTime :
+        //                     ourNextTimeAvailable;
+        double tStart = auctionTimeRequest > ourPossibleTimeAtTask ? auctionTimeRequest - pathTime : ourNextTimeAvailable;
         double tEnd = tStart + pathTime;
 
         return new Task(Integer.parseInt(mParts[0]), m.sender, false, -ore, tStart, tEnd, pathDist, ourPose, SApos);
@@ -241,6 +240,20 @@ public class TransportAgent extends MobileAgent{
             }
         };
         cnpThread.start();
+    }
+
+    @Override
+    protected void handleAccept(int taskID, Message m){
+        boolean eventAdded;
+        synchronized(this.timeSchedule){
+            this.timeSchedule.printSchedule(this.COLOR);
+            eventAdded = this.timeSchedule.setEventActive(taskID);
+        }
+        this.print("accept-msg, taskID-->"+taskID+"\twith robot-->"+m.sender+"\ttask added-->"+eventAdded);
+        if ( eventAdded == false ){
+            this.print("accept received but not successfully added. sending abort msg");
+            this.sendMessage(new Message(this.robotID, m.sender, "inform", taskID+this.separator+"abort"));
+        }
     }
 
     /** handleService is called from within a TA, when a TA did a {@link offerService}
@@ -293,17 +306,18 @@ public class TransportAgent extends MobileAgent{
         int oreEval = (int) (Math.abs(t.ore) > this.capacity-0.1 ? 1000*this.ORE_WEIGHT : this.linearDecreasingComparingFunc(Math.abs(t.ore), this.capacity, this.capacity, 500.0)*this.ORE_WEIGHT);
         
         // dist evaluation [1500, 0]
-        int distEval = (int) (this.concaveDecreasingFunc(t.fromPose.distanceTo(t.toPose), 1000.0, 80.0, 300.0)*this.DIST_WEIGHT); // [1500, 0]
+        int distEval = (int) (this.concaveDecreasingFunc(t.fromPose.distanceTo(t.toPose), 1000.0, 30.0, 300.0)*this.DIST_WEIGHT); // [1500, 0]
 
         // time bonus [500, 0]
         double oreRequestTime = Double.parseDouble(this.parseMessage(m, "startTime")[0]); // startTime of cnp-msg is when auctioneer wants ore
         int timeEval = (int) (this.linearDecreasingComparingFunc(t.endTime, oreRequestTime, 45.0, 1000.0)*this.TIME_WEIGHT);  
         
         this.print("with robot-->"+m.sender +"\t dist-->"+ String.format("%.2f",t.pathDist) 
-                        +"\tdistance eval-->"+distEval
+                        +" distance eval-->"+distEval
                         +"\t cnp endTime-->"+String.format("%.2f",oreRequestTime) 
-                        +"\t timeDiff-->"+String.format("%.2f",Math.abs(oreRequestTime - t.endTime )) 
-                        +"\ttime eval-->"+timeEval);
+                        +" timeDiff-->"+String.format("%.2f",Math.abs(oreRequestTime - t.endTime )) 
+                        +" time eval-->"+timeEval 
+                        +" offer-->"+(oreEval + distEval + timeEval));
 
         return oreEval + distEval + timeEval;
     }   

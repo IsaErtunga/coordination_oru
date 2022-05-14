@@ -19,12 +19,12 @@ public class DrawAgent extends BidderAgent{
 
     public DrawAgent(   int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp,
                         long startTime){} // old, not used anymore
-    public DrawAgent( int robotID, Router router, NewMapData mapInfo, TrajectoryEnvelopeCoordinatorSimulation tec){
+    public DrawAgent( int robotID, Router router, NewMapData mapInfo, SimTime sm){
 
         this.robotID = robotID;
         this.COLOR = "\033[0;36m";
-        this.tec = tec;
-        this.TEMPORAL_RESOLUTION = tec.getTemporalResolution();
+        this.simT = sm;
+        this.TEMPORAL_RESOLUTION = sm.getTemporalRes();
 
         this.DIST_WEIGHT = mapInfo.getWeights(robotID)[0];
         this.ORE_WEIGHT = mapInfo.getWeights(robotID)[1];
@@ -156,18 +156,18 @@ public class DrawAgent extends BidderAgent{
         int oreEval =  (int) (Math.abs(t.ore) > this.TAcapacity-0.1 ? 1000*this.ORE_WEIGHT : this.linearDecreasingComparingFunc(Math.abs(t.ore), this.TAcapacity, this.TAcapacity, 500.0) * this.ORE_WEIGHT); // 1.0
         
         // dist evaluation [1000, 0]
-        int distEval = (int) (this.concaveDecreasingFunc(t.pathDist, 1000.0, 60.0, 300.0)*this.DIST_WEIGHT); // 1.0
+        int distEval = (int) (this.concaveDecreasingFunc(t.pathDist, 500.0, 40.0, 300.0)*this.DIST_WEIGHT); // 1.0
 
         // congestion eval [500, 0]
         double nearTaskT = this.timeSchedule.evaluateEventSlot(t.startTime, t.endTime, t.partner);
-        nearTaskT = nearTaskT == -1.0 ? 60.0 : nearTaskT < 60.0 ? nearTaskT : 60.0;
-        int congestionEval = (int) (this.linearIncreasingComparingFunc(nearTaskT, 0.0, 60.0, 1000.0) * this.CONGESTION_WEIGHT); // 0.5
+        nearTaskT = nearTaskT == -1.0 ? 60.0 : nearTaskT;
+        int congestionEval = (int) (this.linearIncreasingComparingFunc(nearTaskT, 0.0, 60.0, 500.0) * this.CONGESTION_WEIGHT); // 0.5
 
-        this.print("with robot-->"+m.sender +" dist-->"+ String.format("%.2f",t.pathDist) 
-            +" distanceEval-->"+distEval
-            +"\t nearTaskT-->"+String.format("%.2f",nearTaskT) 
-            +" congEnval-->"+congestionEval
-            +",  total eval->"+(oreEval + distEval + congestionEval));
+        // this.print("with robot-->"+m.sender +" dist-->"+ String.format("%.2f",t.pathDist) 
+        //     +" distanceEval-->"+distEval
+        //     +"\t nearTaskT-->"+String.format("%.2f",nearTaskT) 
+        //     +" congEnval-->"+congestionEval
+        //     +",  total eval->"+(oreEval + distEval + congestionEval));
         
         return oreEval + distEval + congestionEval;
     }
