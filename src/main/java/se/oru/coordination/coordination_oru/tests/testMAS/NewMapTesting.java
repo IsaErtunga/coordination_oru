@@ -40,7 +40,7 @@ public class NewMapTesting {
 
 	public static void main(String[] args) throws InterruptedException {
 
-	double temporal_res = 600.0;
+	double temporal_res = 1000.0;
 
 	final TrajectoryEnvelopeCoordinatorSimulation tec = new TrajectoryEnvelopeCoordinatorSimulation(1000, temporal_res, 50.0,20.0);
 	//tec.setBreakDeadlocks(true, true, true);

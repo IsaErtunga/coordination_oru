@@ -173,14 +173,14 @@ public class MobileAgent extends AuctioneerBidderAgent{
     }
 
     protected void startNextMissionState(){
-        double now;
-        double meassureStart = this.getTime();
-        while ( true ){
-            this.prepareNextMissionState();
-            now = this.getTime();
-            if ( sNextTask != null && sNextTask.startTime - now < 0.7) break;
-            else if ( sNextTask != null && sNextTask.startTime - now > 2.0 ) this.sleep(500);
-            else this.sleep(2000);
+        this.prepareNextMissionState();
+        if ( sNextMission == null ) return;
+
+        double now = this.getTime();
+        double meassureStart = now;
+        double stopSleepTime = (sNextTask.startTime - this.getTime()) - 0.5/this.TEMPORAL_RESOLUTION;
+        if ( stopSleepTime > 0.0 ){
+            this.sleep( (int)(stopSleepTime*1000) );
         }
 
         synchronized(this.timeSchedule){this.timeSchedule.getNextEvent();} // here we dedicate to doing the mission
@@ -196,7 +196,7 @@ public class MobileAgent extends AuctioneerBidderAgent{
 
         this.print("--startNextMissionState: added mission to tec");
 
-        if ( sCurrTask.startTime - now < -0.5 ) { // update schedule partners of new delay if we start late
+        if ( stopSleepTime < -0.5 ) { // update schedule partners of new delay if we start late
             double nextStartTime = sCurrTask.endTime - sCurrTask.startTime + now;
             sCurrTask.startTime = now;
             sCurrTask.endTime = nextStartTime;
@@ -227,8 +227,9 @@ public class MobileAgent extends AuctioneerBidderAgent{
         PoseSteering[] path = sNextMission.getPath();
         double pathDist = this.calculatePathDist(path);
         
-        if ( pathDist/sNextTask.pathDist > 1.3 ){
-            this.print("--prepareNextMissionState: path calculated but not good. path is "+(pathDist/sNextTask.pathDist)+" times the size of distEst");
+        if ( pathDist/sNextTask.pathDist > 1.3 || path[path.length-1].getPose().distanceTo(sNextTask.toPose) > 3.0 ){
+            this.print(  "--prepareNextMissionState: path calculated but not good. path is "+(pathDist/sNextTask.pathDist)
+                        +" times the size of distEst and "+(path[path.length-1].getPose().distanceTo(sNextTask.toPose))+" meters away from goalPose");
             sNextMission = null;
             sNextTask = null;
         } else {
@@ -244,7 +245,7 @@ public class MobileAgent extends AuctioneerBidderAgent{
         double startTime = 0.0;
 
         while ( true ){
-            this.sleep(1000);
+            this.sleep(500);
             this.prepareNextMissionState(); // replan next mission if it is changed
 
             synchronized(this.tec){ 

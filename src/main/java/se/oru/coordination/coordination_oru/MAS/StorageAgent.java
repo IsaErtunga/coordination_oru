@@ -15,7 +15,6 @@ public class StorageAgent extends AuctioneerBidderAgent{
     protected FilePrinter fp;
     protected double lowCapacityVolume = 1.0;
 
-
     public StorageAgent(int r_id, Router router, double capacity, Pose startPos, long startTime){} // deprecated
     public StorageAgent(int r_id, Router router, double capacity, Pose startPos, Pose startPoseRight, long startTime, ReedsSheppCarPlanner mp){} // deprecated
 

@@ -53,8 +53,6 @@ public class TransportAgent extends MobileAgent{
         // enter network and broadcast our id to others.
         router.enterNetwork(this);
         this.sendMessage(new Message(this.robotID, "hello-world", ""), true);
-                
-
     }
 
     /**
