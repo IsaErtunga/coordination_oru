@@ -17,13 +17,15 @@ path = "/home/parallels/Projects/coordination_oru/testResults/experiments.csv"
 5. high message drop test
 6. low agent drop test
 7. high agent drop test
-8. low storage volume drop test
-9. high storage drop test
-10. Efficiency(high)
-11. efficiency(very high)
-12. Distance off
-13. Ore off
+8. low storage volume drop test 100% -> 75%
+9. high storage drop test 100% -> 50%
+10. Efficiency(high) 150
+11. efficiency(very high) 100
+12. Distance off 
+13. Ore off 
 14. Time off
+
+10 runs per config
 """
 
 
@@ -48,6 +50,7 @@ def readExperimentFile():
                     collectedOre.append(experiment)
                 elif ("DISTANCE" in experiment):
                     distances.append(experiment)
+    print(len(oreStates))
 
     plotOreState(oreStates=oreStates)
     plotMessages(messages=messages)
