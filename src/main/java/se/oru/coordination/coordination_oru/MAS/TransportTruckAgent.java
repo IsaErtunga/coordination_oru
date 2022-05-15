@@ -19,7 +19,7 @@ public class TransportTruckAgent extends MobileAgent{
     //Control parameters
 
     protected Pose[] corners;
-
+    protected int amountLaps = 0;
     // Begins at 4. Will iterate through SW, NW, NE, SE
     protected int cornerState = 8;
     protected Pose deliveryPos;
@@ -32,14 +32,14 @@ public class TransportTruckAgent extends MobileAgent{
                         ReedsSheppCarPlanner mp, Pose startPos, Router router){}
 
     public TransportTruckAgent( int r_id, TrajectoryEnvelopeCoordinatorSimulation tec, NewMapData mapInfo, Router router,
-                                long startTime, ReedsSheppCarPlanner mp, FilePrinter fp){
-        
+                                long startTime, ReedsSheppCarPlanner mp, FilePrinter fp, ArrayList<Boolean> mOverBool){
         
         this.robotID = r_id;
         this.COLOR = "\033[1;94m";
         this.tec = tec;
         this.initialPose = mapInfo.getPose(r_id);
         this.clockStartTime = startTime;
+        this.MissionOver = mOverBool;
 
         this.agentVelocity = mapInfo.getVelocity(4);
         this.setRobotSpeedAndAcc(this.agentVelocity, 20.0);
@@ -259,7 +259,7 @@ public class TransportTruckAgent extends MobileAgent{
 
     protected void initialState() {
         double oreLevelThreshold = 1.0;
-        while (true) {
+        while ( !this.MissionOver.get(0) ) {
             this.sleep(500);
 
             double lastOreState;

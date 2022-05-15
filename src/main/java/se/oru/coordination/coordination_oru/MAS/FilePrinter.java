@@ -25,6 +25,7 @@ public class FilePrinter {
     private String path = "/home/parallels/Projects/coordination_oru/testResults/experiments.csv";
     protected ArrayList<Integer> robots = new ArrayList<Integer>();
 
+    public FilePrinter(){};
     public FilePrinter(boolean isActive, ArrayList<String> loggedMessages, long startTime) {
         this.isActive = isActive;
         if (isActive) {
@@ -48,6 +49,7 @@ public class FilePrinter {
     public void readValues() throws FileNotFoundException {
         Scanner sc = new Scanner(new File("/home/parallels/Projects/coordination_oru/experimentValues/values.csv"));
         sc.useDelimiter(",");
+        sc.next();  
         this.EXPERIMENT_NR = sc.next();  
         sc.close();
     }
@@ -56,6 +58,13 @@ public class FilePrinter {
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd_HH:mm:ss");  
         LocalDateTime now = LocalDateTime.now();  
         System.out.println(dtf.format(now));  
+    }
+
+    protected void endExperiment(){
+        String path = "/home/parallels/Projects/coordination_oru/experimentValues/experimentStatus.csv";
+
+        String content = "1";
+
     }
 
     /**
@@ -177,7 +186,13 @@ public class FilePrinter {
     }
  
     public static void main(String[] args) {
-        // FilePrinter fp = new FilePrinter(); 
+        FilePrinter fp = new FilePrinter();
+        try {
+            fp.readValues();
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } 
 
     }
 }

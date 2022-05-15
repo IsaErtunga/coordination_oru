@@ -13,12 +13,14 @@ public class DrawAgent extends BidderAgent{
 
     private double finalXPos;
     protected double initalXPos;
+    protected FilePrinter fp;
+
 
     public DrawAgent(int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp){}
 
     public DrawAgent(   int robotID, Router router, double capacity, Pose pos, ReedsSheppCarPlanner mp,
                         long startTime){} // old, not used anymore
-    public DrawAgent( int robotID, Router router, NewMapData mapInfo, long startTime){
+    public DrawAgent( int robotID, Router router, NewMapData mapInfo, long startTime, FilePrinter fp){
 
         this.robotID = robotID;
         this.COLOR = "\033[0;36m";
@@ -34,6 +36,8 @@ public class DrawAgent extends BidderAgent{
         this.initialPose = mapInfo.getPose(robotID);
         this.initalXPos = this.initialPose.getX();
         this.finalXPos = this.initalXPos - 70.0;
+
+        this.fp = fp;
 
         this.timeSchedule = new TimeScheduleNew(this.initialPose, this.capacity, this.amount);
         this.clockStartTime = startTime;
@@ -99,6 +103,9 @@ public class DrawAgent extends BidderAgent{
 
     @Override
     protected void handleInformDone(int taskID, Message m){
+        double oreAmount = Math.abs(Double.parseDouble(this.parseMessage(m, "informInfo")[0]) );
+
+        this.fp.logCollectedOre(Math.abs(oreAmount));
         synchronized(this.timeSchedule){ this.amount = this.timeSchedule.markEventDone(taskID); }
         this.print("currentOre -->"+this.amount);
     }

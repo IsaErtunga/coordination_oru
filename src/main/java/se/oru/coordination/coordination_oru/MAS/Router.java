@@ -13,6 +13,7 @@ import java.util.Random;
 public class Router {
 
     protected int periodMili = 250;
+    public int msgCount = 0;
     public ArrayList<String> loggedMessages;
     public long startTime;
     public double dropMessagePercentage;
@@ -56,13 +57,12 @@ public class Router {
         return (double)(diff)/1000.0;
     }
 
-
     public void run(){
         //TODO implement protection to check if robotID exist to router
 
         ArrayList<Message> outputMessages = new ArrayList<Message>();
 
-        while(true){
+        while( true ){
             //this.print();
 
             synchronized(this.outboxes){
@@ -75,9 +75,7 @@ public class Router {
                 }
             }
 
-            // for (Message msg: outputMessages) {
-            //     this.loggedMessages.add(this.getTime() + "," + msg.type);
-            // }
+            this.msgCount += outputMessages.size();
 
             synchronized(this.inboxes){
                 for (Message m : outputMessages){

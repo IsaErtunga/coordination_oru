@@ -35,17 +35,18 @@ public class TestFramework {
         // File(experimentValuesPath).mkdirs();
         
         //String content = readCSV();
-        writeToFile("/values.csv", content);
         String runCommand = "./gradlew run -Pdemo=testMAS.NewMapTesting";
 
         Process proc;
         proc = Runtime.getRuntime().exec(runCommand);
+        long procID = proc.pid();
         BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-
         long startTime = System.currentTimeMillis();
-        long endTime = startTime + (EMPERIMENT_TIME * 1000);
+        // long endTime = startTime + (EMPERIMENT_TIME * 1000);
 
-        while (System.currentTimeMillis() < endTime) {
+        writeToFile("/values.csv", procID +","+ content);
+
+        while ( proc.isAlive() ){
             String line = "";
             line = reader.readLine();
             if (line != null) {
@@ -54,7 +55,6 @@ public class TestFramework {
         }
         System.out.println("Done with experiment, took: " + (System.currentTimeMillis() - startTime)/1000 + " seconds");
         proc.destroy();
-            
     }
 
     public static void main(String[] args) throws FileNotFoundException  {

@@ -110,14 +110,7 @@ public class StorageAgent extends AuctioneerBidderAgent{
     protected void updateAmountThread(){
         while (true){
             this.sleep(500);
-            double oldOreAmount = this.amount;
             synchronized(this.timeSchedule){ this.amount = this.timeSchedule.getAmount(); }
-            
-            if (oldOreAmount != this.amount) {
-                // Write ore to file
-                int docId = this.robotID % 1000;
-                this.fp.logOreState(this.getTime(), this.amount, docId);
-            }
         }
     }
 
@@ -231,6 +224,8 @@ public class StorageAgent extends AuctioneerBidderAgent{
             this.amount = this.timeSchedule.markEventDone(taskID);
             this.timeSchedule.removeEvent(taskID);
         }
+        int docId = this.robotID % 1000;
+        this.fp.logOreState(this.getTime(), this.amount, docId);
         this.print("currentOre -->"+this.amount);
     }
 
@@ -277,24 +272,8 @@ public class StorageAgent extends AuctioneerBidderAgent{
         }
     }
 
-    @Override
-    protected void handleTTAslot(int taskID, Message m){
-        this.print("-- in handleTTAslot");
-        ArrayList<Task> abortTasks = new ArrayList<Task>();
-        String[] mParts = this.parseMessage(m, "", true);
-        double tStart = Double.parseDouble(mParts[1]);
-        double tEnd = Double.parseDouble(mParts[2]);
-        double oreChange = Double.parseDouble(mParts[3]);
-
-        synchronized(this.timeSchedule) { abortTasks = this.timeSchedule.forceAddEvent(taskID, tStart, tEnd, oreChange); }
-        for ( Task t : abortTasks ){
-            this.print("CONFLICT! sending ABORT msg. taskID-->"+t.taskID+"\twith-->"+t.partner );
-            this.sendMessage(new Message(this.robotID, t.partner, "inform", t.taskID+this.separator+"abort"));
-        }
-    }
-
     public void status () {
-        while (true){
+        while ( true ){
             this.sleep(1000);
 
             double lookOre;

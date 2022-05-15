@@ -19,6 +19,7 @@ public class BasicAgent extends HelpFunctions{
     protected double capacity; // how much ore this agent can carry.
     protected double amount; // how much ore this agent can carry.
     protected String COLOR = "";
+    protected ArrayList<Boolean> MissionOver;
 
     // for communication
     protected Router router;
@@ -128,7 +129,7 @@ public class BasicAgent extends HelpFunctions{
      * @param s string to be printed
      */
     protected void print(String s){
-        //System.out.println(this.COLOR+this.robotID+" TIME["+String.format("%.2f",this.getTime()) + "]\t" + s + "\033[0m");
+        System.out.println(this.COLOR+this.robotID+" TIME["+String.format("%.2f",this.getTime()) + "]\t" + s + "\033[0m");
     }
 
     protected double getTime(){
@@ -202,7 +203,7 @@ public class BasicAgent extends HelpFunctions{
 
     public void listener(){
         ArrayList<Message> inbox_copy;
-        while(true){
+        while( true ){
             if ( this.goOffline ){
                 this.sendMessage(new Message(this.robotID, "goodbye-world", ""), true );
                 this.sleep(1000*100000);

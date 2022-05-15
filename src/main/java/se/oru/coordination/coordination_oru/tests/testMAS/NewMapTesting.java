@@ -1,6 +1,7 @@
 package se.oru.coordination.coordination_oru.tests.testMAS;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Comparator;
@@ -73,21 +74,23 @@ public class NewMapTesting {
 	tec.setupSolver(0, 100000000);//Set up infrastructure that maintains the representation
 	tec.startInference();//Start the thread that checks and enforces dependencies at every clock tick
 	final String yamlFile = "maps/MineMap4Block.yaml"; // viz map file	
-	// BrowserVisualization viz = new BrowserVisualization();//Set up a simple GUI
-	// viz.setMap(yamlFile);
-	// viz.setInitialTransform(2.0, 1.0, 1.0); // good for MineMap2Block (i think)
-	// tec.setVisualization(viz);
+	BrowserVisualization viz = new BrowserVisualization();//Set up a simple GUI
+	viz.setMap(yamlFile);
+	viz.setInitialTransform(2.0, 1.0, 1.0); // good for MineMap2Block (i think)
+	tec.setVisualization(viz);
 	tec.setUseInternalCriticalPoints(false);
 
+	ArrayList<Boolean> mDone = new ArrayList<Boolean>();
+	mDone.add(false);
 
 	final long startTime = System.currentTimeMillis();
 	ArrayList<String> loggedMessages = new ArrayList<String>();					//		FILE PRINTER
-	FilePrinter fp = new FilePrinter(true, loggedMessages, startTime);			
+	FilePrinter fp = new FilePrinter(false, loggedMessages, startTime);			
 	Thread printer = new Thread() {
 		@Override
 		public void run() {
 			this.setPriority(Thread.MAX_PRIORITY);	
-			while (true) {
+			while (!mDone.get(0)) {
 				fp.logMessages();
 				fp.writeValueToFile();
 
@@ -197,7 +200,7 @@ public class NewMapTesting {
 						public void run() {
 							this.setPriority(Thread.MAX_PRIORITY);	
 			
-							DrawAgent DA = new DrawAgent(agentID, router, MAP_DATA, startTime );
+							DrawAgent DA = new DrawAgent(agentID, router, MAP_DATA, startTime, fp );
 							DA.listener();
 						}
 					};
@@ -287,13 +290,22 @@ public class NewMapTesting {
 			public void run() {
 				this.setPriority(Thread.MAX_PRIORITY);	
 
-				TransportTruckAgent TTA = new TransportTruckAgent( agentID, tec, MAP_DATA, router, startTime, mp3, fp);
+				TransportTruckAgent TTA = new TransportTruckAgent( agentID, tec, MAP_DATA, router, startTime, mp3, fp, mDone);
 				TTA.start();
 			}
 		};
 		t.start();
 	}
 
+	while ( mDone.get(0) == false ){
+		try { Thread.sleep(3000); }
+		catch (InterruptedException e) { e.printStackTrace(); }
+	}
+	
+	int msgCount = router.msgCount;
+
+	// do final stuff for test
+	
 }
 
 }

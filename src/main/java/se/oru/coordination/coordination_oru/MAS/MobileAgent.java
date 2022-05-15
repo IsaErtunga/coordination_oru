@@ -244,7 +244,6 @@ public class MobileAgent extends AuctioneerBidderAgent{
 
     protected void trackMissionState(){
         this.print("--trackMissionState");
-        RobotReport rr;
         boolean missionIsDone = false;
         boolean isWaiting = false;
         double startTime = 0.0;
@@ -253,10 +252,7 @@ public class MobileAgent extends AuctioneerBidderAgent{
             this.sleep(500);
             this.prepareNextMissionState(); // replan next mission if it is changed
 
-            synchronized(this.tec){ 
-                missionIsDone = this.tec.isFree(this.robotID);
-                rr = this.tec.getRobotReport(this.robotID);
-            } 
+            synchronized(this.tec){ missionIsDone = this.tec.isFree(this.robotID); } 
 
             if ( missionIsDone ){ // if we are done with mission
                 this.print("--trackMissionState: task done. task endTime-->"+sCurrTask.endTime);
@@ -266,13 +262,13 @@ public class MobileAgent extends AuctioneerBidderAgent{
                     Message doneMessage = new Message(this.robotID, sCurrTask.partner, "inform", sCurrTask.taskID + this.separator + "done" + "," + sCurrTask.ore);
                     this.sendMessage(doneMessage);
                 } else {
-                    this.fp.logCollectedOre(Math.abs(sCurrTask.ore));
+                    //this.fp.logCollectedOre(Math.abs(sCurrTask.ore));
                 }
                 this.STATE = "START_NEXT_MISSION_STATE";
                 break; 
             }
 
-            boolean robotWaitingNow = rr.getCriticalPoint() == rr.getPathIndex(); //this.isRobotWaiting();
+            boolean robotWaitingNow = this.isRobotWaiting();
             if ( isWaiting == false && robotWaitingNow == true ){
                 startTime = this.getTime();
                 this.print("started waiting");
@@ -282,10 +278,14 @@ public class MobileAgent extends AuctioneerBidderAgent{
                 Double elapsedTime = this.getTime() - startTime;
                 this.fp.addWaitingTimeMeasurment("congestion", elapsedTime, this.robotID); 
                 startTime = elapsedTime + startTime;
+                this.print("waited for 5s");
 
             } else if ( robotWaitingNow == false && isWaiting == true ){
                 Double elapsedTime = this.getTime() - startTime;
-                this.fp.addWaitingTimeMeasurment("congestion", elapsedTime, this.robotID); 
+                if ( elapsedTime > 1.0 ){
+                    this.fp.addWaitingTimeMeasurment("congestion", elapsedTime, this.robotID); 
+                    this.print("stopped waiting. elapsed time->"+elapsedTime);
+                }
                 isWaiting = false;
             }
         }
@@ -300,10 +300,11 @@ public class MobileAgent extends AuctioneerBidderAgent{
     //  * returns if robot is waiting at critical point that is not near end of mission
     //  * @return true if waiting, else false
     //  */
-    // protected boolean isRobotWaiting(){
-    //     RobotReport rr;
-    //     synchronized(this.tec){ rr = this.tec.getRobotReport(this.robotID); }
-    //     int currPathIndex = rr.getPathIndex();
-    //     return rr.getCriticalPoint() == currPathIndex && sCurrMission.getPath().length-3 < currPathIndex;
-    // }
+    protected boolean isRobotWaiting(){
+        RobotReport rr;
+        synchronized(this.tec){ rr = this.tec.getRobotReport(this.robotID); }
+        int currPathIndex = rr.getPathIndex();
+        int pathLen = sCurrMission.getPath().length;
+        return rr.getCriticalPoint() == currPathIndex && pathLen-4 > currPathIndex ;
+    }
 }
