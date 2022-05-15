@@ -20,6 +20,7 @@ public class BasicAgent extends HelpFunctions{
     protected double amount; // how much ore this agent can carry.
     protected String COLOR = "";
     protected ArrayList<Boolean> MissionOver;
+    protected int amountLaps = 0;
 
     // for communication
     protected Router router;

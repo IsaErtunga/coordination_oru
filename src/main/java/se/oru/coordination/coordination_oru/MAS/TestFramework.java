@@ -27,6 +27,12 @@ public class TestFramework {
         }
     }
 
+    public void readValues() throws FileNotFoundException {
+        Scanner sc = new Scanner(new File("/home/parallels/Projects/coordination_oru/experimentValues/values.csv"));
+        sc.useDelimiter(",");
+        sc.close();
+    }
+
     public static void runTest(String content) throws IOException {
         System.out.println("-----------------------------------------------");
         System.out.println("Starting experiment ...");
@@ -39,22 +45,33 @@ public class TestFramework {
 
         Process proc;
         proc = Runtime.getRuntime().exec(runCommand);
-        long procID = proc.pid();
+        
         BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
         long startTime = System.currentTimeMillis();
-        // long endTime = startTime + (EMPERIMENT_TIME * 1000);
+        long endTime = startTime + (EMPERIMENT_TIME * 1000);
 
-        writeToFile("/values.csv", procID +","+ content);
+        writeToFile("/values.csv", content);
 
-        while ( proc.isAlive() ){
+        // Scanner sc = new Scanner(new File("/home/parallels/Projects/coordination_oru/experimentValues/endExperiment.csv"));
+        // sc.useDelimiter(",");
+        RandomAccessFile file = new RandomAccessFile("/home/parallels/Projects/coordination_oru/experimentValues/endExperiment.csv", "rw");
+        file.seek(0);
+        
+        while (file.read() == 48) {
             String line = "";
             line = reader.readLine();
             if (line != null) {
                 System.out.print(line + "\n");
-            }     
+            }
+            file.seek(0);
         }
+
+       
         System.out.println("Done with experiment, took: " + (System.currentTimeMillis() - startTime)/1000 + " seconds");
         proc.destroy();
+        file.seek(0);
+        file.write(48);
+        file.close();
     }
 
     public static void main(String[] args) throws FileNotFoundException  {

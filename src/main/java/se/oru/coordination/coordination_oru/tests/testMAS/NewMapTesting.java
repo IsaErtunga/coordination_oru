@@ -2,6 +2,9 @@ package se.oru.coordination.coordination_oru.tests.testMAS;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Comparator;
@@ -85,13 +88,13 @@ public class NewMapTesting {
 
 	final long startTime = System.currentTimeMillis();
 	ArrayList<String> loggedMessages = new ArrayList<String>();					//		FILE PRINTER
-	FilePrinter fp = new FilePrinter(false, loggedMessages, startTime);			
+	FilePrinter fp = new FilePrinter(true, loggedMessages, startTime);			
 	Thread printer = new Thread() {
 		@Override
 		public void run() {
 			this.setPriority(Thread.MAX_PRIORITY);	
-			while (!mDone.get(0)) {
-				fp.logMessages();
+			while (true) {
+				// fp.logMessages();
 				fp.writeValueToFile();
 
 				try { Thread.sleep(5000); }
@@ -303,6 +306,18 @@ public class NewMapTesting {
 	}
 	
 	int msgCount = router.msgCount;
+	fp.logMessages(msgCount);
+
+	try { Thread.sleep(5001); }
+	catch (InterruptedException e) { e.printStackTrace(); }
+
+	Path realPath = Path.of("/home/parallels/Projects/coordination_oru/experimentValues/endExperiment.csv");
+	String content = "1";
+	try {
+		Files.write(realPath, content.getBytes(), StandardOpenOption.TRUNCATE_EXISTING);
+	} catch (IOException e) {
+		e.printStackTrace();
+	}
 
 	// do final stuff for test
 	

@@ -16,7 +16,7 @@ import java.util.Scanner;
 public class FilePrinter {
     protected String separator = ",";
     protected boolean isActive;
-    protected String EXPERIMENT_NR;
+    public String EXPERIMENT_NR;
     protected long startTime;
 
     public ArrayList<String> loggedMessages;
@@ -49,7 +49,6 @@ public class FilePrinter {
     public void readValues() throws FileNotFoundException {
         Scanner sc = new Scanner(new File("/home/parallels/Projects/coordination_oru/experimentValues/values.csv"));
         sc.useDelimiter(",");
-        sc.next();  
         this.EXPERIMENT_NR = sc.next();  
         sc.close();
     }
@@ -61,10 +60,9 @@ public class FilePrinter {
     }
 
     protected void endExperiment(){
-        String path = "/home/parallels/Projects/coordination_oru/experimentValues/experimentStatus.csv";
-
+        String path = "/home/parallels/Projects/coordination_oru/experimentValues/values.csv";
         String content = "1";
-
+        this.writeToKill(path, content);
     }
 
     /**
@@ -102,18 +100,9 @@ public class FilePrinter {
      * Function that logs messages with times
      * @param time
      */
-    public void logMessages() {
+    public void logMessages(int msgCount) {
         if (isActive) {
-            ArrayList<String> loggedMessagesCopy;
-            synchronized(this.loggedMessages) {
-                loggedMessagesCopy = new ArrayList<String>(this.loggedMessages);
-                this.loggedMessages.clear();
-            }
-
-            String content = "";
-            for (String msg: loggedMessagesCopy) {
-                content += this.EXPERIMENT_NR + this.separator + "MESSAGE" + this.separator + msg + "\n";
-            }
+            String content = this.EXPERIMENT_NR + this.separator + "MESSAGES" + this.separator + msgCount + "\n";
             synchronized(this.experiments) {
                 this.experiments.add(content);
             }
@@ -155,7 +144,7 @@ public class FilePrinter {
      * @param path
      * @param content
      */
-    private void writeToFile(String content) {
+    public void writeToFile(String content) {
         Path path = Path.of(this.path);
         try {
             if (Files.exists(path)) {
@@ -163,6 +152,15 @@ public class FilePrinter {
             } else {
                 Files.write(path, content.getBytes(), StandardOpenOption.CREATE);
             }
+        } catch (IOException e) {
+                e.printStackTrace();
+        }
+    }
+
+    private void writeToKill(String path, String content) {
+        Path realPath = Path.of(path);
+        try {
+            Files.write(realPath, content.getBytes(), StandardOpenOption.TRUNCATE_EXISTING);
         } catch (IOException e) {
                 e.printStackTrace();
         }

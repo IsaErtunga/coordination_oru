@@ -262,6 +262,10 @@ public class MobileAgent extends AuctioneerBidderAgent{
                     Message doneMessage = new Message(this.robotID, sCurrTask.partner, "inform", sCurrTask.taskID + this.separator + "done" + "," + sCurrTask.ore);
                     this.sendMessage(doneMessage);
                 } else {
+                    this.amountLaps += 1;
+                    if (this.amountLaps >= 2) {
+                        this.MissionOver.add(0, true);
+                    }
                     //this.fp.logCollectedOre(Math.abs(sCurrTask.ore));
                 }
                 this.STATE = "START_NEXT_MISSION_STATE";

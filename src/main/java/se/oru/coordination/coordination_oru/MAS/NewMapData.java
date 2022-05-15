@@ -30,36 +30,32 @@ public class NewMapData {
         Scanner sc = new Scanner(new File("/home/parallels/Projects/coordination_oru/experimentValues/values.csv"));
         sc.useDelimiter(",");
 
-        int numCols = 9;
+        int numCols = 8;
 
         for (int i = 0; i < numCols; i++) {
             if (!sc.hasNext()) break;
             int value = Integer.parseInt(sc.next());
 
             switch(i) {
-                case 0:
-                    // value = proc
-                    this.process_id = value;
-                    break;
-                case 2:
+                case 1:
                     values.put("Scalability", value);
                     break;
-                case 3:
+                case 2:
                     values.put("RobustLevel", value);
                     break;
-                case 4:
+                case 3:
                     values.put("RobustCase", value);
                     break;
-                case 5:
+                case 4:
                     values.put("efficiency", value);
                     break;
-                case 6:
+                case 5:
                     values.put("distance", value);
                     break;
-                case 7:
+                case 6:
                     values.put("ore", value);
                     break;
-                case 8:
+                case 7:
                     values.put("time", value);
                     break;
                 default:

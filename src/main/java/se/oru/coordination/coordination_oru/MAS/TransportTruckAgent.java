@@ -19,7 +19,6 @@ public class TransportTruckAgent extends MobileAgent{
     //Control parameters
 
     protected Pose[] corners;
-    protected int amountLaps = 0;
     // Begins at 4. Will iterate through SW, NW, NE, SE
     protected int cornerState = 8;
     protected Pose deliveryPos;
