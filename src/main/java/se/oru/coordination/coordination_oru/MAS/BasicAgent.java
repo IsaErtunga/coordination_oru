@@ -130,7 +130,7 @@ public class BasicAgent extends HelpFunctions{
      * @param s string to be printed
      */
     protected void print(String s){
-        System.out.println(this.COLOR+this.robotID+" TIME["+String.format("%.2f",this.getTime()) + "]\t" + s + "\033[0m");
+        //System.out.println(this.COLOR+this.robotID+" TIME["+String.format("%.2f",this.getTime()) + "]\t" + s + "\033[0m");
     }
 
     protected double getTime(){

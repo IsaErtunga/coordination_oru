@@ -44,7 +44,7 @@ public class NewMapTesting {
 
 	public static void main(String[] args) throws InterruptedException {
 
-	final TrajectoryEnvelopeCoordinatorSimulation tec = new TrajectoryEnvelopeCoordinatorSimulation(30.0,20.0);
+	final TrajectoryEnvelopeCoordinatorSimulation tec = new TrajectoryEnvelopeCoordinatorSimulation(50.0,20.0);
 	//tec.setBreakDeadlocks(true, true, true);
 	tec.setQuiet(true);
 
@@ -143,28 +143,28 @@ public class NewMapTesting {
 
 
 	// ============== HERE YOU ALTER THE SCENARIO =================
-	// Base case
+	// // Base case
 	Integer[] block1Agents = new Integer[]{5,3,2}; // agents spawning in rep, blocks. index0 = DA's, index2 = TA's, index3 = SA's
 	Integer[] block2Agents = new Integer[]{3,2,2};
 	Integer[] block3Agents = new Integer[]{2,1,2};
 	Integer[] block4Agents = new Integer[]{4,2,2};
 
-	// Integer[] block1Agents = new Integer[]{0,0,0}; // agents spawning in rep, blocks. index0 = DA's, index2 = TA's, index3 = SA's
+	// Integer[] block1Agents = new Integer[]{1,1,1}; // agents spawning in rep, blocks. index0 = DA's, index2 = TA's, index3 = SA's
 	// Integer[] block2Agents = new Integer[]{0,0,0};
 	// Integer[] block3Agents = new Integer[]{0,0,0};
 	// Integer[] block4Agents = new Integer[]{0,0,0};
 	int nrTTAs = 1;
 	if (MAP_DATA.scalability == 1) {
 		// Higher scalability 
-		block1Agents = new Integer[]{5,4,2}; 
-		block2Agents = new Integer[]{3,3,2};
-		block3Agents = new Integer[]{3,2,2};
+		block1Agents = new Integer[]{7,4,2}; 
+		block2Agents = new Integer[]{5,3,2};
+		block3Agents = new Integer[]{5,2,2};
 		block4Agents = new Integer[]{4,2,2};
 	} else if (MAP_DATA.scalability == 2) {
 		// Highest scalability
-		block1Agents = new Integer[]{5,4,2}; 
-		block2Agents = new Integer[]{3,3,2};
-		block3Agents = new Integer[]{7,5,2};
+		block1Agents = new Integer[]{7,4,2}; 
+		block2Agents = new Integer[]{5,3,2};
+		block3Agents = new Integer[]{9,5,2};
 		block4Agents = new Integer[]{4,3,2};
 	}
 
@@ -185,7 +185,7 @@ public class NewMapTesting {
 	OreState oreState1 = new OreState(MAP_DATA.getCapacity(3), MAP_DATA.getStartOre(3));
 	OreState oreState2 = new OreState(MAP_DATA.getCapacity(3), MAP_DATA.getStartOre(3));
 
-	int[] spawnOrder = new int[]{0,1,2}; // 0=DA,1=TA,2=SA,3=TTA
+	int[] spawnOrder = new int[]{0,2,1}; // 0=DA,1=TA,2=SA,3=TTA
 	for ( int agentType : spawnOrder ){ // spawnOrder = DA,TA,SA,TTA, for every agent type
 
 		for ( int block = 0; block <4; block++ ){	// for every block
@@ -227,10 +227,9 @@ public class NewMapTesting {
 						}
 					};
 					t.start();
-					if ( agentID != 5 ){
-						try { Thread.sleep(3000); }
-						catch (InterruptedException e) { e.printStackTrace(); }
-					}
+					try { Thread.sleep(3000); }
+					catch (InterruptedException e) { e.printStackTrace(); }
+					
 				}
 
 			} else if ( agentType == 2 ){ //spawn SA

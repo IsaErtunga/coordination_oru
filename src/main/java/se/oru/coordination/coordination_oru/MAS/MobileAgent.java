@@ -214,7 +214,6 @@ public class MobileAgent extends AuctioneerBidderAgent{
             this.sendInformStatusMessages( newEndTimes, true );  
             this.print("--startNextMissionState: sent inform status msgs");
         }
-
         this.STATE = "TRACK_MISSION_STATE";
     }
 
@@ -255,6 +254,7 @@ public class MobileAgent extends AuctioneerBidderAgent{
             synchronized(this.tec){ missionIsDone = this.tec.isFree(this.robotID); } 
 
             if ( missionIsDone ){ // if we are done with mission
+                this.sleep( (int)( this.LOAD_DUMP_TIME*1000.0) );
                 this.print("--trackMissionState: task done. task endTime-->"+sCurrTask.endTime);
                 this.fp.addDistanceMeasurment("Task", this.calculatePathDist(sCurrMission.getPath()), this.robotID);
                 this.sleep((int)this.LOAD_DUMP_TIME*1000);

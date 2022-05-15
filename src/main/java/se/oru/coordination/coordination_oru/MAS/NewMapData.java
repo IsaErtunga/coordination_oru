@@ -236,6 +236,7 @@ public class NewMapData {
 
         if ( agentType == 1 ) return new double[]{1.0,1.0,1.0}; // ore, dist, congestion
         if ( agentType == 2 ) return this.TAWeights; // ore, dist, time
+        if ( agentType == 3 ) return this.TAWeights; // ore, dist, time
 
         return null;
     }

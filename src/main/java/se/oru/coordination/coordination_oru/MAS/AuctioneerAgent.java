@@ -5,15 +5,27 @@ import org.metacsp.multi.spatioTemporal.paths.Pose;
 public class AuctioneerAgent extends BasicAgent{
     protected double TIME_WAITING_FOR_OFFERS = 3.0;
 
+    // protected Task generateTaskFromOffer(Message offerMsg){
+    //     String[] msgParts = parseMessage(offerMsg, "", true);
+    //     double startTime = Double.parseDouble(msgParts[4]);
+    //     double endTime =Double.parseDouble(msgParts[5]);
+    //     double pathDist = (endTime - startTime) * this.agentVelocity;
+    //     // replace intexes
+    //     return new Task(Integer.parseInt(msgParts[0]), offerMsg.sender, true, Double.parseDouble(msgParts[6]), startTime,
+    //                     endTime, pathDist, this.posefyString(msgParts[2]), this.posefyString(msgParts[3]));
+    // }
 
-    protected Task generateTaskFromOffer(Message offerMsg){
+    protected Task generateTaskFromOffer(Message offerMsg, double oreAmount){
         String[] msgParts = parseMessage(offerMsg, "", true);
         double startTime = Double.parseDouble(msgParts[4]);
         double endTime =Double.parseDouble(msgParts[5]);
         double pathDist = (endTime - startTime) * this.agentVelocity;
         // replace intexes
-        return new Task(Integer.parseInt(msgParts[0]), offerMsg.sender, true, Double.parseDouble(msgParts[6]), startTime,
+        return new Task(Integer.parseInt(msgParts[0]), offerMsg.sender, true, oreAmount, startTime,
                         endTime, pathDist, this.posefyString(msgParts[2]), this.posefyString(msgParts[3]));
+    }
+    protected Task generateTaskFromOffer(Message offerMsg){
+        return this.generateTaskFromOffer(offerMsg, Double.parseDouble(this.parseMessage(offerMsg, "ore")[0]));
     }
 
 

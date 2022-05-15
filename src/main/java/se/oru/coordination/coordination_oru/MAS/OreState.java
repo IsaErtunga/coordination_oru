@@ -45,6 +45,13 @@ public class OreState {
         return null; // no state found
     }
 
+    public void setNewOreAmount(int taskID, double ore){
+        State s = this.getState(taskID);
+        if ( s == null ) return;
+        s.deltaOre = ore;
+        this.update();
+    }
+
     public double getOreFromState(int taskID){
         return this.getState(taskID).currOre;
     }

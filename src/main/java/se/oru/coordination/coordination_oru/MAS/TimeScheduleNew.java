@@ -48,6 +48,20 @@ public class TimeScheduleNew {
         this.capacity = capacity;
     }
 
+    private Task getTask(int taskID){
+        for ( Task t : this.schedule ){
+            if ( t.taskID == taskID ) return t;
+        }
+        return this.reserved.get(taskID);
+    }
+
+    public void setNewOreAmount(int taskID, double ore){
+        Task t = this.getTask(taskID);
+        if ( t == null ) return;
+        t.ore = ore;
+        synchronized(this.oreState){ this.oreState.setNewOreAmount(taskID, ore); }
+    }
+
     public int getSize(){
         ArrayList<Task> scheduleCopy = new ArrayList<Task>(this.schedule);
         scheduleCopy.removeIf(i -> i.isTTAtask == true);
@@ -172,37 +186,37 @@ public class TimeScheduleNew {
         return this.getPoseAtTime(Double.MAX_VALUE);
     }
 
-     /**
-      * will push all slots in schedule so they are compressed with no free space between.
-      * @param nextStartTime is the calculated next starttime for the next task.
-      * @return an array of tasks to be informed of the new times.
-      */
-    public ArrayList<Task> compressSchedule(double nextStartTime){
-        ArrayList<Task> tasks2inform = new ArrayList<Task>();
-        final int startIndex = this.unchangeableTaskCount;
-        int scheduleSize = this.schedule.size();
+    //  /**
+    //   * will push all slots in schedule so they are compressed with no free space between.
+    //   * @param nextStartTime is the calculated next starttime for the next task.
+    //   * @return an array of tasks to be informed of the new times.
+    //   */
+    // public ArrayList<Task> compressSchedule(double nextStartTime){
+    //     ArrayList<Task> tasks2inform = new ArrayList<Task>();
+    //     final int startIndex = this.unchangeableTaskCount;
+    //     int scheduleSize = this.schedule.size();
 
-        if ( scheduleSize > 0 ){
-            Task prev = this.schedule.get(0);
-            double taskLength = prev.endTime - prev.startTime;
-            prev.startTime = nextStartTime;
-            prev.endTime = nextStartTime + taskLength;
-            synchronized(this.oreState){ this.oreState.changeState(prev.taskID, prev.endTime); }
-            if ( startIndex <= 0 ) tasks2inform.add(prev);
-            for ( int i=1; i<scheduleSize; i++ ){
-                Task curr = this.schedule.get(i);
-                double newEndTime = curr.endTime - curr.startTime + prev.endTime;
+    //     if ( scheduleSize > 0 ){
+    //         Task prev = this.schedule.get(0);
+    //         double taskLength = prev.endTime - prev.startTime;
+    //         prev.startTime = nextStartTime;
+    //         prev.endTime = nextStartTime + taskLength;
+    //         synchronized(this.oreState){ this.oreState.changeState(prev.taskID, prev.endTime); }
+    //         if ( startIndex <= 0 ) tasks2inform.add(prev);
+    //         for ( int i=1; i<scheduleSize; i++ ){
+    //             Task curr = this.schedule.get(i);
+    //             double newEndTime = curr.endTime - curr.startTime + prev.endTime;
 
-                synchronized(this.oreState){ this.oreState.changeState(curr.taskID, newEndTime); }
-                curr.endTime = newEndTime;
-                curr.startTime = prev.endTime;
-                if ( startIndex <= i ) tasks2inform.add(curr);
+    //             synchronized(this.oreState){ this.oreState.changeState(curr.taskID, newEndTime); }
+    //             curr.endTime = newEndTime;
+    //             curr.startTime = prev.endTime;
+    //             if ( startIndex <= i ) tasks2inform.add(curr);
                 
-                prev = curr;
-            }
-        }
-        return tasks2inform;
-    }
+    //             prev = curr;
+    //         }
+    //     }
+    //     return tasks2inform;
+    // }
 
     /**
      * 
@@ -277,30 +291,6 @@ public class TimeScheduleNew {
     }
 
     /**
-     * this func will find a slot in the schedule were the ore-level is low and return the start & end time of that slot.
-     * @param slotSize the size needed for the slot
-     * @param maxOreAmount the max amount of ore allowed at a slot in order to return it.
-     * @return
-     */
-    public double[] getSlotToFill(double slotSize, double maxOreAmount){
-        double[] returnSlot = new double[] {};
-        if ( this.schedule.size() <= 1 ) return returnSlot;
-
-        Task prev = this.schedule.get(0);
-        for ( int i=1; i<this.schedule.size(); i++ ){
-            Task curr = this.schedule.get(i);
-
-            if ( curr.startTime - prev.endTime >= slotSize ){ // if slot between prev and curr is >= slotSize
-                double oreAtTime;
-                synchronized(this.oreState){ oreAtTime = this.oreState.getStateAtTime( (curr.startTime-prev.endTime/2.0) + prev.startTime); } // get ore in that slot
-                if ( oreAtTime <= maxOreAmount ) return new double[] {prev.endTime, curr.startTime}; // if ore at that time is lower than maxOreAmount
-            }
-            prev = curr;
-        }
-        return returnSlot;
-    }
-
-    /**
      * will find a slot in the schedule starting after a given time with given size and were the ore is lower than a given limit.
      * used by SA when planning schedule.
      * @param nearTimeBound a slot must be after this time to be returned
@@ -341,6 +331,24 @@ public class TimeScheduleNew {
                 // else set slotBegin to task-endtime to check if slot after task is available
                 slotBegin = t != null ? t.endTime : slotBegin + slotSize;
             }
+        }
+        return -1.0;
+    }
+
+    public double getSlotAfterTime(double afterTime, double slotSize, double oreChange){
+        Task t = this.getTaskAtSlot(afterTime, afterTime+slotSize);
+        if ( t == null ){
+            synchronized(this.oreState){ if (this.oreState.isAlterationOK(oreChange, afterTime + slotSize/2)) return afterTime+slotSize/2; }
+            return -1.0;
+        }
+        double slotStartTime = t.endTime;
+        while ( t != null ){
+            t = this.getTaskAtSlot(slotStartTime, slotStartTime+slotSize);
+            if ( t == null ){
+                synchronized(this.oreState){ if (this.oreState.isAlterationOK(oreChange, slotStartTime + slotSize/2)) return slotStartTime+slotSize/2; }
+                return -1.0;
+            }
+            slotStartTime = t.endTime;
         }
         return -1.0;
     }

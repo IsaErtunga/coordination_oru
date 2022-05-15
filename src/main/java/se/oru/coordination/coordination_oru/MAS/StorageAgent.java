@@ -3,11 +3,13 @@ import java.beans.EventHandler;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import com.vividsolutions.jts.io.WKBConstants;
+
 import org.metacsp.multi.spatioTemporal.paths.PoseSteering;
 import org.metacsp.multi.spatioTemporal.paths.Pose;
 import se.oru.coordination.coordination_oru.motionplanning.ompl.ReedsSheppCarPlanner;
 
-public class StorageAgent extends AuctioneerBidderAgent{
+public class StorageAgent extends BidderAgent{
 
     protected double TTAagentSpeed;
 
@@ -35,6 +37,9 @@ public class StorageAgent extends AuctioneerBidderAgent{
         this.capacity = mapInfo.getCapacity(r_id);
         this.amount = mapInfo.getStartOre(r_id);
         this.initialPose = mapInfo.getPose(r_id);
+        this.DIST_WEIGHT = mapInfo.getWeights(robotID)[0];
+        this.ORE_WEIGHT = mapInfo.getWeights(robotID)[1];
+        this.CONGESTION_WEIGHT = mapInfo.getWeights(robotID)[2];
 
         this.agentVelocity = mapInfo.getVelocity(2);
         this.TTAcapacity = mapInfo.getCapacity(4);
@@ -48,7 +53,6 @@ public class StorageAgent extends AuctioneerBidderAgent{
 
         // settings
         this.LOAD_DUMP_TIME = 0.0;//15.0 * 5.6 / this.agentVelocity;
-        this.TIME_WAITING_FOR_OFFERS = 8.0;
         this.taskCap = 3;
 
         // Testing
@@ -86,12 +90,6 @@ public class StorageAgent extends AuctioneerBidderAgent{
             };
             lowerCapacityTest.start();
         }
-       
-
-        this.sleep(1000);
-
-        int block = this.robotID / 1000;
-        if ( block != 9  ) this.status();
     }
 
     /**
@@ -114,99 +112,59 @@ public class StorageAgent extends AuctioneerBidderAgent{
         }
     }
 
-    /**
-     * HandleOffers is called from a SA, to either accept the offer of a TA, or deny it.
-     * @return the message that is the best offer
-     */
-    public Message handleOffers(int taskID) {
-        Message bestOffer = new Message();
-        int bestOfferVal = 0;
-        boolean debug = false;
-
-        ArrayList<Message> offersCopy = new ArrayList<Message>(this.offers);
-        if(debug) this.print("-- in handleOffers");
-
-        for (Message m : offersCopy) {
-            String[] mParts = this.parseMessage( m, "", true); 
-            if ( Integer.parseInt(mParts[0]) != taskID ) continue; // sort out offer not part of current auction(taskID)
-
-            int offerVal = Integer.parseInt(mParts[1]);
-            if(debug) this.print("\tofferVal-->"+offerVal+", with-->"+m.sender);
-
-            // ========= EXPERIMENTAL =========
-            double tStart = Double.parseDouble(mParts[4]);
-            double tEnd = Double.parseDouble(mParts[5]);
-            double[] occupiedTimes = this.translateTAtaskTimesToOccupyTimes(tStart, tEnd, this.occupancyPadding);
-            double startTime = occupiedTimes[0];
-            double endTime = occupiedTimes[1];
-
-            if(debug) this.print("\tisTaskPossible("+taskID+", "+startTime+", "+endTime+")-->"+(this.timeSchedule.isTaskPossible(taskID, startTime, endTime)));
-            if( this.timeSchedule.isTaskPossible(taskID, startTime, endTime) ) {
-                if(debug) this.print("\t\t"+offerVal+">"+bestOfferVal+"-->"+(offerVal > bestOfferVal));
-
-                if (offerVal > bestOfferVal){
-                    if(debug) this.print("\t\t\tnew retOffer with-->"+m.sender);
-
-                    bestOfferVal = offerVal;
-                    bestOffer = new Message(m);
-                }
-            }
-        }
-        return bestOffer;
-    }
-
     @Override
     protected void handleCNPauction(Message m){
-        // Create Task
-        Task TTATask = generateTaskFromAuction(m, this.initialPose);
-        if ( Math.abs(TTATask.ore) < this.TTAcapacity ) return;
+        int agentType = (m.sender % 1000) / 100;
 
-        // ========= EXPERIMENTAL =========
-        double padding = 6.0;//25.0 / this.TTAagentSpeed;
-        double[] timeUsingResource = this.translateTAtaskTimesToOccupyTimes(TTATask, padding); // TApadding *2 = TTA padding, but /2 because holding resource shorter
-        if ( !this.timeSchedule.isTaskPossible(TTATask.taskID, timeUsingResource[0], timeUsingResource[1]) ) return;    // task doesnt fit in schedule
+        Task cnpTask = agentType == 4 ? this.generateTTAtask(m) : this.generateTAtask(m); // Create Task
+        if ( cnpTask == null ) return;
         
-        // Calculate offer
-        int offerVal = this.calculateOffer(TTATask, m);
+        double[] timeUsingResource = this.translateTAtaskTimesToOccupyTimes(cnpTask, this.occupancyPadding); 
+        if ( !this.timeSchedule.isTaskPossible(cnpTask.taskID, timeUsingResource[0], timeUsingResource[1]) ) return;    // task doesnt fit in schedule
+        
+        int offerVal = agentType == 4 ? this.calculateOfferTTA(cnpTask, m) : this.calculateOfferTA(cnpTask, m); // Calculate offer
+        this.print("--offerval-->"+(offerVal));
         if ( offerVal <= 0 ) return;
         
-        // Send Offer
-        this.sendMessage(this.generateOfferMessage(TTATask, offerVal, Math.abs(TTATask.ore)));
-        TTATask.startTime = timeUsingResource[0];
-        TTATask.endTime = timeUsingResource[1];
-        this.timeSchedule.addEvent(TTATask);
-        // ================================
+        this.sendMessage(this.generateOfferMessage(cnpTask, offerVal, Math.abs(cnpTask.ore))); // Send Offer
+        cnpTask.startTime = timeUsingResource[0];
+        cnpTask.endTime = timeUsingResource[1];
+        this.timeSchedule.addEvent(cnpTask);    
     }
 
-    /**
-     * When receiving a cnp-message, this function will create a task from that message.
-     * Only used in {@link handleService}.
-     * @param m the message from the auctioneer
-     * @param ore the amount of ore the task is about
-     * @return a Task with attributes extracted from m
-     */
-    protected Task generateTaskFromAuction(Message m, Pose ourPose){
-        String[] mParts = this.parseMessage(m, "", true);
-        Pose TTAPos = this.posefyString(mParts[2]);
-        //PoseSteering[] path = this.calculatePath(this.mp, TTAPos, this.startPose);
-        //PoseSteering[] path = this.getPath(this.pStorage, this.mp, TTAPos, this.initialPose);
-        //double pathDist = this.calculatePathDist(path);
-
-        Pose midWayPose = new Pose(TTAPos.getX(), 27.5, 0.0);
-        double pathDist = this.basicPathDistEstimate(TTAPos, midWayPose) + this.basicPathDistEstimate(midWayPose, this.initialPose);
-        double pathTime = this.calculateDistTime(pathDist, this.TTAagentSpeed);
-
-        double taskStartTime = Double.parseDouble(mParts[3]);;
-        double endTime = taskStartTime + pathTime;
+    private Task generateTTAtask(Message m){
         double availableOre;
+        String[] mParts = this.parseMessage(m, "", true);
+        Pose TruckPos = this.posefyString(mParts[2]);
+        double startTime = Double.parseDouble(mParts[3]);
+        Pose midWayPose = new Pose(TruckPos.getX(), 27.5, 0.0);
+        double pathDist = this.basicPathDistEstimate(TruckPos, midWayPose) + this.basicPathDistEstimate(midWayPose, this.initialPose);
+        double endTime = startTime + this.calculateDistTime(pathDist, this.TTAagentSpeed);
         synchronized(this.timeSchedule){ availableOre = this.timeSchedule.getOreStateAtTime(endTime); }
         availableOre = availableOre > this.TTAcapacity ? this.TTAcapacity : availableOre;
 
-        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -availableOre, taskStartTime, endTime, pathDist, TTAPos, this.initialPose);
+        return new Task(Integer.parseInt(mParts[0]), m.sender, false, -availableOre, startTime, endTime, pathDist, TruckPos, this.initialPose);
     }
 
-    @Override
-    protected int calculateOffer(Task agentTask, Message autionMessage){
+    private Task generateTAtask(Message m){
+        double nextAvailableEndTime;
+        String[] mParts = this.parseMessage(m, "", true);
+        Pose TruckPos = this.posefyString(mParts[2]);
+        double TAstart = Double.parseDouble(mParts[3]);
+        double pathDist = this.basicPathDistEstimate(TruckPos, this.initialPose);
+        double pathTime = this.calculateDistTime(pathDist, this.agentVelocity);
+
+        synchronized(this.timeSchedule){ nextAvailableEndTime = this.timeSchedule.getSlotAfterTime(TAstart+pathTime-this.occupancyPadding+0.5, this.occupancyPadding*2.5, this.TAcapacity); }
+        if ( nextAvailableEndTime == -1.0 ){
+            this.print("next available time = -1.0. something wrong!");
+            return null;
+        } 
+        double startTime = nextAvailableEndTime - pathTime;
+
+        return new Task(Integer.parseInt(mParts[0]), m.sender, false, this.TAcapacity, startTime, nextAvailableEndTime, pathDist, TruckPos, this.initialPose);
+    }
+
+    protected int calculateOfferTTA(Task agentTask, Message autionMessage){
         if (agentTask.pathDist < 0.5) return 0;
 
         double oreLevel = this.timeSchedule.getOreStateAtTime(agentTask.endTime) - this.TTAcapacity;
@@ -216,14 +174,47 @@ public class StorageAgent extends AuctioneerBidderAgent{
        
         this.print("-- calculateOffer: offer->"+oreEval+" with agent->"+agentTask.partner);
         return oreEval;
-    }   
+    }
+
+    protected int calculateOfferTA(Task agentTask, Message autionMessage){
+        double oreLevelPercent = this.timeSchedule.getOreStateAtTime(agentTask.endTime) / this.capacity;
+
+        int oreEval = (int)this.concaveDecreasingFunc(oreLevelPercent*100.0, 1000.0, 0.0, 100.0);
+
+        int distEval = (int)this.concaveDecreasingFunc(agentTask.pathDist, 1000.0, 40.0, 300.0); 
+
+        double requestStartTime = Double.parseDouble(this.parseMessage(autionMessage, "startTime")[0]); // startTime of cnp-msg is when auctioneer wants ore
+        int timeEval = (int) (this.linearDecreasingComparingFunc(agentTask.startTime, requestStartTime, 45.0, 500.0)*this.TIME_WEIGHT);  
+        // this.print("with robot-->"+m.sender +" dist-->"+ String.format("%.2f",t.pathDist) 
+        //     +" distanceEval-->"+distEval
+        //     +"\t nearTaskT-->"+String.format("%.2f",nearTaskT) 
+        //     +" congEnval-->"+congestionEval
+        //     +",  total eval->"+(oreEval + distEval + congestionEval));
+
+        //this.print("--calcualteOFferTA: orelevel percent ->"+oreLevelPercent);
+        return (int)(oreEval*this.ORE_WEIGHT) + (int)(distEval*this.DIST_WEIGHT) + (int)(timeEval*this.TIME_WEIGHT);
+    } 
 
     @Override
     protected void handleInformDone(int taskID, Message m){
+        ArrayList<Task> abortTasks;
+        int agentType = (m.sender % 1000) / 100;
+        double oreAmount = Math.abs( Double.parseDouble(this.parseMessage(m, "informInfo")[0]) );
+        oreAmount = agentType == 2 ? oreAmount : -oreAmount;
+        synchronized(this.timeSchedule){
+            this.timeSchedule.setNewOreAmount(taskID, oreAmount);
+            abortTasks = this.timeSchedule.fixBrokenSchedule();
+        }
+        for ( Task t : abortTasks ){
+            this.sendMessage( new Message(this.robotID, t.partner, "inform", t.taskID + this.separator + "abort") );
+        }
         synchronized(this.timeSchedule){
             this.amount = this.timeSchedule.markEventDone(taskID);
             this.timeSchedule.removeEvent(taskID);
         }
+        
+
+
         int docId = this.robotID % 1000;
         this.fp.logOreState(this.getTime(), this.amount, docId);
         this.print("currentOre -->"+this.amount);
@@ -270,93 +261,5 @@ public class StorageAgent extends AuctioneerBidderAgent{
                 this.print("updated without conflict-->"+taskID +"\twith-->"+ m.sender);
             }
         }
-    }
-
-    public void status () {
-        while ( true ){
-            this.sleep(1000);
-
-            double lookOre;
-            synchronized(this.timeSchedule){
-                if ( this.timeSchedule.getSize() > this.taskCap) continue;
-                // this.print("-- in status. about to get auction time");
-                // this.timeSchedule.printSchedule(this.COLOR);
-                lookOre = this.timeSchedule.getLowestOreAfterTime(this.getTime()+10.0+this.LOAD_DUMP_TIME);
-            }
-
-            double slotSize = this.occupancyPadding*3+this.LOAD_DUMP_TIME;
-            double auctionTime = -1.0;
-            while ( lookOre < 0.9*this.capacity && auctionTime == -1.0 ){
-                if ( lookOre > 0.6 * this.capacity ) this.sleep(10000);
-                double timeLookAfter = this.getTime()+10.0+this.LOAD_DUMP_TIME;
-                double timeLookBefore = timeLookAfter + 90.0; // two minutes plan ahead
-                synchronized(this.timeSchedule){
-                    auctionTime = this.timeSchedule.getNextEarliestTime(slotSize, lookOre, timeLookAfter, timeLookBefore, this.TAcapacity );
-                }
-
-                lookOre += 0.1 * this.capacity;
-            }
-
-            if ( auctionTime != -1.0 ){
-                //this.print("requesting ore with auction time-->"+auctionTime);
-                // ========= time auction creation
-                double startTime = this.getTime();
-                Message bestOffer = this.offerService(auctionTime);
-                if (bestOffer.isNull == true) continue;
-                // ==============================
-
-                Task task = this.generateTaskFromOffer(bestOffer);
-                
-                double timeElapsed = this.getTime() - startTime;
-                this.fp.addWaitingTimeMeasurment("auctionToTask", timeElapsed, this.robotID);
-                
-                double[] occupiedTimes = this.translateTAtaskTimesToOccupyTimes(task, this.occupancyPadding);
-                task.startTime = occupiedTimes[0];
-                task.endTime = occupiedTimes[1];
-                synchronized(this.timeSchedule){
-                    this.timeSchedule.addEvent(task);
-                    // this.print("task added:");
-                    // this.timeSchedule.printSchedule(this.COLOR);
-                }
-            } else {
-                this.print("-- in status : all seems good...");
-                this.sleep(3000);
-            }
-
-        }
-    }
-
-
-    /** offerService is called when a robot want to plan in a new task to execute.
-     * 
-     * @param robotID id of robot{@link TransportAgent} calling this
-     */
-    public Message offerService(double startTime){
-        ArrayList<Integer> receivers = this.getReceivers("TRANSPORT");
-
-        if ( receivers.size() <= 0 ) return new Message();
-        this.offers.clear();
-        int taskID = this.sendCNPmessage(startTime, this.stringifyPose(this.initialPose), receivers);
-
-        this.waitForAllOffersToCome( receivers.size(), taskID );  //locking function. wait for receivers
-
-        Message bestOffer = this.handleOffers(taskID); //extract best offer
-        if ( bestOffer.isNull == true ){
-            this.print("no good offer received");
-
-            Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));
-            this.sendMessage(declineMessage);
-            return bestOffer;
-        }
-
-        Message acceptMessage = new Message(robotID, bestOffer.sender, "accept", Integer.toString(taskID) );
-        this.sendMessage(acceptMessage);
-
-        receivers.removeIf(i -> i==bestOffer.sender);
-        if (receivers.size() > 0){
-            Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));
-            this.sendMessage(declineMessage);
-        }
-        return bestOffer;
     }
 }
