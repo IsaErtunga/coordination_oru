@@ -53,7 +53,7 @@ def readExperimentFile():
     print(len(oreStates))
 
     plotOreState(oreStates=oreStates)
-    plotMessages(messages=messages)
+    # plotMessages(messages=messages)
     plotWaitingTimes(times=times)
     plotCollectedOre(collectedOre=collectedOre)
     plotDistances(distances=distances)

@@ -223,7 +223,7 @@ public class NewMapData {
     public double getCapacity(int agentType){
         if ( agentType > 1000 ) agentType = (agentType % 1000) / 100;
 
-        if ( agentType == 1 ) return 150.0;
+        if ( agentType == 1 ) return 250.0;
         if ( agentType == 3 ) return this.SACapicity;
         if ( agentType == 2 ) return 8.0;
         if ( agentType == 4 ) return 50.0;
