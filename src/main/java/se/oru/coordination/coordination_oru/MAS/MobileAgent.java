@@ -263,7 +263,7 @@ public class MobileAgent extends AuctioneerBidderAgent{
                     this.sendMessage(doneMessage);
                 } else {
                     this.amountLaps += 1;
-                    if (this.amountLaps >= 2) {
+                    if (this.amountLaps >= 5) {
                         this.MissionOver.add(0, true);
                     }
                     //this.fp.logCollectedOre(Math.abs(sCurrTask.ore));

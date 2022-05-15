@@ -209,7 +209,7 @@ public class TransportAgent extends MobileAgent{
     @Override
     protected Task generateTaskFromAuction(Message m, Pose ourPose, double ore){
         String[] mParts = this.parseMessage(m, "", true);
-        double time_padding = 1.0;
+        double time_padding = 2.0;
         Pose SApos = this.posefyString(mParts[2]);
 
         double pathDist = this.basicPathDistEstimate(ourPose, SApos);
