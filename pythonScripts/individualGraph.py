@@ -70,7 +70,7 @@ def plotOreState(oreStates):
             robotOreState = oreStateById.get(oreState[1])
             robotOreState[0].append(float(oreState[3]))
             robotOreState[1].append(float(oreState[4]))
-    
+    meanOreState = 0
     for plot in oreStateById.keys():
         plt.figure()
         plt.step(oreStateById[plot][0], oreStateById[plot][1], label="Ore state")
@@ -78,6 +78,9 @@ def plotOreState(oreStates):
         plt.title('Storage Agent: ' + plot)
         plt.xlabel('Time')
         plt.ylabel('Ore')
+        print(plot)
+        meanOreState = mean(oreStateById[plot][1])
+        print(meanOreState)
         print("Final ore state",  oreStateById[plot][1][-1])
     print("")
 
