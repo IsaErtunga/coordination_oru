@@ -9,7 +9,7 @@ plt.rcParams["figure.figsize"] = [7.50, 3.50]
 plt.rcParams["figure.autolayout"] = True
 path = "/home/parallels/Projects/coordination_oru/testResults/experiments.csv"
 
- # 1. 302: 178.5, 301: 184.3, Messages: 2859, ore: 696, dist: 25954.5
+ # 1. 302: 163.5, 301: 180.3, Messages: 2859, ore: 696, dist: 25954.5
  # 2. 302: 149.6, 301: 186.5, Messages: 2739, ore: 672, dist: 24457.2
  # 3. 302: 117.0, 301: 136.8, Messages: 2726, ore: 528, dist: 20739.0
 

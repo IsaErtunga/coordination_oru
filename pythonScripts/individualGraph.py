@@ -1,4 +1,5 @@
 import json
+from statistics import mean
 from time import time
 import matplotlib.pyplot as plt
 import csv
@@ -166,4 +167,4 @@ def plotDistances(distances):
     print("TOTAL DISTANCE TRAVELLED: \n", totalDistances)
 
 readExperimentFile()
-# plt.show()
+plt.show()
