@@ -13,7 +13,8 @@ public class NewMapData {
     public int process_id;
 
     protected double SACapicity;
-    protected double TTASpeed = 5.6 * 4;
+    protected double TAcapacity = 8.0;
+    protected double TTASpeed = 5.6 * 5;
     protected double[] TAWeights = new double[]{1.0, 1.0, 1.0};
 
     protected double dropMessageTestProb = 1.0;
@@ -85,9 +86,11 @@ public class NewMapData {
                 case "Scalability":
                     this.scalability = value;
                     if (value == 1) {
-                        this.TTASpeed = 5.6 * 6;
+                        //this.TTASpeed = 5.6 * 6.8;
+                        this.TAcapacity = 5.818182; // (8/11) * 8
                     } else if (value == 2) {
-                        this.TTASpeed = 5.6 * 8;
+                        this.TAcapacity = 4.266667; // (8/15) * 8
+                        //this.TTASpeed = 5.6 * 8;
                     }
                     break;
                 case "RobustLevel":
