@@ -168,4 +168,4 @@ def plotDistances(distances):
     print("TOTAL DISTANCE TRAVELLED: \n", totalDistances)
 
 readExperimentFile()
-# plt.show()
+plt.show()
