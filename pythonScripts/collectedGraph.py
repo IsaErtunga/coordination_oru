@@ -16,10 +16,10 @@ path = "/home/parallels/Projects/coordination_oru/testResults/experiments.csv"
  # 
 
 def readExperimentFile():
-    oreStates = {"301": [184.3, 186.5, 136.0], "302": [178.5, 149.6, 117.0]}
-    messages = [2859, 2739, 2726]
-    distances = [25954, 24457, 20739]
-    collectedOre = [696, 672, 528]
+    oreStates = {"301": [180.9, 162.5, 151.0], "302": [168.5, 170.6, 172.0]}
+    messages = [1641, 2203, 2828]
+    distances = [13705, 12777, 12211]
+    collectedOre = [480, 448, 456]
 
 
     plotOreState(oreStates=oreStates)
