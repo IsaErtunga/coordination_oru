@@ -1,4 +1,5 @@
 import json
+from statistics import mean
 from time import time
 import matplotlib.pyplot as plt
 import csv
@@ -42,7 +43,7 @@ def readExperimentFile():
             if (experiment[0] == test):
                 if ("ORESTATE" in experiment):
                     oreStates.append(experiment)
-                elif ("MESSAGE" in experiment):
+                elif ("MESSAGES" in experiment):
                     messages.append(experiment)
                 elif ("TIME" in experiment):
                     times.append(experiment)
@@ -53,7 +54,7 @@ def readExperimentFile():
     print(len(oreStates))
 
     plotOreState(oreStates=oreStates)
-    # plotMessages(messages=messages)
+    plotMessages(messages=messages)
     plotWaitingTimes(times=times)
     plotCollectedOre(collectedOre=collectedOre)
     plotDistances(distances=distances)
@@ -70,7 +71,7 @@ def plotOreState(oreStates):
             robotOreState = oreStateById.get(oreState[1])
             robotOreState[0].append(float(oreState[3]))
             robotOreState[1].append(float(oreState[4]))
-    
+    meanOreState = 0
     for plot in oreStateById.keys():
         plt.figure()
         plt.step(oreStateById[plot][0], oreStateById[plot][1], label="Ore state")
@@ -78,47 +79,51 @@ def plotOreState(oreStates):
         plt.title('Storage Agent: ' + plot)
         plt.xlabel('Time')
         plt.ylabel('Ore')
+        print(plot)
+        meanOreState = mean(oreStateById[plot][1])
+        print(meanOreState)
         print("Final ore state",  oreStateById[plot][1][-1])
     print("")
 
 # Plot message count
 def plotMessages(messages):
-    messageTypes = {
-        "total": [[],[], 1],
-        "hello-world": [[],[], 1],
-        "echo": [[],[], 1],
-        "cnp-service": [[],[], 1],
-        "offer": [[],[], 1],
-        "accept": [[],[], 1],
-        "decline": [[],[], 1],
-        "inform": [[],[], 1],
-    }
+    print(messages)
+    # messageTypes = {
+    #     "total": [[],[], 1],
+    #     "hello-world": [[],[], 1],
+    #     "echo": [[],[], 1],
+    #     "cnp-service": [[],[], 1],
+    #     "offer": [[],[], 1],
+    #     "accept": [[],[], 1],
+    #     "decline": [[],[], 1],
+    #     "inform": [[],[], 1],
+    # }
     
-    for message in messages:
-        time = float(message[2])
+    # for message in messages:
+    #     time = float(message[2])
 
-        messageTypes["total"][0].append(time)
-        messageTypes["total"][1].append(messageTypes["total"][2])
-        messageTypes["total"][2] += 1
+    #     messageTypes["total"][0].append(time)
+    #     messageTypes["total"][1].append(messageTypes["total"][2])
+    #     messageTypes["total"][2] += 1
 
-        messageTypes[message[3]][0].append(time)
-        messageTypes[message[3]][1].append(messageTypes[message[3]][2])
-        messageTypes[message[3]][2] += 1
+    #     messageTypes[message[3]][0].append(time)
+    #     messageTypes[message[3]][1].append(messageTypes[message[3]][2])
+    #     messageTypes[message[3]][2] += 1
 
 
-    plt.figure()
-    plt.step(messageTypes["total"][0], messageTypes["total"][1], label="Messages")
-    plt.step(messageTypes["hello-world"][0], messageTypes["hello-world"][1], label="hello-world")
-    plt.step(messageTypes["echo"][0], messageTypes["echo"][1], label="echo")
-    plt.step(messageTypes["cnp-service"][0], messageTypes["cnp-service"][1], label="cnp-service")
-    plt.step(messageTypes["offer"][0], messageTypes["offer"][1], label="offer")
-    plt.step(messageTypes["accept"][0], messageTypes["accept"][1], label="accept")
-    plt.step(messageTypes["decline"][0], messageTypes["decline"][1], label="decline")
-    plt.step(messageTypes["inform"][0], messageTypes["inform"][1], label="inform")
-    plt.legend(loc="upper left")
-    plt.title('Message Counter')
-    plt.xlabel('Time')
-    plt.ylabel('Message')
+    # plt.figure()
+    # plt.step(messageTypes["total"][0], messageTypes["total"][1], label="Messages")
+    # plt.step(messageTypes["hello-world"][0], messageTypes["hello-world"][1], label="hello-world")
+    # plt.step(messageTypes["echo"][0], messageTypes["echo"][1], label="echo")
+    # plt.step(messageTypes["cnp-service"][0], messageTypes["cnp-service"][1], label="cnp-service")
+    # plt.step(messageTypes["offer"][0], messageTypes["offer"][1], label="offer")
+    # plt.step(messageTypes["accept"][0], messageTypes["accept"][1], label="accept")
+    # plt.step(messageTypes["decline"][0], messageTypes["decline"][1], label="decline")
+    # plt.step(messageTypes["inform"][0], messageTypes["inform"][1], label="inform")
+    # plt.legend(loc="upper left")
+    # plt.title('Message Counter')
+    # plt.xlabel('Time')
+    # plt.ylabel('Message')
 
 # Plot message count
 def plotWaitingTimes(times):
@@ -163,4 +168,4 @@ def plotDistances(distances):
     print("TOTAL DISTANCE TRAVELLED: \n", totalDistances)
 
 readExperimentFile()
-plt.show()
+# plt.show()
