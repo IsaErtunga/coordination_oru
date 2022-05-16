@@ -255,6 +255,7 @@ public class MobileAgent extends AuctioneerBidderAgent{
             synchronized(this.tec){ missionIsDone = this.tec.isFree(this.robotID); } 
 
             if ( missionIsDone ){ // if we are done with mission
+                this.sleep( (int)( this.LOAD_DUMP_TIME*1000.0) );
                 this.print("--trackMissionState: task done. task endTime-->"+sCurrTask.endTime);
                 this.fp.addDistanceMeasurment("Task", this.calculatePathDist(sCurrMission.getPath()), this.robotID);
                 this.sleep((int)this.LOAD_DUMP_TIME*1000);
@@ -263,7 +264,7 @@ public class MobileAgent extends AuctioneerBidderAgent{
                     this.sendMessage(doneMessage);
                 } else {
                     this.amountLaps += 1;
-                    if (this.amountLaps >= 10) {
+                    if (this.amountLaps >= 5) {
                         this.MissionOver.add(0, true);
                     }
                     //this.fp.logCollectedOre(Math.abs(sCurrTask.ore));
