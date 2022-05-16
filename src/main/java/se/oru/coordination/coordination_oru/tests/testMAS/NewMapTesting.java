@@ -143,29 +143,41 @@ public class NewMapTesting {
 
 
 	// ============== HERE YOU ALTER THE SCENARIO =================
-	// // Base case
-	Integer[] block1Agents = new Integer[]{5,3,2}; // agents spawning in rep, blocks. index0 = DA's, index2 = TA's, index3 = SA's
-	Integer[] block2Agents = new Integer[]{3,2,2};
+	// Base case
+	Integer[] block1Agents = new Integer[]{6,3,2}; // agents spawning in rep, blocks. index0 = DA's, index2 = TA's, index3 = SA's
+	Integer[] block2Agents = new Integer[]{4,2,2};
 	Integer[] block3Agents = new Integer[]{2,1,2};
-	Integer[] block4Agents = new Integer[]{4,2,2};
+	Integer[] block4Agents = new Integer[]{4,2,2}; 
 
-	// Integer[] block1Agents = new Integer[]{1,1,1}; // agents spawning in rep, blocks. index0 = DA's, index2 = TA's, index3 = SA's
+	// Integer[] block1Agents = new Integer[]{0,0,0}; // agents spawning in rep, blocks. index0 = DA's, index2 = TA's, index3 = SA's
 	// Integer[] block2Agents = new Integer[]{0,0,0};
 	// Integer[] block3Agents = new Integer[]{0,0,0};
 	// Integer[] block4Agents = new Integer[]{0,0,0};
 	int nrTTAs = 1;
-	if (MAP_DATA.scalability == 1) {
+	if (MAP_DATA.scalability == 1) { // 11 TA - 5*speed TTA
 		// Higher scalability 
-		block1Agents = new Integer[]{7,4,2}; 
-		block2Agents = new Integer[]{5,3,2};
-		block3Agents = new Integer[]{5,2,2};
+		block1Agents = new Integer[]{8,4,2}; 
+		block2Agents = new Integer[]{6,3,2};
+		block3Agents = new Integer[]{4,2,2};
 		block4Agents = new Integer[]{4,2,2};
-	} else if (MAP_DATA.scalability == 2) {
+	} else if (MAP_DATA.scalability == 2) { // 15 TA - 6.8*speed TTA
 		// Highest scalability
-		block1Agents = new Integer[]{7,4,2}; 
-		block2Agents = new Integer[]{5,3,2};
-		block3Agents = new Integer[]{9,5,2};
-		block4Agents = new Integer[]{4,3,2};
+		block1Agents = new Integer[]{8,4,2}; 
+		block2Agents = new Integer[]{6,3,2};
+		block3Agents = new Integer[]{10,5,2};
+		block4Agents = new Integer[]{6,3,2};
+	} else if (MAP_DATA.scalability == 3) { // 11 TA - 5*speed TTA
+		block1Agents = new Integer[]{4,3,2}; 
+		block2Agents = new Integer[]{3,2,2};
+		block3Agents = new Integer[]{2,1,2};
+		block4Agents = new Integer[]{3,2,2};
+
+	} else if (MAP_DATA.scalability == 4) { // 11 TA - 5*speed TTA
+		// Highest scalability
+		block1Agents = new Integer[]{3,3,2}; 
+		block2Agents = new Integer[]{2,2,2};
+		block3Agents = new Integer[]{1,1,2};
+		block4Agents = new Integer[]{2,2,2};
 	}
 
 
@@ -185,7 +197,7 @@ public class NewMapTesting {
 	OreState oreState1 = new OreState(MAP_DATA.getCapacity(3), MAP_DATA.getStartOre(3));
 	OreState oreState2 = new OreState(MAP_DATA.getCapacity(3), MAP_DATA.getStartOre(3));
 
-	int[] spawnOrder = new int[]{0,2,1}; // 0=DA,1=TA,2=SA,3=TTA
+	int[] spawnOrder = new int[]{0,2,1}; // 0=DA,1=TA,2=SA
 	for ( int agentType : spawnOrder ){ // spawnOrder = DA,TA,SA,TTA, for every agent type
 
 		for ( int block = 0; block <4; block++ ){	// for every block
