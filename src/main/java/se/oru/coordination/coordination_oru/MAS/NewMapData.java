@@ -13,6 +13,7 @@ public class NewMapData {
     public int process_id;
 
     protected double SACapicity;
+    protected double TAcapacity = 8.0;
     protected double TTASpeed = 5.6 * 4;
     protected double[] TAWeights = new double[]{1.0, 1.0, 1.0};
 
@@ -85,9 +86,11 @@ public class NewMapData {
                 case "Scalability":
                     this.scalability = value;
                     if (value == 1) {
-                        this.TTASpeed = 5.6 * 6;
+                        //this.TTASpeed = 5.6 * 6.8;
+                        this.TAcapacity = 5.818182; // (8/11) * 8
                     } else if (value == 2) {
-                        this.TTASpeed = 5.6 * 8;
+                        this.TAcapacity = 4.266667; // (8/15) * 8
+                        //this.TTASpeed = 5.6 * 8;
                     }
                     break;
                 case "RobustLevel":
@@ -225,7 +228,7 @@ public class NewMapData {
 
         if ( agentType == 1 ) return 150.0;
         if ( agentType == 3 ) return this.SACapicity;
-        if ( agentType == 2 ) return 8.0;
+        if ( agentType == 2 ) return this.TAcapacity;
         if ( agentType == 4 ) return 50.0;
 
         return 0.0;
