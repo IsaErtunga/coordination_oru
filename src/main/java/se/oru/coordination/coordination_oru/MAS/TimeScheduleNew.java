@@ -46,6 +46,7 @@ public class TimeScheduleNew {
 
     public void setCapacity(double capacity) {
         this.capacity = capacity;
+        synchronized(this.oreState){ this.oreState.setCapacity(capacity); }
     }
 
     public int getSize(){

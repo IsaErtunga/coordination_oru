@@ -96,7 +96,7 @@ public class NewMapData {
                 case "RobustLevel":
                     if (value == 1) {
                         this.dropMessageTestProb = 0.98;
-                        this.breakdownTestProb = 0.01;
+                        this.breakdownTestProb = 0.025;
                         this.lowCapacityTest = 0.75;
                     } else if (value == 2) {
                         this.dropMessageTestProb = 0.95;

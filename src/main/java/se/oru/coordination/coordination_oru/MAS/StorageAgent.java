@@ -99,7 +99,9 @@ public class StorageAgent extends AuctioneerBidderAgent{
      */
     protected void changeCapacity() {
         // Sleep for 2 minutes
-        this.sleep(1000 * 120);
+        int uniqueID = (this.robotID % 1000) % 100;
+        if ( uniqueID != 1 ) return;
+        this.sleep(1000 * 180);
 
         double newCapacity = this.capacity * this.lowCapacityVolume;
 

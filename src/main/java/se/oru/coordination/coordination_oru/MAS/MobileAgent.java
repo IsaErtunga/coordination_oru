@@ -51,8 +51,11 @@ public class MobileAgent extends AuctioneerBidderAgent{
 
     protected void breakRobotTest(){
         if ( this.robotBreakdownTestProb == 0.0 ) return;
-        int secondsBeforeBoom = this.rand.nextInt( (int)(5*60/this.robotBreakdownTestProb)) - (int)this.getTime();  //TODO fix stupid boyy
-        secondsBeforeBoom = secondsBeforeBoom < 0 ? 0 : secondsBeforeBoom;
+
+        boolean agentWillBreak = this.rand.nextInt(1000) <= (int)(this.robotBreakdownTestProb*1000);
+        if ( !agentWillBreak ) return;
+
+        int secondsBeforeBoom = 2*60 + this.rand.nextInt( this.rand.nextInt(4*60)) - (int)this.getTime();  //TODO fix stupid boyy
         this.sleep(1000 * secondsBeforeBoom);
         PoseSteering[] newPath = this.calculatePath(this.mp, new Pose(139.5, 22.0, Math.PI/2), new Pose(139.5, 22.0, Math.PI/2));
 
@@ -264,7 +267,7 @@ public class MobileAgent extends AuctioneerBidderAgent{
                     this.sendMessage(doneMessage);
                 } else {
                     this.amountLaps += 1;
-                    if (this.amountLaps >= 5) {
+                    if (this.amountLaps >= 10) {
                         this.MissionOver.add(0, true);
                     }
                     //this.fp.logCollectedOre(Math.abs(sCurrTask.ore));

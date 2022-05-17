@@ -32,6 +32,10 @@ public class OreState {
         addState( initState );
     }
 
+    public void setCapacity(double newCap){
+        this.oreCapacity = newCap;
+    }
+
     /**
      * fetches a state.
      * @param time the time of the state fetched
