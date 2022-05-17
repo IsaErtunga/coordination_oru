@@ -228,7 +228,7 @@ public class NewMapData {
 
         if ( agentType == 1 ) return 250.0;
         if ( agentType == 3 ) return this.SACapicity;
-        if ( agentType == 2 ) return 8.0;
+        if ( agentType == 2 ) return this.TAcapacity;
         if ( agentType == 4 ) return 50.0;
 
         return 0.0;
