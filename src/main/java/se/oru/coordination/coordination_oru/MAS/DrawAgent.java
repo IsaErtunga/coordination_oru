@@ -157,9 +157,11 @@ public class DrawAgent extends BidderAgent{
     @Override
     protected int calculateOffer(Task t, Message m){
         if (t.pathDist <= 2.0) return 0;
-
         if ( Math.abs(t.ore) <= 1.0 ) return 0;
-        return this.tID();
+
+        return (int)(this.concaveDecreasingFunc(t.pathDist, 1000.0, 40.0, 300.0)); // 1.0
+
+
     }
     
 }

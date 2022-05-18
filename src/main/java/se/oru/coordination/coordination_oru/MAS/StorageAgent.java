@@ -168,11 +168,11 @@ public class StorageAgent extends BidderAgent{
         if (agentTask.pathDist < 0.5) return 0;
         if ( Math.abs(agentTask.ore) <= 1.0 ) return 0;
 
-        return this.tID();
+        return (int)(this.concaveDecreasingFunc(agentTask.pathDist, 1000.0, 40.0, 300.0)); // 1.0
     }
 
     protected int calculateOfferTA(Task agentTask, Message autionMessage){
-        return this.tID();
+        return (int)(this.concaveDecreasingFunc(agentTask.pathDist, 1000.0, 40.0, 300.0)); // 1.0
     } 
 
     @Override
