@@ -79,8 +79,8 @@ public class Router {
 
             synchronized(this.inboxes){
                 for (Message m : outputMessages){
-                    if ((double) (rand.nextInt(100))/100 > this.dropMessagePercentage) {
-                        System.out.println("DROPPED MESSAGE: " + m.sender + ", " + m.type);
+                    if ( (m.sender != 9401 || m.receiver.indexOf(9401) != -1 ) && (double) (rand.nextInt(100))/100 > this.dropMessagePercentage) {
+                        //System.out.println("DROPPED MESSAGE: " + m.sender + ", " + m.type);
                         continue;
                     }
                     if ( m.receiver.size() <= 0 ){      // if receiver int arr size = 0: broadcast
