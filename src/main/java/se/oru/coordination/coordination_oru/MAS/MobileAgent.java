@@ -180,16 +180,6 @@ public class MobileAgent extends AuctioneerBidderAgent{
 
     protected void startNextMissionState(){
         this.prepareNextMissionState();
-        // ======== for simulation time keepeing ========
-        if ( this.robotID == 9401 && sCurrTask == null && this.getTime() > 60.0*2 ){
-            this.sleep(15 * 1000);
-            this.prepareNextMissionState();
-            if ( sCurrTask == null ){
-                this.MissionOver.add(0, true);
-                this.sleep(10000*100);
-            }
-        }
-        // ==============================================
 
         if ( sNextMission == null ) return;
 

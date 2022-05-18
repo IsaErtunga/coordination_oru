@@ -319,6 +319,9 @@ public class NewMapTesting {
 	
 	int msgCount = router.msgCount;
 	fp.logMessages(msgCount);
+	System.out.println("=====================================0");
+	System.out.println("=== dropped: "+router.msgsDropped+"  ==========");
+	System.out.println("=====================================0");
 
 	try { Thread.sleep(5001); }
 	catch (InterruptedException e) { e.printStackTrace(); }

@@ -14,6 +14,7 @@ public class Router {
 
     protected int periodMili = 250;
     public int msgCount = 0;
+    public int msgsDropped = 0;
     public ArrayList<String> loggedMessages;
     public long startTime;
     public double dropMessagePercentage;
@@ -79,8 +80,9 @@ public class Router {
 
             synchronized(this.inboxes){
                 for (Message m : outputMessages){
-                    if ((double) (rand.nextInt(100))/100 > this.dropMessagePercentage) {
-                        System.out.println("DROPPED MESSAGE: " + m.sender + ", " + m.type);
+                    if ( (m.sender != 9401 || m.receiver.indexOf(9401) != -1 ) && (double) (rand.nextInt(100))/100 > this.dropMessagePercentage) {
+                        //System.out.println("DROPPED MESSAGE: " + m.sender + ", " + m.type);
+                        this.msgsDropped++;
                         continue;
                     }
                     if ( m.receiver.size() <= 0 ){      // if receiver int arr size = 0: broadcast
