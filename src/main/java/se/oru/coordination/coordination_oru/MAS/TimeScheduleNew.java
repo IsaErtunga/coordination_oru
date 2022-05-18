@@ -9,7 +9,6 @@ import org.metacsp.multi.spatioTemporal.paths.Pose;
 
 public class TimeScheduleNew {
     // control parameters
-    private static double tSensitivity = 0.0;
     private static int unchangeableTaskCount = 0;
 
     private double capacity; 

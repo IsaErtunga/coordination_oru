@@ -253,9 +253,6 @@ public class StorageAgent extends AuctioneerBidderAgent{
         String updateSep = "::";
         String pairSep = ":";
 
-        this.print("in handleInformStatus");
-        //this.timeSchedule.printSchedule(this.COLOR);
-
         String informInfo = (this.parseMessage(m, "informInfo")[0]);
         String[] newTimes = informInfo.split(updateSep);
         for ( int i=0; i<newTimes.length; i++ ){
@@ -343,18 +340,11 @@ public class StorageAgent extends AuctioneerBidderAgent{
         this.waitForAllOffersToCome( receivers.size(), taskID );  //locking function. wait for receivers
 
         Message bestOffer = this.handleOffers(taskID); //extract best offer
-        if ( bestOffer.isNull == true ){
-            this.print("no good offer received");
-
-            Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));
-            this.sendMessage(declineMessage);
-            return bestOffer;
+        if (!bestOffer.isNull){        
+            Message acceptMessage = new Message(robotID, bestOffer.sender, "accept", Integer.toString(taskID) );
+            this.sendMessage(acceptMessage);
+            receivers.removeIf(i -> i==bestOffer.sender);
         }
-
-        Message acceptMessage = new Message(robotID, bestOffer.sender, "accept", Integer.toString(taskID) );
-        this.sendMessage(acceptMessage);
-
-        receivers.removeIf(i -> i==bestOffer.sender);
         if (receivers.size() > 0){
             Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));
             this.sendMessage(declineMessage);

@@ -180,6 +180,17 @@ public class MobileAgent extends AuctioneerBidderAgent{
 
     protected void startNextMissionState(){
         this.prepareNextMissionState();
+        // ======== for simulation time keepeing ========
+        if ( this.robotID == 9401 && sCurrTask == null && this.getTime() > 60.0*2 ){
+            this.sleep(15 * 1000);
+            this.prepareNextMissionState();
+            if ( sCurrTask == null ){
+                this.MissionOver.add(0, true);
+                this.sleep(10000*100);
+            }
+        }
+        // ==============================================
+
         if ( sNextMission == null ) return;
 
         double now = this.getTime();
@@ -223,14 +234,18 @@ public class MobileAgent extends AuctioneerBidderAgent{
 
     protected void prepareNextMissionState(){
         Task nextTinSchedule;
-        synchronized(this.timeSchedule){ nextTinSchedule = this.timeSchedule.getNextTask(); }
+        Pose prevToPose = null;
+        synchronized(this.timeSchedule){
+            nextTinSchedule = this.timeSchedule.getNextTask();
+            prevToPose = this.timeSchedule.getPoseAtTime(-1.0);
+        }
         if ( sNextTask != null && nextTinSchedule != null && nextTinSchedule.taskID == sNextTask.taskID ) return;
         if ( nextTinSchedule == null ) return;
         
         sNextTask = nextTinSchedule;
         double now = this.getTime();
 
-        sNextMission = this.createMission(sNextTask, sCurrTask == null ? this.initialPose : sCurrTask.toPose);
+        sNextMission = this.createMission(sNextTask, sCurrTask == null ? prevToPose : sCurrTask.toPose);
 
         PoseSteering[] path = sNextMission.getPath();
         double pathDist = this.calculatePathDist(path);
@@ -270,8 +285,9 @@ public class MobileAgent extends AuctioneerBidderAgent{
                     if (this.amountLaps >= 10) {
                         this.MissionOver.add(0, true);
                     }
-                    //this.fp.logCollectedOre(Math.abs(sCurrTask.ore));
                 }
+                sCurrMission = null;
+                sCurrTask = null;
                 this.STATE = "START_NEXT_MISSION_STATE";
                 break; 
             }

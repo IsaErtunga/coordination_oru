@@ -245,13 +245,11 @@ public class TransportTruckAgent extends MobileAgent{
         if (!bestOffer.isNull){        
             Message acceptMessage = new Message(robotID, bestOffer.sender, "accept", Integer.toString(taskID) );
             this.sendMessage(acceptMessage);
-
             receivers.removeIf(i -> i==bestOffer.sender);
-
-            if (receivers.size() > 0){
-                Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));
-                this.sendMessage(declineMessage);
-            }
+        }
+        if (receivers.size() > 0){
+            Message declineMessage = new Message(robotID, receivers, "decline", Integer.toString(taskID));
+            this.sendMessage(declineMessage);
         }
         return bestOffer;
     }
