@@ -166,33 +166,13 @@ public class StorageAgent extends BidderAgent{
 
     protected int calculateOfferTTA(Task agentTask, Message autionMessage){
         if (agentTask.pathDist < 0.5) return 0;
+        if ( Math.abs(agentTask.ore) <= 1.0 ) return 0;
 
-        double oreLevel = this.timeSchedule.getOreStateAtTime(agentTask.endTime) - this.TTAcapacity;
-        if ( oreLevel < 0.1*this.capacity ) return 0;
-
-        int oreEval = (int)this.linearDecreasingComparingFunc(oreLevel, this.capacity, this.capacity, 1000);
-       
-        this.print("-- calculateOffer: offer->"+oreEval+" with agent->"+agentTask.partner);
-        return oreEval;
+        return this.tID();
     }
 
     protected int calculateOfferTA(Task agentTask, Message autionMessage){
-        double oreLevelPercent = this.timeSchedule.getOreStateAtTime(agentTask.endTime) / this.capacity;
-
-        int oreEval = (int)this.concaveDecreasingFunc(oreLevelPercent*100.0, 1000.0, 0.0, 100.0);
-
-        int distEval = (int)this.concaveDecreasingFunc(agentTask.pathDist, 1000.0, 40.0, 300.0); 
-
-        double requestStartTime = Double.parseDouble(this.parseMessage(autionMessage, "startTime")[0]); // startTime of cnp-msg is when auctioneer wants ore
-        int timeEval = (int) (this.linearDecreasingComparingFunc(agentTask.startTime, requestStartTime, 45.0, 500.0)*this.TIME_WEIGHT);  
-        // this.print("with robot-->"+m.sender +" dist-->"+ String.format("%.2f",t.pathDist) 
-        //     +" distanceEval-->"+distEval
-        //     +"\t nearTaskT-->"+String.format("%.2f",nearTaskT) 
-        //     +" congEnval-->"+congestionEval
-        //     +",  total eval->"+(oreEval + distEval + congestionEval));
-
-        //this.print("--calcualteOFferTA: orelevel percent ->"+oreLevelPercent);
-        return (int)(oreEval*this.ORE_WEIGHT) + (int)(distEval*this.DIST_WEIGHT) + (int)(timeEval*this.TIME_WEIGHT);
+        return this.tID();
     } 
 
     @Override

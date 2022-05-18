@@ -261,6 +261,10 @@ public class TransportTruckAgent extends MobileAgent{
         while ( !this.MissionOver.get(0) ) {
             this.sleep(500);
 
+            if ( this.getTime() > 12*60 ){
+                this.MissionOver.add(0, true);
+            }
+
             double lastOreState;
             synchronized(this.timeSchedule){
                 if ( this.timeSchedule.getSize() > this.taskCap ) continue;
