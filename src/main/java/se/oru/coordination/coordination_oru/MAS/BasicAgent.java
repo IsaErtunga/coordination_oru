@@ -216,6 +216,10 @@ public class BasicAgent extends HelpFunctions{
                 this.inbox.clear();
             }
 
+            if ( this.getTime() > 12*60 ){
+                this.MissionOver.add(0, true);
+            }
+
             for (Message m : inbox_copy){
                 int taskID = this.getMessageTaskID(m);
 
