@@ -282,23 +282,9 @@ public class TransportAgent extends MobileAgent{
     protected int calculateOffer(Task t, Message m){
         if ( t.pathDist < 2.0 ) return 0;
 
-        // ore eval [1000, 0]
-        int oreEval = (int) (Math.abs(t.ore) > this.capacity-0.1 ? 1000*this.ORE_WEIGHT : this.linearDecreasingComparingFunc(Math.abs(t.ore), this.capacity, this.capacity, 500.0)*this.ORE_WEIGHT);
-        
-        // dist evaluation [1500, 0]
-        int distEval = (int) (this.concaveDecreasingFunc(t.fromPose.distanceTo(t.toPose), 1000.0, 80.0, 300.0)*this.DIST_WEIGHT); // [1500, 0]
+        if ( Math.abs(t.ore) <= 1.0 ) return 0;
 
-        // time bonus [500, 0]
-        double oreRequestTime = Double.parseDouble(this.parseMessage(m, "startTime")[0]); // startTime of cnp-msg is when auctioneer wants ore
-        int timeEval = (int) (this.linearDecreasingComparingFunc(t.endTime, oreRequestTime, 45.0, 1000.0)*this.TIME_WEIGHT);  
-        
-        this.print("with robot-->"+m.sender +"\t dist-->"+ String.format("%.2f",t.pathDist) 
-                        +"\tdistance eval-->"+distEval
-                        +"\t cnp endTime-->"+String.format("%.2f",oreRequestTime) 
-                        +"\t timeDiff-->"+String.format("%.2f",Math.abs(oreRequestTime - t.endTime )) 
-                        +"\ttime eval-->"+timeEval);
-
-        return oreEval + distEval + timeEval;
+        return (int)(this.concaveDecreasingFunc(t.pathDist, 1000.0, 40.0, 300.0)); // 1.0
     }   
 
     /* good calc func, to avoid long sleeps, little collition/deadlocks
